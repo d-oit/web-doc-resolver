@@ -1,7 +1,8 @@
 ---
 name: web-doc-resolver
 description: Resolve a query or URL into compact, LLM-ready markdown using a low-cost cascade. Prioritizes llms.txt for structured docs, uses Exa highlights for query search, falls back to Tavily, and uses Firecrawl for final extraction. Use when you need to fetch documentation, resolve web URLs to markdown, search for technical content, or build context from web sources.
-license: MIT
+license: MI
+T
 compatibility: Python 3.10+, optional env: EXA_API_KEY, TAVILY_API_KEY, FIRECRAWL_API_KEY
 metadata:
   author: Dominik Oswald
