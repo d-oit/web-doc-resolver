@@ -5,6 +5,7 @@ requests>=2.31.0
 exa-py>=1.0.0  # Exa API for highlights - free tier available
 tavily-python>=0.3.0  # Tavily search API - free tier available
 firecrawl-py>=0.0.5  # Firecrawl extraction - free tier available
+mistralai>=1.0.0  # Mistral agent-browser skill fallback - free tier available
 
 # Development dependencies
 pytest>=7.4.0
