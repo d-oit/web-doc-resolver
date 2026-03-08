@@ -1,6 +1,19 @@
+<!-- skill: web-doc-resolver v1.0.0 -->
+<!-- source: https://github.com/d-oit/web-doc-resolver/tree/v1.0.0 -->
+
 # Agent Instructions
 
 This repository contains the **web-doc-resolver** Agent Skill — a low-cost cascade resolver that fetches and resolves web documentation into compact, LLM-ready markdown.
+
+## Setup (run once)
+
+```bash
+# No-install run via uvx (recommended)
+uvx web-doc-resolver --help
+
+# Or install directly
+pip install -r requirements.txt
+```
 
 ## Repository Structure
 
@@ -9,12 +22,16 @@ web-doc-resolver/
 ├── SKILL.md              # Agent skill definition (agentskills.io format)
 ├── AGENTS.md             # This file - project-level context
 ├── README.md             # Human-readable project documentation
+├── .mcp.json             # MCP server config for Claude Code / OpenCode
 ├── scripts/
 │   └── resolve.py        # Main resolver script (async Python)
+├── references/
+│   └── CASCADE.md        # Full cascade fallback decision tree
 ├── tests/
 │   └── test_resolve.py   # Basic unit tests
 ├── .github/workflows/
-│   └── ci.yml            # CI/CD pipeline (lint, test, sample)
+│   ├── ci.yml            # CI/CD pipeline (lint, test, sample)
+│   └── release.yml       # Tag-based release + changelog automation
 ├── .gitignore            # Python gitignore
 └── LICENSE               # MIT license
 ```
@@ -48,102 +65,28 @@ python scripts/resolve.py "Rust agent frameworks"
 # Resolve a URL
 python scripts/resolve.py "https://docs.rs/tokio/latest/tokio/"
 
-# With custom options
-python scripts/resolve.py "query" \
-  --min-chars 200 \
-  --max-chars 8000 \
-  --exa-results 5 \
-  --tavily-results 3 \
-  --output-limit 10 \
-  --log-level INFO
+# With options
+python scripts/resolve.py "query" --max-chars 8000 --log-level INFO
 ```
 
-### Output
+## Environment Variables (all optional)
 
-Returns JSON array:
-```json
-[
-  {
-    "url": "https://example.com/docs",
-    "content_markdown": "# Documentation...",
-    "source": "llms_txt_doc|exa_highlights|tavily_search|firecrawl",
-    "score": 0.87
-  }
-]
-```
+| Variable | Provider | Notes |
+|---|---|---|
+| `EXA_API_KEY` | Exa | Skipped if absent |
+| `TAVILY_API_KEY` | Tavily | Skipped if absent |
+| `FIRECRAWL_API_KEY` | Firecrawl | Skipped if absent |
 
-## API Keys (All Optional)
+## Versioning
 
-Set environment variables for provider access:
+This is an [agentskills.io](https://agentskills.io) Agent Skill. Versions are Git tags.
 
 ```bash
-export EXA_API_KEY="your-key"        # For Exa search
-export TAVILY_API_KEY="your-key"     # For Tavily fallback
-export FIRECRAWL_API_KEY="your-key"  # For Firecrawl scraping
+# Use latest
+claude skills add github:d-oit/web-doc-resolver
+
+# Pin to specific version
+claude skills add github:d-oit/web-doc-resolver@v1.0.0
 ```
 
-**Important**: All API keys are optional. The script runs without them and provides placeholder results.
-
-## Testing
-
-```bash
-# Run unit tests
-python -m pytest tests/
-
-# Run with coverage
-python -m pytest --cov=scripts --cov-report=term tests/
-```
-
-## Development
-
-### Code Style
-
-- Format with `black`
-- Lint with `ruff`
-- Type check with `mypy`
-
-### CI/CD
-
-GitHub Actions runs on every push:
-- **Lint**: ruff, black, mypy
-- **Test**: pytest on Python 3.10, 3.11, 3.12
-- **Sample**: Demonstrates script runs without API keys
-
-## Cascade Strategy Details
-
-### Why This Order?
-
-1. **llms.txt first**: Sites provide structured markdown indices — use them before search
-2. **Exa highlights**: Token-efficient for agentic workflows (vs full text)
-3. **Tavily fallback**: Richer content increases cost — use only when needed
-4. **Firecrawl last**: Scraping is slowest and most expensive — final resort only
-
-### Quality Ranking
-
-Results scored by:
-- Source priority (llms_txt_doc: 1.00, firecrawl: 0.86, exa: 0.78, tavily: 0.72)
-- Markdown quality (headings, lists, code fences)
-- Content length (200-8000 chars preferred)
-- Low HTML-to-text ratio
-
-## Troubleshooting
-
-### Missing aiohttp
-```
-pip install aiohttp
-```
-
-### API Key Errors
-All keys are optional — script degrades gracefully without them.
-
-### Empty Results
-Check:
-1. Input is valid URL or query
-2. Log level: `--log-level DEBUG` for details
-3. API keys if using providers
-
-## Related Files
-
-- `SKILL.md`: Full agent skill specification
-- `README.md`: Human-readable overview
-- `scripts/resolve.py`: Implementation source code
+See [CHANGELOG](https://github.com/d-oit/web-doc-resolver/releases) for release history.
