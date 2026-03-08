@@ -6,6 +6,17 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      test_mistral:
+        description: 'Test Mistral integration'
+        required: false
+        default: 'false'
+        type: boolean
+      test_firecrawl:
+        description: 'Test Firecrawl integration'
+        required: false
+        default: 'false'
+        type: boolean
 
 jobs:
   lint:
@@ -86,3 +97,47 @@ jobs:
       - name: Test help output
         run: |
           python scripts/resolve.py --help
+
+  mistral-test:
+    name: Mistral Integration Test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && (inputs.test_mistral == true || inputs.test_mistral == 'true')
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      
+      - name: Run Mistral test
+        run: |
+          python scripts/resolve.py "https://example.com" --log-level INFO
+        env:
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+
+  firecrawl-test:
+    name: Firecrawl Integration Test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && (inputs.test_firecrawl == true || inputs.test_firecrawl == 'true')
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      
+      - name: Run Firecrawl test
+        run: |
+          python scripts/resolve.py "https://example.com" --log-level INFO
+        env:
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
