@@ -4,6 +4,11 @@ description: Resolve a query or URL into compact, LLM-ready markdown using a low
 license: MIT
 compatibility: Python 3.10+, optional env EXA_API_KEY TAVILY_API_KEY FIRECRAWL_API_KEY
 allowed-tools: Bash(python:*) Read
+metadata:
+  author: d-oit
+  version: "1.0.0"
+  source: https://github.com/d-oit/web-doc-resolver
+  changelog: https://github.com/d-oit/web-doc-resolver/releases
 ---
 
 # Web Documentation Resolver
@@ -33,6 +38,8 @@ Activate this skill when you need to:
 2. **Tavily fallback**: Calls Tavily only if Exa returns insufficient results
 3. **URL resolution**: Resolves top candidate URLs through the same URL pipeline
 4. **Firecrawl extraction**: Final fallback when URLs don't yield good markdown
+
+See [cascade details](references/CASCADE.md) for the full fallback decision tree.
 
 ## Usage
 
@@ -77,7 +84,6 @@ Returns JSON array of results:
 - OUTPUT_LIMIT: 10
 
 ### API Keys (all optional)
-
 Set environment variables for provider access:
 - `EXA_API_KEY`: For Exa search (optional, skipped if absent)
 - `TAVILY_API_KEY`: For Tavily search (optional, skipped if absent)
@@ -99,3 +105,19 @@ Results are ranked by:
 - Errors emitted as JSON to stdout
 - Logs go to stderr
 - Graceful degradation when API keys missing
+
+## Versioning
+
+This skill uses Git tags as version pins. Reference a specific version:
+```
+https://raw.githubusercontent.com/d-oit/web-doc-resolver/v1.0.0/SKILL.md
+```
+
+Install via any MCP-compatible CLI:
+```bash
+# Latest
+claude skills add github:d-oit/web-doc-resolver
+
+# Pinned to version
+claude skills add github:d-oit/web-doc-resolver@v1.0.0
+```
