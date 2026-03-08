@@ -18,6 +18,9 @@ on:
         default: 'false'
         type: boolean
 
+permissions:
+  contents: read
+
 jobs:
   lint:
     name: Lint
@@ -101,7 +104,7 @@ jobs:
   mistral-test:
     name: Mistral Integration Test
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && (inputs.test_mistral == true || inputs.test_mistral == 'true')
+    if: (github.event_name == 'workflow_dispatch' && (inputs.test_mistral == true || inputs.test_mistral == 'true')) || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     steps:
       - uses: actions/checkout@v4
       
@@ -123,7 +126,7 @@ jobs:
   firecrawl-test:
     name: Firecrawl Integration Test
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' && (inputs.test_firecrawl == true || inputs.test_firecrawl == 'true')
+    if: (github.event_name == 'workflow_dispatch' && (inputs.test_firecrawl == true || inputs.test_firecrawl == 'true')) || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     steps:
       - uses: actions/checkout@v4
       
