@@ -28,7 +28,7 @@ def main():
         "FIRECRAWL_API_KEY": os.getenv("FIRECRAWL_API_KEY"),
         "MISTRAL_API_KEY": os.getenv("MISTRAL_API_KEY"),
     }
-    
+
     for key_name, key_value in keys.items():
         status = "✓ Set" if key_value else "✗ Not set"
         print(f"{key_name}: {status}")

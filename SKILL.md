@@ -2,7 +2,7 @@
 name: web-doc-resolver
 description: Resolve a query or URL into compact, LLM-ready markdown using a low-cost cascade. Prioritizes llms.txt for structured docs, uses Exa highlights for query search, falls back to Tavily, and uses Firecrawl for final extraction. Use when you need to fetch documentation, resolve web URLs to markdown, search for technical content, or build context from web sources.
 license: MIT
-compatibility: Python 3.10+, optional env EXA_API_KEY TAVILY_API_KEY FIRECRAWL_API_KEY
+compatibility: Python 3.10+, optional env EXA_API_KEY TAVILY_API_KEY FIRECRAWL_API_KEY MISTRAL_API_KEY
 allowed-tools: Bash(python:*) Read
 metadata:
   author: d-oit
@@ -31,6 +31,7 @@ Activate this skill when you need to:
 1. **Check llms.txt first**: Probes `https://origin/llms.txt` to find site-provided structured documentation
 2. **Parse and fetch**: If llms.txt exists, fetches primary linked docs and optional docs
 3. **Fallback extraction**: If no structured docs found, uses Firecrawl to extract markdown
+4. **Mistral agent-browser**: Free fallback when Firecrawl has rate limits or insufficient credits
 
 ### For query inputs
 
@@ -38,6 +39,7 @@ Activate this skill when you need to:
 2. **Tavily fallback**: Calls Tavily only if Exa returns insufficient results
 3. **URL resolution**: Resolves top candidate URLs through the same URL pipeline
 4. **Firecrawl extraction**: Final fallback when URLs don't yield good markdown
+5. **Mistral agent-browser**: Free fallback when Firecrawl is unavailable
 
 See [cascade details](references/CASCADE.md) for the full fallback decision tree.
 
@@ -88,6 +90,7 @@ Set environment variables for provider access:
 - `EXA_API_KEY`: For Exa search (optional, skipped if absent)
 - `TAVILY_API_KEY`: For Tavily search (optional, skipped if absent)
 - `FIRECRAWL_API_KEY`: For Firecrawl extraction (optional, skipped if absent)
+- `MISTRAL_API_KEY`: For Mistral agent-browser fallback (optional, free tier available)
 
 **Important**: All API keys are optional. The script runs without them and provides placeholder results.
 
