@@ -62,6 +62,20 @@ python scripts/resolve.py "query" \
   --log-level INFO
 ```
 
+Skip specific providers (useful for testing or forcing fallback):
+```bash
+# Skip Exa MCP to test Tavily/DuckDuckGo/Mistral
+python scripts/resolve.py "query" --skip exa_mcp --skip exa
+
+# Use only Mistral
+python scripts/resolve.py "query" --skip exa_mcp --skip exa --skip tavily --skip duckduckgo
+
+# Use only DuckDuckGo
+python scripts/resolve.py "query" --skip exa_mcp --skip exa --skip tavily --skip mistral
+```
+
+Available skip options: `exa_mcp`, `exa`, `tavily`, `duckduckgo`, `mistral`
+
 ## Output format
 
 Returns JSON array of results:

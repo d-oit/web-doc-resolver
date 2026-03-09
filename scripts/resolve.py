@@ -1165,17 +1165,17 @@ def resolve_with_mistral_websearch(query: str, max_chars: int = MAX_CHARS) -> Op
         client = Mistral(api_key=api_key)
         logger.info(f"Using Mistral web search for: {query}")
 
-        # Use Mistral's web search capability
-        response = client.beta.conversations.start(
+        # Use Mistral's chat API - the model will use its built-in web search capability
+        response = client.chat.complete(
+            model="mistral-large-latest",
             messages=[{
                 "role": "user",
-                "content": f"Search for: {query}. Provide comprehensive results with sources."
+                "content": f"Search the web for: {query}. Provide comprehensive results with sources and URLs. Format the response as markdown with clear sections."
             }],
-            tools=[{"type": "web_search"}],
         )
 
-        if response and hasattr(response, 'outputs') and response.outputs:
-            content = response.outputs[0].content if response.outputs[0] else ""
+        if response and response.choices and len(response.choices) > 0:
+            content = response.choices[0].message.content or ""
         else:
             content = ""
 
@@ -1260,36 +1260,49 @@ def resolve_url(url: str, max_chars: int = MAX_CHARS) -> Dict[str, Any]:
     }
 
 
-def resolve_query(query: str, max_chars: int = MAX_CHARS) -> Dict[str, Any]:
+def resolve_query(query: str, max_chars: int = MAX_CHARS, skip_providers: Optional[Set[str]] = None) -> Dict[str, Any]:
     """
     Resolve a search query using the cascade: Exa MCP (free) → Exa SDK → Tavily → DuckDuckGo → Mistral websearch.
+    
+    Args:
+        query: Search query string
+        max_chars: Maximum characters in output
+        skip_providers: Set of provider names to skip (e.g., {'exa_mcp', 'exa', 'tavily'})
     """
+    skip_providers = skip_providers or set()
     logger.info(f"Resolving query: {query}")
+    if skip_providers:
+        logger.info(f"Skipping providers: {', '.join(skip_providers)}")
     
     # Step 1: Try Exa MCP (FREE, no API key required)
-    exa_mcp_result = resolve_with_exa_mcp(query, max_chars)
-    if exa_mcp_result:
-        return exa_mcp_result.to_dict()
+    if 'exa_mcp' not in skip_providers:
+        exa_mcp_result = resolve_with_exa_mcp(query, max_chars)
+        if exa_mcp_result:
+            return exa_mcp_result.to_dict()
 
     # Step 2: Try Exa SDK (if API key available)
-    exa_result = resolve_with_exa(query, max_chars)
-    if exa_result:
-        return exa_result.to_dict()
+    if 'exa' not in skip_providers:
+        exa_result = resolve_with_exa(query, max_chars)
+        if exa_result:
+            return exa_result.to_dict()
 
     # Step 3: Try Tavily (if API key available)
-    tavily_result = resolve_with_tavily(query, max_chars)
-    if tavily_result:
-        return tavily_result.to_dict()
+    if 'tavily' not in skip_providers:
+        tavily_result = resolve_with_tavily(query, max_chars)
+        if tavily_result:
+            return tavily_result.to_dict()
 
     # Step 4: DuckDuckGo (always available, no API key required)
-    ddg_result = resolve_with_duckduckgo(query, max_chars)
-    if ddg_result:
-        return ddg_result.to_dict()
+    if 'duckduckgo' not in skip_providers:
+        ddg_result = resolve_with_duckduckgo(query, max_chars)
+        if ddg_result:
+            return ddg_result.to_dict()
 
     # Step 5: Try Mistral websearch (if API key available)
-    mistral_result = resolve_with_mistral_websearch(query, max_chars)
-    if mistral_result:
-        return mistral_result.to_dict()
+    if 'mistral' not in skip_providers:
+        mistral_result = resolve_with_mistral_websearch(query, max_chars)
+        if mistral_result:
+            return mistral_result.to_dict()
 
     # All methods failed
     return {
@@ -1301,17 +1314,22 @@ def resolve_query(query: str, max_chars: int = MAX_CHARS) -> Dict[str, Any]:
     }
 
 
-def resolve(input_str: str, max_chars: int = MAX_CHARS) -> Dict[str, Any]:
+def resolve(input_str: str, max_chars: int = MAX_CHARS, skip_providers: Optional[Set[str]] = None) -> Dict[str, Any]:
     """
     Main entry point - resolve a URL or query into LLM-ready markdown.
     
     Automatically detects if input is a URL or search query and uses
     the appropriate resolution cascade.
+    
+    Args:
+        input_str: URL or search query to resolve
+        max_chars: Maximum characters in output
+        skip_providers: Set of provider names to skip (e.g., {'exa_mcp', 'exa', 'tavily'})
     """
     if is_url(input_str):
         return resolve_url(input_str, max_chars)
     else:
-        return resolve_query(input_str, max_chars)
+        return resolve_query(input_str, max_chars, skip_providers)
 
 
 def main():
@@ -1334,6 +1352,12 @@ def main():
     )
     parser.add_argument("--json", action="store_true", help="Output as JSON")
     parser.add_argument("--validate-links", action="store_true", help="Validate all returned links")
+    parser.add_argument(
+        "--skip",
+        action="append",
+        choices=["exa_mcp", "exa", "tavily", "duckduckgo", "mistral"],
+        help="Skip specific providers (can be used multiple times). Options: exa_mcp, exa, tavily, duckduckgo, mistral",
+    )
 
     args = parser.parse_args()
 
@@ -1345,10 +1369,12 @@ def main():
     if not args.input:
         parser.error("Provide input argument or use - for stdin")
 
+    skip_providers = set(args.skip) if args.skip else None
+
     if args.input == "-":
         inputs = [line.strip() for line in sys.stdin if line.strip()]
         for i, inp in enumerate(inputs):
-            result = resolve(inp, args.max_chars)
+            result = resolve(inp, args.max_chars, skip_providers)
             if args.json:
                 print(json.dumps(result, indent=2))
             else:
@@ -1360,7 +1386,7 @@ def main():
             if i < len(inputs) - 1:
                 print("\n" + "=" * 40 + "\n")
     else:
-        result = resolve(args.input, args.max_chars)
+        result = resolve(args.input, args.max_chars, skip_providers)
 
         if args.json:
             print(json.dumps(result, indent=2))
