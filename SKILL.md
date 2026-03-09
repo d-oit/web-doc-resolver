@@ -1,12 +1,12 @@
 ---
 name: web-doc-resolver
-description: Resolve a query or URL into compact, LLM-ready markdown using a low-cost cascade. Prioritizes llms.txt for structured docs, uses Exa highlights for query search, falls back to Tavily, and uses Firecrawl for final extraction. Use when you need to fetch documentation, resolve web URLs to markdown, search for technical content, or build context from web sources.
+description: Resolve a query or URL into compact, LLM-ready markdown using a low-cost cascade. Prioritizes llms.txt for structured docs, uses Exa MCP (free) for query search, falls back to Tavily/DuckDuckGo, and uses Firecrawl for final extraction. Use when you need to fetch documentation, resolve web URLs to markdown, search for technical content, or build context from web sources.
 license: MIT
 compatibility: Python 3.10+, optional env EXA_API_KEY TAVILY_API_KEY FIRECRAWL_API_KEY MISTRAL_API_KEY
 allowed-tools: Bash(python:*) Read
 metadata:
   author: d-oit
-  version: "1.0.0"
+  version: "1.2.0"
   source: https://github.com/d-oit/web-doc-resolver
   changelog: https://github.com/d-oit/web-doc-resolver/releases
 ---
@@ -22,7 +22,7 @@ Activate this skill when you need to:
 - Search for technical information across the web
 - Build context from web sources
 - Extract markdown from websites
-- Query documentation APIs (Exa, Tavily, Firecrawl)
+- Query documentation APIs (Exa MCP, Exa SDK, Tavily, Firecrawl)
 
 ## How it works
 
@@ -35,11 +35,11 @@ Activate this skill when you need to:
 
 ### For query inputs
 
-1. **Exa search**: Uses Exa API with compact highlights for token-efficient results
-2. **Tavily fallback**: Calls Tavily only if Exa returns insufficient results
-3. **URL resolution**: Resolves top candidate URLs through the same URL pipeline
-4. **Firecrawl extraction**: Final fallback when URLs don't yield good markdown
-5. **Mistral agent-browser**: Free fallback when Firecrawl is unavailable
+1. **Exa MCP search**: FREE - no API key required, uses Model Context Protocol at https://mcp.exa.ai/mcp
+2. **Exa SDK fallback**: Uses Exa API with compact highlights (if EXA_API_KEY is set)
+3. **Tavily fallback**: Calls Tavily only if Exa returns insufficient results
+4. **DuckDuckGo fallback**: FREE - no API key required, always available
+5. **Mistral fallback**: AI-powered search when other methods fail
 
 See [cascade details](references/CASCADE.md) for the full fallback decision tree.
 
@@ -70,7 +70,7 @@ Returns JSON array of results:
   {
     "url": "https://example.com/docs/page",
     "content_markdown": "# Clean content...",
-    "source": "llms_txt_doc|exa_highlights|tavily_search|firecrawl",
+    "source": "llms_txt_doc|exa_mcp|exa_highlights|tavily_search|firecrawl",
     "score": 0.87
   }
 ]
@@ -87,12 +87,12 @@ Returns JSON array of results:
 
 ### API Keys (all optional)
 Set environment variables for provider access:
-- `EXA_API_KEY`: For Exa search (optional, skipped if absent)
+- `EXA_API_KEY`: For Exa SDK search (optional, Exa MCP is free and used first)
 - `TAVILY_API_KEY`: For Tavily search (optional, skipped if absent)
 - `FIRECRAWL_API_KEY`: For Firecrawl extraction (optional, skipped if absent)
 - `MISTRAL_API_KEY`: For Mistral agent-browser fallback (optional, free tier available)
 
-**Important**: All API keys are optional. The script runs without them and provides placeholder results.
+**Important**: All API keys are optional. Exa MCP and DuckDuckGo provide free search without any API key.
 
 ## Quality ranking
 
@@ -108,19 +108,3 @@ Results are ranked by:
 - Errors emitted as JSON to stdout
 - Logs go to stderr
 - Graceful degradation when API keys missing
-
-## Versioning
-
-This skill uses Git tags as version pins. Reference a specific version:
-```
-https://raw.githubusercontent.com/d-oit/web-doc-resolver/v1.0.0/SKILL.md
-```
-
-Install via any MCP-compatible CLI:
-```bash
-# Latest
-claude skills add github:d-oit/web-doc-resolver
-
-# Pinned to version
-claude skills add github:d-oit/web-doc-resolver@v1.0.0
-```
