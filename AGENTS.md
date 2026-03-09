@@ -1,5 +1,5 @@
-<!-- skill: web-doc-resolver v1.2.0 -->
-<!-- source: https://github.com/d-oit/web-doc-resolver/tree/v1.2.0 -->
+<!-- skill: web-doc-resolver v1.3.0 -->
+<!-- source: https://github.com/d-oit/web-doc-resolver/tree/v1.3.0 -->
 
 # Agent Instructions
 
@@ -53,16 +53,20 @@ web-doc-resolver/
 
 The resolver uses a **cascade strategy** to minimize API calls and token usage:
 
-1. **For URLs**: Probes `llms.txt` first → falls back to Firecrawl → Direct fetch → Mistral fallback
-2. **For queries**: Uses **Exa MCP (FREE)** first → Exa SDK → Tavily → DuckDuckGo (free) → Mistral fallback
+### URL Resolution Cascade
+1. **llms.txt** (cached per origin, 1-hour TTL) - FREE
+2. **Jina Reader** (r.jina.ai) - FREE, no API key
+3. **Firecrawl** - deep extraction (requires API key)
+4. **Direct HTTP fetch** - FREE
+5. **Mistral browser** - AI-powered fallback
+6. **DuckDuckGo search** - FREE fallback
 
-This approach:
-- **Exa MCP is now primary**: Free search via Model Context Protocol (no API key!)
-- Prioritizes site-provided structured docs (llms.txt)
-- Uses Exa highlights for token-efficient search
-- Calls Tavily only when Exa returns insufficient results
-- Falls back to DuckDuckGo (completely free, no API key needed)
-- Uses Mistral as final AI-powered fallback
+### Query Resolution Cascade
+1. **Exa MCP** - FREE via Model Context Protocol (no API key!)
+2. **Exa SDK** - token-efficient highlights (optional API key)
+3. **Tavily** - comprehensive search (optional API key)
+4. **DuckDuckGo** - FREE, always available
+5. **Mistral websearch** - AI-powered fallback
 
 ## Running the Script
 
@@ -84,6 +88,40 @@ python scripts/resolve.py "https://docs.rs/tokio/latest/tokio/"
 python scripts/resolve.py "query" --max-chars 8000 --log-level INFO --json
 ```
 
+### Use a Specific Provider Directly
+
+Bypass the cascade and use a single provider:
+
+```bash
+# Use Jina Reader directly for a URL
+python scripts/resolve.py "https://example.com" --provider jina
+
+# Use Exa MCP directly for a query
+python scripts/resolve.py "python tutorials" --provider exa_mcp
+
+# Use DuckDuckGo directly
+python scripts/resolve.py "latest news" --provider duckduckgo
+```
+
+Available providers:
+- **URL providers**: `llms_txt`, `jina`, `firecrawl`, `direct_fetch`, `mistral_browser`, `duckduckgo`
+- **Query providers**: `exa_mcp`, `exa`, `tavily`, `duckduckgo`, `mistral_websearch`
+
+### Custom Provider Order
+
+Override the default cascade with your own order:
+
+```bash
+# Use only free providers for URLs (no API keys needed)
+python scripts/resolve.py "https://example.com" --providers-order "llms_txt,jina,direct_fetch"
+
+# Use only free providers for queries
+python scripts/resolve.py "python tutorials" --providers-order "exa_mcp,duckduckgo"
+
+# Prefer Jina over Firecrawl
+python scripts/resolve.py "https://docs.example.com" --providers-order "llms_txt,jina,direct_fetch,duckduckgo"
+```
+
 ### Skip Specific Providers
 
 ```bash
@@ -97,6 +135,38 @@ python scripts/resolve.py "query" --skip exa_mcp --skip exa --skip tavily --skip
 python scripts/resolve.py "query" --skip exa_mcp --skip exa --skip tavily --skip mistral
 ```
 
+### Python API
+
+```python
+from scripts.resolve import (
+    resolve,
+    resolve_direct,
+    resolve_with_order,
+    ProviderType,
+    DEFAULT_URL_PROVIDERS,
+    DEFAULT_QUERY_PROVIDERS,
+)
+
+# Default cascade
+result = resolve("https://example.com")
+
+# Use a specific provider directly
+result = resolve_direct("https://example.com", ProviderType.JINA)
+result = resolve_direct("python tutorials", ProviderType.EXA_MCP)
+
+# Custom provider order
+result = resolve_with_order(
+    "https://example.com",
+    [ProviderType.LLMS_TXT, ProviderType.JINA, ProviderType.DIRECT_FETCH]
+)
+
+# Use only free providers for queries
+result = resolve_with_order(
+    "python tutorials",
+    [ProviderType.EXA_MCP, ProviderType.DUCKDUCKGO]
+)
+```
+
 ## Environment Variables (all optional)
 
 | Variable | Provider | Notes |
@@ -106,7 +176,7 @@ python scripts/resolve.py "query" --skip exa_mcp --skip exa --skip tavily --skip
 | `FIRECRAWL_API_KEY` | Firecrawl | Optional - deep extraction |
 | `MISTRAL_API_KEY` | Mistral | Optional - AI-powered fallback |
 
-**Note**: Exa MCP and DuckDuckGo are always available as free fallbacks (no API key required).
+**Note**: Exa MCP, Jina Reader, and DuckDuckGo are always available as free fallbacks (no API key required).
 
 ## Versioning
 

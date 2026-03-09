@@ -123,6 +123,53 @@ result = resolve("query", skip_providers={"exa_mcp", "exa"})
 result = resolve("query", skip_providers={"exa_mcp", "exa", "tavily", "duckduckgo"})
 ```
 
+### Use a Specific Provider Directly
+
+Bypass the cascade and use a single provider:
+
+```python
+from scripts.resolve import resolve_direct, ProviderType
+
+# Use Jina Reader directly for a URL
+result = resolve_direct("https://example.com", ProviderType.JINA)
+
+# Use Exa MCP directly for a query
+result = resolve_direct("python tutorials", ProviderType.EXA_MCP)
+
+# Use DuckDuckGo directly
+result = resolve_direct("latest news", ProviderType.DUCKDUCKGO)
+```
+
+Available providers:
+- **URL providers**: `llms_txt`, `jina`, `firecrawl`, `direct_fetch`, `mistral_browser`, `duckduckgo`
+- **Query providers**: `exa_mcp`, `exa`, `tavily`, `duckduckgo`, `mistral_websearch`
+
+### Custom Provider Order
+
+Override the default cascade with your own order:
+
+```python
+from scripts.resolve import resolve_with_order, ProviderType
+
+# Use only free providers for URLs (no API keys needed)
+result = resolve_with_order(
+    "https://example.com",
+    [ProviderType.LLMS_TXT, ProviderType.JINA, ProviderType.DIRECT_FETCH]
+)
+
+# Use only free providers for queries
+result = resolve_with_order(
+    "python tutorials",
+    [ProviderType.EXA_MCP, ProviderType.DUCKDUCKGO]
+)
+
+# Prefer Jina over Firecrawl for URLs
+result = resolve_with_order(
+    "https://docs.example.com",
+    [ProviderType.LLMS_TXT, ProviderType.JINA, ProviderType.DIRECT_FETCH, ProviderType.DUCKDUCKGO]
+)
+```
+
 ### Command Line
 
 ```bash
@@ -145,6 +192,14 @@ python scripts/resolve.py "query" --skip exa_mcp --skip exa
 python scripts/resolve.py "query" \
   --skip exa_mcp --skip exa --skip tavily --skip duckduckgo \
   --log-level INFO --json
+
+# Use a specific provider directly
+python scripts/resolve.py "https://example.com" --provider jina
+python scripts/resolve.py "python tutorials" --provider exa_mcp
+
+# Use a custom provider order
+python scripts/resolve.py "https://example.com" --providers-order "llms_txt,jina,direct_fetch"
+python scripts/resolve.py "python tutorials" --providers-order "exa_mcp,duckduckgo"
 ```
 
 ## How It Works
@@ -156,16 +211,16 @@ Query Input
     │
     ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 1. Exa MCP Search (FREE - no API key required!)            │
+│ 1. Exa MCP Search (FREE - no API key required!)             │
 │    - Uses Model Context Protocol at https://mcp.exa.ai/mcp  │
 │    - JSON-RPC 2.0 over HTTP POST                            │
-│    - Rate limit handling: 30s cooldown                       │
+│    - Rate limit handling: 30s cooldown                      │
 │    - On error: continue to next provider                    │
 └─────────────────────────────────────────────────────────────┘
     │ (fail)
     ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 2. Exa SDK Search (if EXA_API_KEY set)                     │
+│ 2. Exa SDK Search (if EXA_API_KEY set)                      │
 │    - Uses highlights for token-efficient results            │
 │    - Rate limit handling: 60s cooldown                      │
 │    - On error: continue to next provider                    │
@@ -173,7 +228,7 @@ Query Input
     │ (fail/unavailable)
     ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 3. Tavily Search (if TAVILY_API_KEY set)                   │
+│ 3. Tavily Search (if TAVILY_API_KEY set)                    │
 │    - Comprehensive search results                           │
 │    - Rate limit handling: 60s cooldown                      │
 │    - On error: continue to next provider                    │
@@ -181,8 +236,8 @@ Query Input
     │ (fail/unavailable)
     ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 4. DuckDuckGo Search (FREE - no API key required!)         │
-│    - Completely free, no authentication needed               │
+│ 4. DuckDuckGo Search (FREE - no API key required!)          │
+│    - Completely free, no authentication needed              │
 │    - Rate limit handling: 30s cooldown                      │
 │    - Always available as fallback                           │
 └─────────────────────────────────────────────────────────────┘
@@ -211,14 +266,23 @@ URL Input
     ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 1. Check for llms.txt                                       │
-│    - Probe: https://origin/llms.txt                        │
+│    - Probe: https://origin/llms.txt                         │
 │    - If found: return structured documentation              │
 │    - FREE - no API key required                             │
+│    - Cached per origin (1-hour TTL)                         │
 └─────────────────────────────────────────────────────────────┘
     │ (not found)
     ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 2. Firecrawl Extraction (if FIRECRAWL_API_KEY set)        │
+│ 2. Jina Reader (FREE - https://r.jina.ai/<url>)             │
+│    - No API key required, 20 RPM free tier                  │
+│    - Returns clean markdown for any public URL              │
+│    - Rate limit handling: 60s cooldown                      │
+└─────────────────────────────────────────────────────────────┘
+    │ (fail)
+    ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 3. Firecrawl Extraction (if FIRECRAWL_API_KEY set)          │
 │    - Deep content extraction with markdown output           │
 │    - Rate limit handling: 60s cooldown                      │
 │    - On rate limit/quota: fallback to next provider         │
@@ -227,31 +291,31 @@ URL Input
     │ (fail/unavailable)
     ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 3. Direct HTTP Fetch                                        │
+│ 4. Direct HTTP Fetch                                        │
 │    - Basic content extraction from HTML                     │
 │    - FREE - no API key required                             │
 └─────────────────────────────────────────────────────────────┘
     │ (fail)
     ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 4. Mistral Browser (if MISTRAL_API_KEY set)               │
+│ 5. Mistral Browser (if MISTRAL_API_KEY set)                 │
 │    - Uses Mistral agent with web browsing capability        │
-│    - Free tier available                                     │
+│    - Free tier available                                    │
 │    - Rate limit handling: 60s cooldown                      │
 └─────────────────────────────────────────────────────────────┘
     │ (fail/unavailable)
     ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 5. DuckDuckGo Search (fallback)                            │
+│ 6. DuckDuckGo Search (fallback)                             │
 │    - Search for the URL as a query                          │
 │    - FREE - no API key required                             │
 └─────────────────────────────────────────────────────────────┘
     │ (fail)
     ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 6. Return Error                                             │
+│ 7. Return Error                                             │
 │    - source: "none"                                         │
-│    - error: "No resolution method available"               │
+│    - error: "No resolution method available"                │
 └─────────────────────────────────────────────────────────────┘
 ```
 

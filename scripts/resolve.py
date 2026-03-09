@@ -10,8 +10,8 @@ A comprehensive web research tool with:
 - Real-time web search and content extraction
 - SSRF protection and content size limits
 
-Cascade order for queries: Exa → Tavily → DuckDuckGo → Mistral
-Cascade order for URLs: llms.txt → Firecrawl → Direct HTTP fetch → Mistral browser → DuckDuckGo
+Cascade order for queries: Exa MCP → Exa SDK → Tavily → DuckDuckGo → Mistral
+Cascade order for URLs: llms.txt (cached) → Jina Reader (free) → Firecrawl → Direct HTTP fetch → Mistral browser → DuckDuckGo
 """
 
 import argparse
@@ -74,6 +74,34 @@ BLOCKED_SCHEMES: set[str] = {"file", "javascript", "data", "vbscript"}
 # Rate limit tracking
 _rate_limits: dict[str, float] = {}
 
+RATE_LIMIT_FILE = os.path.join(CACHE_DIR, "rate_limits.json")
+
+
+def _load_rate_limits() -> dict[str, float]:
+    """Load persisted rate-limit state from disk."""
+    try:
+        if os.path.exists(RATE_LIMIT_FILE):
+            with open(RATE_LIMIT_FILE) as f:
+                data = json.load(f)
+                return {k: float(v) for k, v in data.items()}
+    except Exception:
+        pass
+    return {}
+
+
+def _save_rate_limits() -> None:
+    """Persist rate-limit state to disk so re-invoked processes respect cooldowns."""
+    try:
+        os.makedirs(CACHE_DIR, exist_ok=True)
+        with open(RATE_LIMIT_FILE, "w") as f:
+            json.dump(_rate_limits, f)
+    except Exception:
+        pass
+
+
+# Initialise from disk on import
+_rate_limits.update(_load_rate_limits())
+
 # Global session for connection pooling
 _global_session: requests.Session | None = None
 
@@ -82,14 +110,22 @@ __all__ = [
     "resolve",
     "resolve_url",
     "resolve_query",
+    "resolve_direct",
+    "resolve_with_order",
+    "resolve_url_with_order",
+    "resolve_query_with_order",
     "ResolvedResult",
     "ValidationResult",
     "ErrorType",
+    "ProviderType",
+    "DEFAULT_URL_PROVIDERS",
+    "DEFAULT_QUERY_PROVIDERS",
     "is_url",
     "validate_url",
     "validate_links",
     "fetch_url_content",
     "fetch_llms_txt",
+    "resolve_with_jina",
     "resolve_with_exa_mcp",
     "resolve_with_exa",
     "resolve_with_tavily",
@@ -117,6 +153,43 @@ class ErrorType(Enum):
     SSRF_BLOCKED = "ssrf_blocked"
     CONTENT_TOO_LARGE = "content_too_large"
     UNKNOWN = "unknown"
+
+
+class ProviderType(Enum):
+    """Available providers for resolution."""
+
+    # URL providers
+    LLMS_TXT = "llms_txt"
+    JINA = "jina"
+    FIRECRAWL = "firecrawl"
+    DIRECT_FETCH = "direct_fetch"
+    MISTRAL_BROWSER = "mistral_browser"
+
+    # Query providers
+    EXA_MCP = "exa_mcp"
+    EXA = "exa"
+    TAVILY = "tavily"
+    DUCKDUCKGO = "duckduckgo"
+    MISTRAL_WEBSEARCH = "mistral_websearch"
+
+
+# Default provider orders
+DEFAULT_URL_PROVIDERS: list[ProviderType] = [
+    ProviderType.LLMS_TXT,
+    ProviderType.JINA,
+    ProviderType.FIRECRAWL,
+    ProviderType.DIRECT_FETCH,
+    ProviderType.MISTRAL_BROWSER,
+    ProviderType.DUCKDUCKGO,
+]
+
+DEFAULT_QUERY_PROVIDERS: list[ProviderType] = [
+    ProviderType.EXA_MCP,
+    ProviderType.EXA,
+    ProviderType.TAVILY,
+    ProviderType.DUCKDUCKGO,
+    ProviderType.MISTRAL_WEBSEARCH,
+]
 
 
 @dataclass
@@ -292,6 +365,7 @@ def _set_rate_limit(provider: str, cooldown: int = 60) -> None:
     """Set a rate limit cooldown for a provider."""
     _rate_limits[provider] = time.time() + cooldown
     logger.warning(f"Rate limit set for {provider}, cooldown: {cooldown}s")
+    _save_rate_limits()
 
 
 def _detect_error_type(error: Exception) -> ErrorType:
@@ -393,14 +467,14 @@ def _get_from_cache(input_str: str, source: str) -> dict[str, Any] | None:
     return None
 
 
-def _save_to_cache(input_str: str, source: str, result: dict[str, Any]):
+def _save_to_cache(input_str: str, source: str, result: dict[str, Any], ttl: int | None = None):
     """Save result to cache."""
     cache = _get_cache()
     if not cache:
         return
     try:
         key = _cache_key(input_str, source)
-        cache.set(key, result, expire=CACHE_TTL)
+        cache.set(key, result, expire=ttl if ttl is not None else CACHE_TTL)
     except Exception as e:
         logger.debug(f"Cache write error: {e}")
 
@@ -653,25 +727,38 @@ def fetch_url_content(
 def fetch_llms_txt(url: str) -> str | None:
     """
     Check for llms.txt file at the site root.
-
-    llms.txt is a proposed standard for LLM-readable documentation.
+    Results are cached per origin domain with a 1-hour TTL to avoid
+    probing the same domain on every call.
     """
     try:
         parsed = urlparse(url)
         base_url = f"{parsed.scheme}://{parsed.netloc}"
         llms_url = f"{base_url}/llms.txt"
 
-        logger.info(f"Checking for llms.txt at {llms_url}")
+        # Check cache first (keyed by origin, not full URL)
+        cached = _get_from_cache(base_url, "llms_txt")
+        if cached is not None:
+            # cached can be {"found": False} or {"found": True, "content": "..."}
+            if cached.get("found"):
+                logger.debug(f"llms.txt cache hit for {base_url}")
+                return str(cached.get("content", ""))
+            else:
+                logger.debug(f"llms.txt known-missing for {base_url}, skipping probe")
+                return None
 
+        logger.info(f"Checking for llms.txt at {llms_url}")
         session = get_session()
         response = session.get(llms_url, timeout=10, allow_redirects=True)
-        # session is managed globally
 
         if response.status_code == 200:
             content_type = response.headers.get("Content-Type", "")
             if "text" in content_type or "markdown" in content_type:
                 logger.info(f"Found llms.txt at {llms_url}")
+                _save_to_cache(base_url, "llms_txt", {"found": True, "content": response.text}, ttl=3600)
                 return response.text
+
+        # Cache the miss so we don't probe again for 1 hour
+        _save_to_cache(base_url, "llms_txt", {"found": False}, ttl=3600)
     except Exception as e:
         logger.debug(f"No llms.txt found: {e}")
     return None
@@ -680,6 +767,60 @@ def fetch_llms_txt(url: str) -> str | None:
 # ============================================================================
 # Provider Implementations
 # ============================================================================
+
+
+def resolve_with_jina(url: str, max_chars: int = MAX_CHARS) -> ResolvedResult | None:
+    """
+    Extract content from a URL using Jina Reader (r.jina.ai).
+    Completely FREE - no API key required, 20 RPM without key.
+    Returns clean markdown output.
+    """
+    cached = _get_from_cache(url, "jina")
+    if cached:
+        return ResolvedResult(**cached)
+
+    if _is_rate_limited("jina"):
+        logger.warning("Jina Reader is rate-limited, skipping")
+        return None
+
+    try:
+        jina_url = f"https://r.jina.ai/{url}"
+        logger.info(f"Using Jina Reader to extract: {url}")
+        session = get_session()
+        response = session.get(
+            jina_url,
+            timeout=DEFAULT_TIMEOUT,
+            headers={"Accept": "text/markdown"},
+        )
+
+        if response.status_code == 429:
+            logger.warning("Jina Reader rate limit hit")
+            _set_rate_limit("jina", cooldown=60)
+            return None
+
+        if response.status_code != 200:
+            logger.warning(f"Jina Reader returned status {response.status_code}")
+            return None
+
+        content = response.text.strip()
+        if not content or len(content) < MIN_CHARS:
+            return None
+
+        result = ResolvedResult(
+            source="jina",
+            content=content[:max_chars],
+            url=url,
+        )
+        _save_to_cache(url, "jina", result.to_dict())
+        return result
+
+    except requests.exceptions.Timeout:
+        logger.warning("Jina Reader request timed out")
+        _set_rate_limit("jina", cooldown=30)
+        return None
+    except Exception as e:
+        logger.error(f"Jina Reader failed: {e}")
+        return None
 
 
 def resolve_with_exa_mcp(
@@ -1259,7 +1400,7 @@ def resolve_with_mistral_websearch(query: str, max_chars: int = MAX_CHARS) -> Re
 
 def resolve_url(url: str, max_chars: int = MAX_CHARS) -> dict[str, Any]:
     """
-    Resolve a URL using the cascade: llms.txt → Firecrawl → Direct fetch → Mistral browser → DuckDuckGo search.
+    Resolve a URL using the cascade: llms.txt → Jina Reader → Firecrawl → Direct fetch → Mistral browser → DuckDuckGo search.
     """
     logger.info(f"Resolving URL: {url}")
 
@@ -1273,22 +1414,27 @@ def resolve_url(url: str, max_chars: int = MAX_CHARS) -> dict[str, Any]:
             "validated_links": [],
         }
 
-    # Step 2: Try Firecrawl (if API key available)
+    # Step 2: Try Jina Reader (FREE, no API key required)
+    jina_result = resolve_with_jina(url, max_chars)
+    if jina_result:
+        return jina_result.to_dict()
+
+    # Step 3: Try Firecrawl (if API key available)
     firecrawl_result = resolve_with_firecrawl(url, max_chars)
     if firecrawl_result:
         return firecrawl_result.to_dict()
 
-    # Step 3: Try direct HTTP fetch
+    # Step 4: Try direct HTTP fetch
     direct_result = fetch_url_content(url, max_chars=max_chars)
     if direct_result:
         return direct_result.to_dict()
 
-    # Step 4: Try Mistral browser (if API key available)
+    # Step 5: Try Mistral browser (if API key available)
     mistral_result = resolve_with_mistral_browser(url, max_chars)
     if mistral_result:
         return mistral_result.to_dict()
 
-    # Step 5: Fall back to DuckDuckGo search for the URL
+    # Step 6: Fall back to DuckDuckGo search for the URL
     ddg_result = resolve_with_duckduckgo(url, max_chars)
     if ddg_result:
         return ddg_result.to_dict()
@@ -1379,6 +1525,311 @@ def resolve(
         return resolve_query(input_str, max_chars, skip_providers)
 
 
+def resolve_direct(
+    input_str: str,
+    provider: ProviderType,
+    max_chars: int = MAX_CHARS,
+) -> dict[str, Any]:
+    """
+    Resolve a URL or query using a specific provider directly.
+
+    Bypasses the cascade and uses only the specified provider.
+    Useful when you know exactly which service you want to use.
+
+    Args:
+        input_str: URL or search query to resolve
+        provider: Specific provider to use (ProviderType enum)
+        max_chars: Maximum characters in output
+
+    Returns:
+        Resolution result dict with 'source', 'content', etc.
+
+    Example:
+        >>> from scripts.resolve import resolve_direct, ProviderType
+        >>> result = resolve_direct("https://example.com", ProviderType.JINA)
+        >>> result = resolve_direct("python tutorials", ProviderType.EXA_MCP)
+    """
+    logger.info(f"Resolving with direct provider: {provider.value}")
+
+    # URL providers
+    if provider == ProviderType.LLMS_TXT:
+        if not is_url(input_str):
+            return {
+                "source": "none",
+                "error": "llms_txt provider requires a URL input",
+                "content": "",
+                "validated_links": [],
+            }
+        llms_content = fetch_llms_txt(input_str)
+        if llms_content:
+            return {
+                "source": "llms.txt",
+                "url": input_str,
+                "content": llms_content[:max_chars],
+                "validated_links": [],
+            }
+        return {
+            "source": "none",
+            "url": input_str,
+            "error": "No llms.txt found at origin",
+            "content": "",
+            "validated_links": [],
+        }
+
+    elif provider == ProviderType.JINA:
+        if not is_url(input_str):
+            return {
+                "source": "none",
+                "error": "jina provider requires a URL input",
+                "content": "",
+                "validated_links": [],
+            }
+        result = resolve_with_jina(input_str, max_chars)
+        if result:
+            return result.to_dict()
+        return {
+            "source": "none",
+            "url": input_str,
+            "error": "Jina Reader failed to extract content",
+            "content": "",
+            "validated_links": [],
+        }
+
+    elif provider == ProviderType.FIRECRAWL:
+        if not is_url(input_str):
+            return {
+                "source": "none",
+                "error": "firecrawl provider requires a URL input",
+                "content": "",
+                "validated_links": [],
+            }
+        result = resolve_with_firecrawl(input_str, max_chars)
+        if result:
+            return result.to_dict()
+        return {
+            "source": "none",
+            "url": input_str,
+            "error": "Firecrawl failed or API key not set",
+            "content": "",
+            "validated_links": [],
+        }
+
+    elif provider == ProviderType.DIRECT_FETCH:
+        if not is_url(input_str):
+            return {
+                "source": "none",
+                "error": "direct_fetch provider requires a URL input",
+                "content": "",
+                "validated_links": [],
+            }
+        result = fetch_url_content(input_str, max_chars=max_chars)
+        if result:
+            return result.to_dict()
+        return {
+            "source": "none",
+            "url": input_str,
+            "error": "Direct HTTP fetch failed",
+            "content": "",
+            "validated_links": [],
+        }
+
+    elif provider == ProviderType.MISTRAL_BROWSER:
+        if not is_url(input_str):
+            return {
+                "source": "none",
+                "error": "mistral_browser provider requires a URL input",
+                "content": "",
+                "validated_links": [],
+            }
+        result = resolve_with_mistral_browser(input_str, max_chars)
+        if result:
+            return result.to_dict()
+        return {
+            "source": "none",
+            "url": input_str,
+            "error": "Mistral browser failed or API key not set",
+            "content": "",
+            "validated_links": [],
+        }
+
+    # Query providers
+    elif provider == ProviderType.EXA_MCP:
+        result = resolve_with_exa_mcp(input_str, max_chars)
+        if result:
+            return result.to_dict()
+        return {
+            "source": "none",
+            "query": input_str,
+            "error": "Exa MCP search failed",
+            "content": "",
+            "validated_links": [],
+        }
+
+    elif provider == ProviderType.EXA:
+        result = resolve_with_exa(input_str, max_chars)
+        if result:
+            return result.to_dict()
+        return {
+            "source": "none",
+            "query": input_str,
+            "error": "Exa SDK search failed or API key not set",
+            "content": "",
+            "validated_links": [],
+        }
+
+    elif provider == ProviderType.TAVILY:
+        result = resolve_with_tavily(input_str, max_chars)
+        if result:
+            return result.to_dict()
+        return {
+            "source": "none",
+            "query": input_str,
+            "error": "Tavily search failed or API key not set",
+            "content": "",
+            "validated_links": [],
+        }
+
+    elif provider == ProviderType.DUCKDUCKGO:
+        result = resolve_with_duckduckgo(input_str, max_chars)
+        if result:
+            return result.to_dict()
+        return {
+            "source": "none",
+            "query": input_str,
+            "error": "DuckDuckGo search failed",
+            "content": "",
+            "validated_links": [],
+        }
+
+    elif provider == ProviderType.MISTRAL_WEBSEARCH:
+        result = resolve_with_mistral_websearch(input_str, max_chars)
+        if result:
+            return result.to_dict()
+        return {
+            "source": "none",
+            "query": input_str,
+            "error": "Mistral websearch failed or API key not set",
+            "content": "",
+            "validated_links": [],
+        }
+
+    else:
+        return {
+            "source": "none",
+            "error": f"Unknown provider: {provider}",
+            "content": "",
+            "validated_links": [],
+        }
+
+
+def resolve_with_order(
+    input_str: str,
+    providers_order: list[ProviderType],
+    max_chars: int = MAX_CHARS,
+) -> dict[str, Any]:
+    """
+    Resolve a URL or query using a custom provider order.
+
+    Allows overriding the default cascade order. Providers are tried
+    in sequence until one succeeds.
+
+    Args:
+        input_str: URL or search query to resolve
+        providers_order: List of providers to try in order (ProviderType enums)
+        max_chars: Maximum characters in output
+
+    Returns:
+        Resolution result dict with 'source', 'content', etc.
+
+    Example:
+        >>> from scripts.resolve import resolve_with_order, ProviderType
+        >>> # Use only free providers for URLs
+        >>> result = resolve_with_order(
+        ...     "https://example.com",
+        ...     [ProviderType.LLMS_TXT, ProviderType.JINA, ProviderType.DIRECT_FETCH]
+        ... )
+        >>> # Use only free providers for queries
+        >>> result = resolve_with_order(
+        ...     "python tutorials",
+        ...     [ProviderType.EXA_MCP, ProviderType.DUCKDUCKGO]
+        ... )
+    """
+    logger.info(f"Resolving with custom provider order: {[p.value for p in providers_order]}")
+
+    for provider in providers_order:
+        result = resolve_direct(input_str, provider, max_chars)
+        if result.get("source") != "none":
+            return result
+
+    # All providers failed
+    is_url_input = is_url(input_str)
+    return {
+        "source": "none",
+        "url": input_str if is_url_input else None,
+        "query": None if is_url_input else input_str,
+        "content": f"# Unable to resolve {'URL' if is_url_input else 'query'}: {input_str}\n\nAll specified providers failed.\n",
+        "error": "No resolution method available",
+        "validated_links": [],
+    }
+
+
+def resolve_url_with_order(
+    url: str,
+    providers_order: list[ProviderType],
+    max_chars: int = MAX_CHARS,
+) -> dict[str, Any]:
+    """
+    Resolve a URL using a custom provider order.
+
+    Args:
+        url: URL to resolve
+        providers_order: List of URL providers to try in order
+        max_chars: Maximum characters in output
+
+    Returns:
+        Resolution result dict
+    """
+    # Filter to only URL-compatible providers
+    url_providers = {
+        ProviderType.LLMS_TXT,
+        ProviderType.JINA,
+        ProviderType.FIRECRAWL,
+        ProviderType.DIRECT_FETCH,
+        ProviderType.MISTRAL_BROWSER,
+        ProviderType.DUCKDUCKGO,  # Can search for URLs too
+    }
+    valid_providers = [p for p in providers_order if p in url_providers]
+    return resolve_with_order(url, valid_providers, max_chars)
+
+
+def resolve_query_with_order(
+    query: str,
+    providers_order: list[ProviderType],
+    max_chars: int = MAX_CHARS,
+) -> dict[str, Any]:
+    """
+    Resolve a query using a custom provider order.
+
+    Args:
+        query: Search query to resolve
+        providers_order: List of query providers to try in order
+        max_chars: Maximum characters in output
+
+    Returns:
+        Resolution result dict
+    """
+    # Filter to only query-compatible providers
+    query_providers = {
+        ProviderType.EXA_MCP,
+        ProviderType.EXA,
+        ProviderType.TAVILY,
+        ProviderType.DUCKDUCKGO,
+        ProviderType.MISTRAL_WEBSEARCH,
+    }
+    valid_providers = [p for p in providers_order if p in query_providers]
+    return resolve_with_order(query, valid_providers, max_chars)
+
+
 def main():
     """Command-line interface for the resolver."""
     parser = argparse.ArgumentParser(
@@ -1405,6 +1856,17 @@ def main():
         choices=["exa_mcp", "exa", "tavily", "duckduckgo", "mistral"],
         help="Skip specific providers (can be used multiple times). Options: exa_mcp, exa, tavily, duckduckgo, mistral",
     )
+    parser.add_argument(
+        "--provider",
+        type=str,
+        choices=[p.value for p in ProviderType],
+        help="Use a specific provider directly (bypasses cascade). Options: llms_txt, jina, firecrawl, direct_fetch, mistral_browser, exa_mcp, exa, tavily, duckduckgo, mistral_websearch",
+    )
+    parser.add_argument(
+        "--providers-order",
+        type=str,
+        help="Custom provider order (comma-separated). Example: 'llms_txt,jina,direct_fetch' for URLs or 'exa_mcp,duckduckgo' for queries",
+    )
 
     args = parser.parse_args()
 
@@ -1418,10 +1880,33 @@ def main():
 
     skip_providers = set(args.skip) if args.skip else None
 
+    # Parse provider order if specified
+    providers_order = None
+    if args.providers_order:
+        provider_names = [p.strip() for p in args.providers_order.split(",")]
+        try:
+            providers_order = [ProviderType(p) for p in provider_names]
+        except ValueError as e:
+            parser.error(f"Invalid provider in --providers-order: {e}")
+
+    # Parse single provider if specified
+    single_provider = None
+    if args.provider:
+        single_provider = ProviderType(args.provider)
+
+    def process_input(inp: str) -> dict[str, Any]:
+        """Process a single input string."""
+        if single_provider:
+            return resolve_direct(inp, single_provider, args.max_chars)
+        elif providers_order:
+            return resolve_with_order(inp, providers_order, args.max_chars)
+        else:
+            return resolve(inp, args.max_chars, skip_providers)
+
     if args.input == "-":
         inputs = [line.strip() for line in sys.stdin if line.strip()]
         for i, inp in enumerate(inputs):
-            result = resolve(inp, args.max_chars, skip_providers)
+            result = process_input(inp)
             if args.json:
                 print(json.dumps(result, indent=2))
             else:
@@ -1436,7 +1921,7 @@ def main():
             if i < len(inputs) - 1:
                 print("\n" + "=" * 40 + "\n")
     else:
-        result = resolve(args.input, args.max_chars, skip_providers)
+        result = process_input(args.input)
 
         if args.json:
             print(json.dumps(result, indent=2))
