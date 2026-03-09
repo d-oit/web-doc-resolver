@@ -6,13 +6,18 @@
 
 This agent skill implements a v4 cascade resolver that prioritizes free and low-cost data sources:
 
+### Query Resolution Cascade
 1. **Exa MCP** - FREE search via Model Context Protocol (no API key required!)
-2. **llms.txt** - Check for structured LLM documentation first (free)
-3. **Exa highlights** - Token-efficient query resolution using highlights (low-cost)
-4. **Tavily** - Fallback for comprehensive search (configurable)
-5. **DuckDuckGo** - Free search, always available (no API key)
-6. **Firecrawl** - Last resort for deep extraction (**requires API key**)
-7. **Mistral** - AI-powered fallback when other methods fail
+2. **Exa highlights** - Token-efficient query resolution using highlights (low-cost)
+3. **Tavily** - Fallback for comprehensive search (configurable)
+4. **DuckDuckGo** - Free search, always available (no API key)
+5. **Mistral** - AI-powered fallback when other methods fail
+
+### URL Resolution Cascade
+1. **llms.txt** - Check for structured LLM documentation first (free)
+2. **Firecrawl** - Deep extraction (**requires API key**)
+3. **Direct HTTP fetch** - Basic content extraction (free)
+4. **Mistral browser** - AI-powered fallback when other methods fail
 
 ## Features
 
@@ -144,8 +149,6 @@ python scripts/resolve.py "query" \
 
 ## How It Works
 
-The v4 cascade follows this decision tree:
-
 ### Query Resolution Cascade
 
 ```
@@ -156,7 +159,7 @@ Query Input
 │ 1. Exa MCP Search (FREE - no API key required!)            │
 │    - Uses Model Context Protocol at https://mcp.exa.ai/mcp  │
 │    - JSON-RPC 2.0 over HTTP POST                            │
-│    - Rate limit handling: 30s cooldown                      │
+│    - Rate limit handling: 30s cooldown                       │
 │    - On error: continue to next provider                    │
 └─────────────────────────────────────────────────────────────┘
     │ (fail)
@@ -218,7 +221,7 @@ URL Input
 │ 2. Firecrawl Extraction (if FIRECRAWL_API_KEY set)        │
 │    - Deep content extraction with markdown output           │
 │    - Rate limit handling: 60s cooldown                      │
-│    - On rate limit/quota: fallback to Mistral               │
+│    - On rate limit/quota: fallback to next provider         │
 │    - On auth error: return None                             │
 └─────────────────────────────────────────────────────────────┘
     │ (fail/unavailable)
@@ -239,7 +242,14 @@ URL Input
     │ (fail/unavailable)
     ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 5. Return Error                                             │
+│ 5. DuckDuckGo Search (fallback)                            │
+│    - Search for the URL as a query                          │
+│    - FREE - no API key required                             │
+└─────────────────────────────────────────────────────────────┘
+    │ (fail)
+    ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 6. Return Error                                             │
 │    - source: "none"                                         │
 │    - error: "No resolution method available"               │
 └─────────────────────────────────────────────────────────────┘
@@ -277,8 +287,6 @@ Check the `samples/` directory for example usage:
 
 - `sample_basic.py` - Basic usage without API keys
 - `sample_with_keys.py` - Full cascade with all API keys
-- `sample_firecrawl.py` - Firecrawl-specific examples
-- `sample_error_handling.py` - Rate limit and error handling demos
 
 ## Pricing Information
 
@@ -325,144 +333,4 @@ For issues, questions, or feature requests, please [open an issue](https://githu
 
 ---
 
-**Note**: This skill prioritizes cost-efficiency and graceful degradation. It works perfectly fine with zero API keys configured, using only free sources (Exa MCP, llms.txt, DuckDuckGo, Mistral free tier). API keys enhance functionality but are not required.    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 3. DuckDuckGo Search (FREE - no API key required!)         │
-│    - Completely free, no authentication needed               │
-│    - Rate limit handling: 30s cooldown                      │
-│    - Always available as fallback                           │
-└─────────────────────────────────────────────────────────────┘
-    │ (fail)
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 4. Mistral Web Search (if MISTRAL_API_KEY set)              │
-│    - Uses Mistral agent with web browsing capability        │
-│    - Free tier available                                    │
-│    - Rate limit handling: 60s cooldown                      │
-└─────────────────────────────────────────────────────────────┘
-    │ (fail/unavailable)
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 5. Return Error                                             │
-│    - source: "none"                                         │
-│    - error: "No resolution method available"                │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### URL Resolution Cascade
-
-```
-URL Input
-    │
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 1. Check for llms.txt                                       │
-│    - Probe: https://origin/llms.txt                        │
-│    - If found: return structured documentation              │
-│    - FREE - no API key required                             │
-└─────────────────────────────────────────────────────────────┘
-    │ (not found)
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 2. Firecrawl Extraction (if FIRECRAWL_API_KEY set)        │
-│    - Deep content extraction with markdown output           │
-│    - Rate limit handling: 60s cooldown                      │
-│    - On rate limit/quota: fallback to Mistral               │
-│    - On auth error: return None                             │
-└─────────────────────────────────────────────────────────────┘
-    │ (fail/unavailable)
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 3. Mistral Web Search (if MISTRAL_API_KEY set)            │
-│    - Uses Mistral agent with web browsing capability        │
-│    - Free tier available                                     │
-│    - Rate limit handling: 60s cooldown                      │
-└─────────────────────────────────────────────────────────────┘
-    │ (fail/unavailable)
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ 4. Return Error                                             │
-│    - source: "none"                                         │
-│    - error: "No resolution method available"               │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## Error Handling & Self-Learning
-
-The resolver automatically handles:
-
-- **Rate Limits**: Detects 429 errors and falls back to next source
-- **No Credits**: Catches "no credits" errors and uses free alternatives
-- **Network Errors**: Graceful degradation through the cascade
-- **Invalid Responses**: Validates content before returning
-- **Missing API Keys**: Skips paid services when keys not configured
-
-## Testing
-
-```bash
-# Run all tests
-python -m pytest tests/
-
-# Run specific test
-python -m pytest tests/test_resolve.py::test_llms_txt_found
-
-# Run with coverage
-python -m pytest --cov=scripts tests/
-
-# Test cascade fallbacks
-python -m pytest tests/test_resolve.py::test_cascade_with_rate_limits
-```
-
-## Sample Files
-
-Check the `samples/` directory for example usage:
-
-- `sample_basic.py` - Basic usage without API keys
-- `sample_with_keys.py` - Full cascade with all API keys
-- `sample_firecrawl.py` - Firecrawl-specific examples
-- `sample_error_handling.py` - Rate limit and error handling demos
-
-## Pricing Information
-
-### Free Tier Options
-
-- **llms.txt**: 100% free, static file check
-- **Mistral agent-browser**: Free tier available
-- **Basic web scraping**: No API key needed
-
-### Paid Options
-
-- **Exa**: Token-efficient, pay-per-search ([exa.ai/pricing](https://exa.ai/pricing))
-- **Tavily**: Comprehensive search, tiered pricing ([tavily.com/pricing](https://tavily.com/))
-- **Firecrawl**: Deep extraction, credit-based ([firecrawl.dev/pricing](https://www.firecrawl.dev/pricing))
-  - **Requires API key** - No free tier for API access
-  - Skipped entirely if `FIRECRAWL_API_KEY` not set
-
-## Related Files
-
-- [`SKILL.md`](SKILL.md) - Full agent skill specification
-- [`AGENTS.md`](AGENTS.md) - Agent usage documentation
-- [`scripts/resolve.py`](scripts/resolve.py) - Implementation source code
-- [`.github/workflows/ci.yml`](.github/workflows/ci.yml) - CI/CD pipeline
-
-## Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Ensure CI passes
-5. Submit a pull request
-
-## License
-
-MIT License - see LICENSE file for details
-
-## Support
-
-For issues, questions, or feature requests, please [open an issue](https://github.com/d-oit/web-doc-resolver/issues).
-
----
-
-**Note**: This skill prioritizes cost-efficiency and graceful degradation. It works perfectly fine with zero API keys configured, using only free sources (llms.txt, basic scraping, Mistral). API keys enhance functionality but are not required except for Firecrawl, which is completely optional and only activates when its API key is provided.
+**Note**: This skill prioritizes cost-efficiency and graceful degradation. It works perfectly fine with zero API keys configured, using only free sources (Exa MCP, llms.txt, DuckDuckGo, Mistral free tier). API keys enhance functionality but are not required.

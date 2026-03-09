@@ -56,7 +56,7 @@ Query Input
     ▼
 ┌─────────────────────────────────────────────────────────────┐
 │ 6. Mistral Web Search (if MISTRAL_API_KEY set)              │
-│    - Uses Mistral agent with web browsing capability        │
+│    - Uses Mistral chat API with web search                  │
 │    - Free tier available                                    │
 │    - Rate limit handling: 60s cooldown                      │
 └─────────────────────────────────────────────────────────────┘
@@ -96,13 +96,20 @@ URL Input
 │ 3. Firecrawl Extraction (if FIRECRAWL_API_KEY set)        │
 │    - Deep content extraction with markdown output           │
 │    - Rate limit handling: 60s cooldown                      │
-│    - On rate limit/quota: fallback to Mistral               │
+│    - On rate limit/quota: fallback to next provider         │
 │    - On auth error: return None                             │
 └─────────────────────────────────────────────────────────────┘
     │ (fail/unavailable)
     ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 4. Mistral Web Search (if MISTRAL_API_KEY set)            │
+│ 4. Direct HTTP Fetch                                        │
+│    - Basic content extraction from HTML                     │
+│    - FREE - no API key required                             │
+└─────────────────────────────────────────────────────────────┘
+    │ (fail)
+    ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 5. Mistral Browser (if MISTRAL_API_KEY set)               │
 │    - Uses Mistral agent with web browsing capability        │
 │    - Free tier available                                     │
 │    - Rate limit handling: 60s cooldown                      │
@@ -110,7 +117,14 @@ URL Input
     │ (fail/unavailable)
     ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ 5. Return Error                                             │
+│ 6. DuckDuckGo Search (fallback)                            │
+│    - Search for the URL as a query                          │
+│    - FREE - no API key required                             │
+└─────────────────────────────────────────────────────────────┘
+    │ (fail)
+    ▼
+┌─────────────────────────────────────────────────────────────┐
+│ 7. Return Error                                             │
 │    - source: "none"                                         │
 │    - error: "No resolution method available"               │
 └─────────────────────────────────────────────────────────────┘
@@ -133,7 +147,7 @@ URL Input
 The resolver maintains an in-memory rate limit tracker:
 
 ```python
-_rate_limits: Dict[str, float] = {}
+_rate_limits: dict[str, float] = {}
 
 def _is_rate_limited(provider: str, cooldown: int = 60) -> bool:
     # Returns True if provider is in cooldown period
@@ -185,7 +199,7 @@ def _cache_key(input_str: str, source: str) -> str:
 
 ### For Query Resolution
 
-1. **Exa MCP is now the primary**: Free, no API key required, high-quality results
+1. **Exa MCP is the primary**: Free, no API key required, high-quality results
 2. **DuckDuckGo as backup baseline**: Always works without API keys
 3. **Add Exa SDK for enhanced results**: Token-efficient highlights with API key
 4. **Add Tavily for comprehensive search**: More detailed results
@@ -195,7 +209,8 @@ def _cache_key(input_str: str, source: str) -> str:
 
 1. **llms.txt is always checked first**: Free and structured
 2. **Firecrawl for complex sites**: Best extraction quality
-3. **Mistral as fallback**: Works when Firecrawl fails
+3. **Direct HTTP fetch as fallback**: Works for most sites
+4. **Mistral as final fallback**: Works when other methods fail
 
 ### Cost Optimization
 
@@ -210,9 +225,10 @@ def _cache_key(input_str: str, source: str) -> str:
 
 ```json
 {
-  "source": "duckduckgo",
+  "source": "exa_mcp",
   "query": "Rust agent frameworks",
-  "content": "# Search Results for: Rust agent frameworks\n\n## Tokio\n\nTokio is a popular asynchronous runtime...\n\nSource: https://tokio.rs\n\n---\n\n## Actix\n\nActix is a powerful web framework..."
+  "content": "# Search Results for: Rust agent frameworks\n\n## Tokio\n\nTokio is a popular asynchronous runtime...\n\nSource: https://tokio.rs\n\n---\n\n## Actix\n\nActix is a powerful web framework...",
+  "validated_links": ["https://tokio.rs", "https://actix.rs"]
 }
 ```
 
@@ -222,7 +238,8 @@ def _cache_key(input_str: str, source: str) -> str:
 {
   "source": "llms.txt",
   "url": "https://example.com/docs",
-  "content": "# Documentation\n\n## Getting Started\n..."
+  "content": "# Documentation\n\n## Getting Started\n...",
+  "validated_links": []
 }
 ```
 
