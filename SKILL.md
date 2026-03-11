@@ -122,3 +122,32 @@ Results are ranked by:
 - Errors emitted as JSON to stdout
 - Logs go to stderr
 - Graceful degradation when API keys missing
+
+## CLI Fallback Mode (No API Keys Required)
+
+For environments with `webfetch` and `websearch` tools available (like opencode), use the lightweight CLI resolver:
+
+```bash
+# Using the CLI fallback (no API keys needed)
+python scripts/resolve_cli.py "https://docs.rust-lang.org/book/"
+python scripts/resolve_cli.py "rust async programming"
+
+# JSON output
+python scripts/resolve_cli.py "query" --json
+```
+
+### CLI Fallback Cascade
+
+**For URLs:**
+1. Check llms.txt (via webfetch)
+2. webfetch for content extraction
+3. websearch as final fallback
+
+**For Queries:**
+1. websearch for results
+
+### When to Use CLI Fallback
+
+- **No API keys available**: Works without any external API keys
+- **opencode environment**: Uses built-in webfetch/websearch tools
+- **Maximum compatibility**: Falls back gracefully when tools unavailable
