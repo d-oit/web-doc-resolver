@@ -31,13 +31,13 @@ jobs:
     name: Validate Skill Symlink
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      
+      - uses: actions/checkout@v5
+
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-      
+
       - name: Validate skill symlink
         run: |
           python scripts/validate_skill_symlink.py
@@ -46,14 +46,14 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      
+      - uses: actions/checkout@v5
+
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: 'pip'
-      
+
       - name: Cache pip dependencies
         uses: actions/cache@v5
         with:
@@ -62,19 +62,19 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-lint-
             ${{ runner.os }}-pip-
-      
+
       - name: Install dependencies
         run: |
           pip install ruff black mypy types-requests
-      
+
       - name: Run ruff
         run: ruff check .
         continue-on-error: true
-      
+
       - name: Run black
         run: black --check .
         continue-on-error: true
-      
+
       - name: Run mypy
         run: mypy scripts/ --ignore-missing-imports
         continue-on-error: true
@@ -86,14 +86,14 @@ jobs:
       matrix:
         python-version: ['3.10', '3.11', '3.12']
     steps:
-      - uses: actions/checkout@v6
-      
+      - uses: actions/checkout@v5
+
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
-      
+
       - name: Cache pip dependencies
         uses: actions/cache@v5
         with:
@@ -102,11 +102,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-${{ matrix.python-version }}-
             ${{ runner.os }}-pip-
-      
+
       - name: Install dependencies
         run: |
           pip install pytest pytest-cov requests ddgs
-      
+
       - name: Run basic tests
         run: |
           python -m pytest --cov=scripts --cov-report=xml --cov-report=term
@@ -116,14 +116,14 @@ jobs:
     name: Sample Run
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      
+      - uses: actions/checkout@v5
+
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: 'pip'
-      
+
       - name: Cache pip dependencies
         uses: actions/cache@v5
         with:
@@ -132,19 +132,19 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-sample-
             ${{ runner.os }}-pip-
-      
+
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-      
+
       - name: Run sample query (no API keys)
         run: |
           python scripts/resolve.py "Rust agent frameworks" --log-level INFO
-      
+
       - name: Run sample URL (no API keys)
         run: |
           python scripts/resolve.py "https://docs.rs/tokio" --log-level INFO
-      
+
       - name: Test help output
         run: |
           python scripts/resolve.py --help
@@ -154,14 +154,14 @@ jobs:
     runs-on: ubuntu-latest
     if: (github.event_name == 'workflow_dispatch' && (inputs.test_mistral == true || inputs.test_mistral == 'true')) || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     steps:
-      - uses: actions/checkout@v6
-      
+      - uses: actions/checkout@v5
+
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: 'pip'
-      
+
       - name: Cache pip dependencies
         uses: actions/cache@v5
         with:
@@ -170,11 +170,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-mistral-
             ${{ runner.os }}-pip-
-      
+
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-      
+
       - name: Run Mistral test
         run: |
           python scripts/resolve.py "https://example.com" --log-level INFO
@@ -186,14 +186,14 @@ jobs:
     runs-on: ubuntu-latest
     if: (github.event_name == 'workflow_dispatch' && (inputs.test_firecrawl == true || inputs.test_firecrawl == 'true')) || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     steps:
-      - uses: actions/checkout@v6
-      
+      - uses: actions/checkout@v5
+
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: 'pip'
-      
+
       - name: Cache pip dependencies
         uses: actions/cache@v5
         with:
@@ -202,11 +202,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-firecrawl-
             ${{ runner.os }}-pip-
-      
+
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-      
+
       - name: Run Firecrawl test
         run: |
           python scripts/resolve.py "https://example.com" --log-level INFO
@@ -218,10 +218,10 @@ jobs:
     runs-on: ubuntu-latest
     if: (github.event_name == 'workflow_dispatch' && (inputs.test_tavily == true || inputs.test_tavily == 'true')) || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: 'pip'
