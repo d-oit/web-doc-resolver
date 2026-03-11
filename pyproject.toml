@@ -111,3 +111,6 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"
+markers = [
+    "live: marks tests as live integration tests requiring real API keys (deselect with '-m not live')",
+]
