@@ -38,9 +38,9 @@ jobs:
     runs-on: ubuntu-latest
     if: inputs.run_free == true || inputs.run_free == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: 'pip'
@@ -65,9 +65,9 @@ jobs:
     runs-on: ubuntu-latest
     if: inputs.run_exa == true || inputs.run_exa == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: 'pip'
@@ -93,9 +93,9 @@ jobs:
     runs-on: ubuntu-latest
     if: inputs.run_tavily == true || inputs.run_tavily == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: 'pip'
@@ -121,9 +121,9 @@ jobs:
     runs-on: ubuntu-latest
     if: inputs.run_firecrawl == true || inputs.run_firecrawl == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: 'pip'
@@ -149,9 +149,9 @@ jobs:
     runs-on: ubuntu-latest
     if: inputs.run_mistral == true || inputs.run_mistral == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: 'pip'
