@@ -14,7 +14,7 @@ This agent skill implements a v4 cascade resolver that prioritizes free and low-
 5. **Mistral** - AI-powered fallback when other methods fail
 
 ### URL Resolution Cascade
-1. **llms.txt** - Check for structured LLM documentation first (free)
+1. **llms.txt** - Check for structured LLM documentation first (free) -> fallback: Jina Reader (FREE - https://r.jina.ai/<url>)
 2. **Firecrawl** - Deep extraction (**requires API key**)
 3. **Direct HTTP fetch** - Basic content extraction (free)
 4. **Mistral browser** - AI-powered fallback when other methods fail
