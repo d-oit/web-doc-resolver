@@ -112,8 +112,7 @@ jobs:
           python -m pytest --cov=scripts --cov-report=xml --cov-report=term
         continue-on-error: true
 
-  118
-  
+  rust-cli:
     name: Rust CLI
     runs-on: ubuntu-latest
     steps:
