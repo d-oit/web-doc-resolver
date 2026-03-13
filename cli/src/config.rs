@@ -2,6 +2,7 @@
 //!
 //! Provides layered config loading: config.toml + WDR_* env vars + API key env vars.
 
+use crate::semantic_cache::SemanticCacheConfig;
 use serde::Deserialize;
 use std::env;
 use std::path::Path;
@@ -45,6 +46,9 @@ pub struct Config {
     /// Provider order (custom cascade order)
     #[serde(default)]
     pub providers_order: Vec<String>,
+    /// Semantic cache configuration
+    #[serde(default)]
+    pub semantic_cache: SemanticCacheConfig,
 }
 
 fn default_max_chars() -> usize {
@@ -78,6 +82,7 @@ impl Default for Config {
             log_level: "info".to_string(),
             skip_providers: Vec::new(),
             providers_order: Vec::new(),
+            semantic_cache: SemanticCacheConfig::default(),
         }
     }
 }
@@ -144,6 +149,20 @@ impl Config {
         }
         if let Ok(val) = env::var("WDR_PROVIDERS_ORDER") {
             config.providers_order = val.split(',').map(|s| s.trim().to_string()).collect();
+        }
+
+        // Semantic cache config from env vars
+        if let Ok(val) = env::var("WDR_SEMANTIC_CACHE__ENABLED") {
+            config.semantic_cache.enabled = val.parse().unwrap_or(false);
+        }
+        if let Ok(val) = env::var("WDR_SEMANTIC_CACHE__PATH") {
+            config.semantic_cache.path = val;
+        }
+        if let Ok(val) = env::var("WDR_SEMANTIC_CACHE__THRESHOLD") {
+            config.semantic_cache.threshold = val.parse().unwrap_or(0.85);
+        }
+        if let Ok(val) = env::var("WDR_SEMANTIC_CACHE__MAX_ENTRIES") {
+            config.semantic_cache.max_entries = val.parse().unwrap_or(10000);
         }
 
         config

@@ -4,73 +4,16 @@
 //! and queries into documentation content.
 
 use anyhow::Result;
-use clap::{Parser, Subcommand};
 use std::process::ExitCode;
 use tracing_subscriber::{EnvFilter, fmt};
 
-mod config;
-mod error;
-mod providers;
-mod resolver;
-mod types;
-
-use config::Config;
-use resolver::Resolver;
-use types::ProviderType;
-
-/// CLI argument parser
-#[derive(Parser, Debug)]
-#[command(name = "wdr")]
-#[command(about = "Web Documentation Resolver - Resolve URLs and queries into documentation", long_about = None)]
-#[command(version = "0.1.0")]
-struct Cli {
-    #[command(subcommand)]
-    command: Commands,
-
-    /// Enable verbose logging
-    #[arg(short, long, action = clap::ArgAction::Count)]
-    verbose: u8,
-}
-
-/// CLI commands
-#[derive(Subcommand, Debug)]
-enum Commands {
-    /// Resolve a URL or query to markdown documentation
-    Resolve {
-        /// URL or query to resolve
-        input: String,
-
-        /// Output file (stdout if not specified)
-        #[arg(short, long)]
-        output: Option<String>,
-
-        /// Provider to use (auto-detect if not specified)
-        #[arg(short, long)]
-        provider: Option<String>,
-
-        /// Skip specific providers (comma-separated)
-        #[arg(long)]
-        skip: Option<String>,
-
-        /// Custom provider order (comma-separated)
-        #[arg(long)]
-        providers_order: Option<String>,
-
-        /// Maximum characters in output
-        #[arg(long)]
-        max_chars: Option<usize>,
-
-        /// Output as JSON
-        #[arg(long, default_value = "false")]
-        json: bool,
-    },
-
-    /// List available providers
-    Providers,
-
-    /// Show configuration
-    Config,
-}
+use wdr_lib::{
+    cli::Cli,
+    config::Config,
+    output::{ConfigOutput, JsonOutput, ProviderList, TextOutput},
+    resolver::Resolver,
+    types::ProviderType,
+};
 
 /// Initialize logging based on verbosity level
 fn init_logging(verbose: u8) {
@@ -95,6 +38,7 @@ fn build_config(
     skip: Option<String>,
     providers_order: Option<String>,
     max_chars: Option<usize>,
+    min_chars: Option<usize>,
 ) -> Config {
     let mut config = Config::load();
 
@@ -108,6 +52,10 @@ fn build_config(
 
     if let Some(m) = max_chars {
         config.max_chars = m;
+    }
+
+    if let Some(m) = min_chars {
+        config.min_chars = m;
     }
 
     config
@@ -137,11 +85,12 @@ async fn handle_resolve(
     match result {
         Ok(res) => {
             if json {
-                let json_output = serde_json::to_string_pretty(&res)?;
+                let json_output = JsonOutput::from_result(&res);
                 if let Some(out_path) = output {
-                    std::fs::write(out_path, &json_output)?;
+                    let json_str = serde_json::to_string_pretty(&json_output)?;
+                    std::fs::write(out_path, &json_str)?;
                 } else {
-                    println!("{}", json_output);
+                    json_output.print();
                 }
             } else {
                 let content = res.content.unwrap_or_default();
@@ -155,65 +104,35 @@ async fn handle_resolve(
         }
         Err(e) => {
             if json {
-                let json_output = serde_json::json!({ "error": e.to_string() });
-                println!("{}", serde_json::to_string_pretty(&json_output)?);
+                let err_msg = e.to_string();
+                let json_output = JsonOutput::error(&err_msg);
+                json_output.print();
             }
             Err(anyhow::anyhow!("{}", e))
         }
     }
 }
 
-/// Handle the providers command
-fn handle_providers() {
-    println!("Available providers:");
-    println!();
-    println!("Query providers:");
-    println!("  - exa_mcp: Exa MCP (free, no API key required)");
-    println!("  - exa: Exa SDK (requires EXA_API_KEY)");
-    println!("  - tavily: Tavily search (requires TAVILY_API_KEY)");
-    println!("  - duckduckgo: DuckDuckGo (free, no API key required)");
-    println!("  - mistral_websearch: Mistral web search (requires MISTRAL_API_KEY)");
-    println!();
-    println!("URL providers:");
-    println!("  - llms_txt: Check for llms.txt (free)");
-    println!("  - jina: Jina Reader (free)");
-    println!("  - firecrawl: Firecrawl extraction (requires FIRECRAWL_API_KEY)");
-    println!("  - direct_fetch: Direct HTTP fetch (free)");
-    println!("  - mistral_browser: Mistral browser (requires MISTRAL_API_KEY)");
-}
-
-/// Handle the config command
-fn handle_config() {
-    let config = Config::load();
-    println!("Current configuration:");
-    println!("  max_chars: {}", config.max_chars);
-    println!("  min_chars: {}", config.min_chars);
-    println!("  exa_results: {}", config.exa_results);
-    println!("  tavily_results: {}", config.tavily_results);
-    println!("  output_limit: {}", config.output_limit);
-    println!("  log_level: {}", config.log_level);
-    println!("  skip_providers: {:?}", config.skip_providers);
-    println!("  providers_order: {:?}", config.providers_order);
-}
-
 fn main() -> ExitCode {
-    let cli = Cli::parse();
+    let cli = Cli::parse_args();
 
     // Initialize logging
     init_logging(cli.verbose);
 
     // Run the appropriate command
     let result = match cli.command {
-        Commands::Resolve {
+        wdr_lib::cli::Commands::Resolve {
             input,
             output,
             provider,
             skip,
             providers_order,
             max_chars,
+            min_chars,
             json,
+            skip_cache: _,
         } => {
-            let config = build_config(skip, providers_order, max_chars);
+            let config = build_config(skip, providers_order, max_chars, min_chars);
             tokio::runtime::Runtime::new()
                 .unwrap()
                 .block_on(handle_resolve(
@@ -224,12 +143,18 @@ fn main() -> ExitCode {
                     json,
                 ))
         }
-        Commands::Providers => {
-            handle_providers();
+        wdr_lib::cli::Commands::Providers => {
+            ProviderList::print();
             Ok(())
         }
-        Commands::Config => {
-            handle_config();
+        wdr_lib::cli::Commands::Config => {
+            let config = Config::load();
+            ConfigOutput::print(&config);
+            Ok(())
+        }
+        wdr_lib::cli::Commands::CacheStats => {
+            // TODO: Implement when semantic cache is integrated
+            TextOutput::print_info("Cache statistics not yet available");
             Ok(())
         }
     };

@@ -36,6 +36,10 @@ pub enum ResolverError {
     #[error("Configuration error: {0}")]
     Config(String),
 
+    /// Cache errors
+    #[error("Cache error: {0}")]
+    Cache(String),
+
     /// Provider-specific errors
     #[error("Provider error: {0}")]
     Provider(String),
