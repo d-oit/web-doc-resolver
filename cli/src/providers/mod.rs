@@ -31,7 +31,7 @@ use async_trait::async_trait;
 /// Provider trait for query resolution
 #[async_trait]
 pub trait QueryProvider: Send + Sync {
-    /// Provider name
+    /// Provider name - kept for API consistency and future logging use
     #[allow(dead_code)]
     fn name(&self) -> &str;
 
@@ -46,7 +46,7 @@ pub trait QueryProvider: Send + Sync {
 /// Provider trait for URL resolution
 #[async_trait]
 pub trait UrlProvider: Send + Sync {
-    /// Provider name
+    /// Provider name - kept for API consistency and future logging use
     #[allow(dead_code)]
     fn name(&self) -> &str;
 

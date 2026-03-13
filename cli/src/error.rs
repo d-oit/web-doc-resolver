@@ -83,7 +83,10 @@ impl ResolverError {
     /// Check if this is a rate limit error
     #[allow(dead_code)]
     pub fn is_rate_limit(&self) -> bool {
-        matches!(self, ResolverError::RateLimit(_) | ResolverError::RateLimitError(_))
+        matches!(
+            self,
+            ResolverError::RateLimit(_) | ResolverError::RateLimitError(_)
+        )
     }
 
     /// Check if this is an auth error
@@ -101,7 +104,10 @@ impl ResolverError {
     /// Check if this is a not found error
     #[allow(dead_code)]
     pub fn is_not_found(&self) -> bool {
-        matches!(self, ResolverError::NotFound(_) | ResolverError::NotFoundError(_))
+        matches!(
+            self,
+            ResolverError::NotFound(_) | ResolverError::NotFoundError(_)
+        )
     }
 }
 
