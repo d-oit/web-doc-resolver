@@ -109,6 +109,20 @@ return Err(AllProvidersFailed)
 All source files must remain under **500 lines**. Split modules if needed.
 Use `tokei` or `wc -l` to verify before committing.
 
+## Quality Gate
+
+Run before every commit:
+
+```bash
+# Full quality gate
+./scripts/quality_gate.sh
+
+# Or use the git hook
+cp scripts/pre-commit-hook.sh .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+```
+
+Checks: cargo test, cargo fmt, cargo clippy, Python tests, ruff, black
+
 ## Sub-issues
 
 See GitHub epic [#18](../../../issues/18) for implementation sub-issues:

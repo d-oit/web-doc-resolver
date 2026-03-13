@@ -10,9 +10,53 @@ permissions:
   contents: write
 
 jobs:
+  python-test:
+    name: Python Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: python -m pytest tests/ -v -m "not live"
+
+  rust-test:
+    name: Rust CLI Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.85
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run tests
+        run: |
+          cd cli && cargo test
+
+      - name: Run clippy
+        run: |
+          cd cli && cargo clippy -- -D warnings
+
+      - name: Run fmt
+        run: |
+          cd cli && cargo fmt --check
+
   release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
+    needs: [python-test, rust-test]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -22,13 +66,19 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run tests
-        run: python -m pytest tests/ -v
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.85
+
+      - name: Build CLI
+        run: |
+          cd cli && cargo build --release
 
       - name: Extract version from tag
         id: version
@@ -42,7 +92,7 @@ jobs:
           sed -i "s/  version: \".*\"/  version: \"${SEMVER}\"/" SKILL.md
           # Update version comment in AGENTS.md
           sed -i "s/<!-- skill: web-doc-resolver v.* -->/<!-- skill: web-doc-resolver ${VERSION} -->/" AGENTS.md
-          sed -i "s|tree/v.*"|tree/${VERSION}"|" AGENTS.md
+          sed -i "s|tree/v.*\"|tree/${VERSION}\"|" AGENTS.md
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add SKILL.md AGENTS.md
@@ -55,6 +105,7 @@ jobs:
           tag_name: ${{ steps.version.outputs.VERSION }}
           name: "Release ${{ steps.version.outputs.VERSION }}"
           generate_release_notes: true
+          files: cli/target/release/wdr
           body: |
             ## web-doc-resolver ${{ steps.version.outputs.VERSION }}
 
@@ -72,3 +123,6 @@ jobs:
             ```
             https://raw.githubusercontent.com/d-oit/web-doc-resolver/${{ steps.version.outputs.VERSION }}/SKILL.md
             ```
+
+            ### Rust CLI
+            Binary: `cli/target/release/wdr`

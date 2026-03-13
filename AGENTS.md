@@ -13,15 +13,16 @@ pip install -r requirements.txt
 cd cli && cargo build --release
 # Binary: cli/target/release/wdr
 
-# Git hooks (validates skill symlink on commit)
+# Git hooks (validates skill symlink on commit + quality gate)
 ./scripts/setup-hooks.sh
+cp scripts/pre-commit-hook.sh .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
 ```
 
 ## Run tests
 
 ```bash
 # Python unit tests (no API keys needed)
-python -m pytest tests/ -v
+python -m pytest tests/ -v -m "not live"
 
 # Python live integration tests (requires API keys)
 python -m pytest tests/ -m live -v
@@ -31,6 +32,9 @@ cd cli && cargo test
 
 # Rust lint
 cd cli && cargo clippy -- -D warnings && cargo fmt --check
+
+# Quality gate (all checks)
+./scripts/quality_gate.sh
 ```
 
 ## Code style
@@ -68,7 +72,9 @@ web-doc-resolver/
 ├── SKILL.md               # agentskills.io skill definition
 ├── README.md              # Human-readable docs
 ├── scripts/resolve.py     # Main Python resolver (<500 LOC)
-├── cli/                   # Rust CLI workspace
+├── scripts/quality_gate.sh # Pre-commit quality checks
+├── scripts/pre-commit-hook.sh # Git hook for quality gate
+├── cli/                   # Rust CLI (wdr binary)
 │   ├── Cargo.toml
 │   └── src/
 ├── tests/                 # Python test suite
