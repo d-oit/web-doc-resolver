@@ -6,7 +6,7 @@ compatibility: Python 3.10+, optional env EXA_API_KEY TAVILY_API_KEY FIRECRAWL_A
 allowed-tools: Bash(python:*) Read
 metadata:
   author: d-oit
-  version: "1.2.0"
+  version: "0.1.0"
   source: https://github.com/d-oit/web-doc-resolver
   changelog: https://github.com/d-oit/web-doc-resolver/releases
 ---
