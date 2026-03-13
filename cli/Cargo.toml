@@ -1,0 +1,33 @@
+[package]
+name = "wdr"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+description = "Web Documentation Resolver CLI"
+license = "MIT"
+
+[dependencies]
+clap = { version = "4.5", features = ["derive", "env"] }
+thiserror = "2"
+anyhow = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+toml = "0.8"
+async-trait = "0.1"
+urlencoding = "2"
+url = "2"
+
+[dev-dependencies]
+mockall = "0.12"
+
+[[bin]]
+name = "wdr"
+path = "src/main.rs"
+
+[lib]
+name = "wdr_lib"
+path = "src/lib.rs"
