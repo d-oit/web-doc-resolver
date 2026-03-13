@@ -1,6 +1,10 @@
 #!/bin/bash
 # Quality Gate Script - Runs all checks before commit
 # Usage: ./scripts/quality_gate.sh
+#
+# To install pre-commit hook:
+#   cp scripts/pre-commit-hook.sh .git/hooks/pre-commit
+#   chmod +x .git/hooks/pre-commit
 
 set -e
 
