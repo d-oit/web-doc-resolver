@@ -1269,21 +1269,19 @@ def resolve_with_mistral_browser(url: str, max_chars: int = MAX_CHARS) -> Resolv
         return None
 
     try:
-        from mistralai import Mistral
+        from mistralai.client import Mistral
+        from mistralai.client.models import UserMessage, WebSearchTool
 
         client = Mistral(api_key=api_key)
         logger.info(f"Using Mistral agent-browser to extract: {url}")
 
         # Use Mistral's agent-browser capability for content extraction
         response = client.beta.conversations.start(
-            messages=[
-                {
-                    "role": "user",
-                    "content": f"Extract and summarize the main content from this URL: {url}. Return the content in markdown format.",
-                }
-            ],
-            tools=[{"type": "web_search"}],  # type: ignore[arg-type]
-        )  # type: ignore[call-arg]
+            inputs=UserMessage(
+                content=f"Extract and summarize the main content from this URL: {url}. Return the content in markdown format."
+            ),
+            tools=[WebSearchTool()],
+        )
 
         if response and hasattr(response, "outputs") and response.outputs:
             content = response.outputs[0].content if response.outputs[0] else ""  # type: ignore[union-attr]
@@ -1343,7 +1341,8 @@ def resolve_with_mistral_websearch(query: str, max_chars: int = MAX_CHARS) -> Re
         return None
 
     try:
-        from mistralai import Mistral
+        from mistralai.client import Mistral
+        from mistralai.client.models import UserMessage
 
         client = Mistral(api_key=api_key)
         logger.info(f"Using Mistral web search for: {query}")
@@ -1351,11 +1350,10 @@ def resolve_with_mistral_websearch(query: str, max_chars: int = MAX_CHARS) -> Re
         # Use Mistral's chat API - the model will use its built-in web search capability
         response = client.chat.complete(
             model="mistral-large-latest",
-            messages=[  # type: ignore[arg-type]
-                {
-                    "role": "user",
-                    "content": f"Search the web for: {query}. Provide comprehensive results with sources and URLs. Format the response as markdown with clear sections.",
-                }
+            messages=[
+                UserMessage(
+                    content=f"Search the web for: {query}. Provide comprehensive results with sources and URLs. Format the response as markdown with clear sections."
+                )
             ],
         )
 
