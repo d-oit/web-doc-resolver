@@ -178,7 +178,7 @@ class TestResolveWithMistralBrowser:
 
     @patch.dict(os.environ, {"MISTRAL_API_KEY": "test_key"})
     @patch("scripts.resolve.validate_url")
-    @patch("mistralai.Mistral")
+    @patch("mistralai.client.Mistral")
     def test_successful_extraction(self, mock_mistral_class, mock_validate):
         """Test successful content extraction with Mistral."""
         # Mock URL validation
@@ -199,7 +199,7 @@ class TestResolveWithMistralBrowser:
         assert "Extracted Content" in result.content
 
     @patch.dict(os.environ, {"MISTRAL_API_KEY": "test_key"})
-    @patch("mistralai.Mistral")
+    @patch("mistralai.client.Mistral")
     def test_extraction_error(self, mock_mistral_class):
         """Test error handling in Mistral extraction."""
         mock_client = Mock()
@@ -348,7 +348,7 @@ class TestEdgeCases:
         assert len(truncated) == MAX_CHARS
 
     @patch.dict(os.environ, {"MISTRAL_API_KEY": "test_key"})
-    @patch("mistralai.Mistral")
+    @patch("mistralai.client.Mistral")
     def test_mistral_401_error(self, mock_mistral_class):
         """Test handling of Mistral 401 authentication error."""
         mock_client = Mock()
