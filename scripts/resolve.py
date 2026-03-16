@@ -2473,8 +2473,8 @@ def main():
     parser.add_argument(
         "--skip",
         action="append",
-        choices=["exa_mcp", "exa", "tavily", "duckduckgo", "mistral"],
-        help="Skip specific providers (can be used multiple times). Options: exa_mcp, exa, tavily, duckduckgo, mistral",
+        choices=["exa_mcp", "exa", "tavily", "serper", "duckduckgo", "mistral"],
+        help="Skip specific providers (can be used multiple times). Options: exa_mcp, exa, tavily, serper, duckduckgo, mistral",
     )
     parser.add_argument(
         "--provider",
