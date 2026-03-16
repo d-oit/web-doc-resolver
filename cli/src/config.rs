@@ -53,6 +53,58 @@ pub struct Config {
     /// Execution profile (default: balanced)
     #[serde(default)]
     pub profile: Profile,
+    /// Quality threshold (default: from profile)
+    pub quality_threshold: Option<f32>,
+    /// Max provider attempts (default: from profile)
+    pub max_provider_attempts: Option<usize>,
+    /// Max paid attempts (default: from profile)
+    pub max_paid_attempts: Option<usize>,
+    /// Max total latency (default: from profile)
+    pub max_total_latency_ms: Option<u64>,
+    /// Disable routing memory
+    #[serde(default)]
+    pub disable_routing_memory: bool,
+}
+
+pub struct RoutingProfileConfig {
+    pub max_provider_attempts: usize,
+    pub max_paid_attempts: usize,
+    pub max_total_latency_ms: u64,
+    pub quality_threshold: f32,
+    pub allow_paid: bool,
+}
+
+pub fn routing_profile_defaults(name: &str) -> RoutingProfileConfig {
+    match name {
+        "free" => RoutingProfileConfig {
+            max_provider_attempts: 3,
+            max_paid_attempts: 0,
+            max_total_latency_ms: 6_000,
+            quality_threshold: 0.70,
+            allow_paid: false,
+        },
+        "fast" => RoutingProfileConfig {
+            max_provider_attempts: 2,
+            max_paid_attempts: 1,
+            max_total_latency_ms: 4_000,
+            quality_threshold: 0.60,
+            allow_paid: true,
+        },
+        "quality" => RoutingProfileConfig {
+            max_provider_attempts: 6,
+            max_paid_attempts: 3,
+            max_total_latency_ms: 15_000,
+            quality_threshold: 0.55,
+            allow_paid: true,
+        },
+        _ => RoutingProfileConfig {
+            max_provider_attempts: 4,
+            max_paid_attempts: 1,
+            max_total_latency_ms: 9_000,
+            quality_threshold: 0.65,
+            allow_paid: true,
+        },
+    }
 }
 
 fn default_max_chars() -> usize {
@@ -88,6 +140,11 @@ impl Default for Config {
             providers_order: Vec::new(),
             semantic_cache: SemanticCacheConfig::default(),
             profile: Profile::Balanced,
+            quality_threshold: None,
+            max_provider_attempts: None,
+            max_paid_attempts: None,
+            max_total_latency_ms: None,
+            disable_routing_memory: false,
         }
     }
 }
@@ -158,6 +215,31 @@ impl Config {
         if let Ok(val) = env::var("WDR_PROFILE") {
             if let Ok(p) = val.parse() {
                 config.profile = p;
+            }
+        }
+        if let Ok(val) = env::var("WDR_QUALITY_THRESHOLD") {
+            if let Ok(v) = val.parse() {
+                config.quality_threshold = Some(v);
+            }
+        }
+        if let Ok(val) = env::var("WDR_MAX_PROVIDER_ATTEMPTS") {
+            if let Ok(v) = val.parse() {
+                config.max_provider_attempts = Some(v);
+            }
+        }
+        if let Ok(val) = env::var("WDR_MAX_PAID_ATTEMPTS") {
+            if let Ok(v) = val.parse() {
+                config.max_paid_attempts = Some(v);
+            }
+        }
+        if let Ok(val) = env::var("WDR_MAX_TOTAL_LATENCY_MS") {
+            if let Ok(v) = val.parse() {
+                config.max_total_latency_ms = Some(v);
+            }
+        }
+        if let Ok(val) = env::var("WDR_DISABLE_ROUTING_MEMORY") {
+            if let Ok(v) = val.parse() {
+                config.disable_routing_memory = v;
             }
         }
 

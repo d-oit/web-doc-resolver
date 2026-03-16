@@ -3,22 +3,27 @@
 //! Orchestrates the provider cascade for query and URL resolution.
 
 use crate::bias_scorer::score_result;
+use crate::circuit_breaker::CircuitBreakerRegistry;
 use crate::compaction::compact_content;
-use crate::config::Config;
+use crate::config::{Config, RoutingProfileConfig, routing_profile_defaults};
 use crate::error::ResolverError;
 use crate::link_validator::validate_links;
 use crate::metrics::ResolveMetrics;
+use crate::negative_cache::NegativeCache;
 use crate::providers::{
     DuckDuckGoProvider, ExaMcpProvider, ExaSdkProvider, FirecrawlProvider, JinaProvider,
     LlmsTxtProvider, MistralBrowserProvider, MistralWebSearchProvider, QueryProvider,
     SerperProvider, UrlProvider,
 };
+use crate::quality::score_content;
+use crate::routing::{ResolutionBudget, plan_provider_order};
+use crate::routing_memory::RoutingMemory;
 use crate::semantic_cache::SemanticCache;
 use crate::synthesis::synthesize_results;
-use crate::types::{ProviderType, ResolvedResult};
+use crate::types::{ProviderType, ResolvedResult, RoutingDecision};
 use std::result::Result;
-use std::sync::OnceLock;
-use std::time::Instant;
+use std::sync::{Arc, Mutex, OnceLock};
+use std::time::{Duration, Instant};
 
 static LINK_REGEX: OnceLock<regex::Regex> = OnceLock::new();
 
@@ -42,6 +47,10 @@ pub struct Resolver {
     mistral_browser: MistralBrowserProvider,
     // Cache
     cache: Option<SemanticCache>,
+    // Routing components
+    negative_cache: Arc<Mutex<NegativeCache>>,
+    circuit_breakers: Arc<Mutex<CircuitBreakerRegistry>>,
+    routing_memory: Arc<Mutex<RoutingMemory>>,
 }
 
 impl Resolver {
@@ -69,6 +78,9 @@ impl Resolver {
             firecrawl: FirecrawlProvider::new(),
             direct_fetch: crate::providers::DirectFetchProvider::new(),
             mistral_browser: MistralBrowserProvider::new(),
+            negative_cache: Arc::new(Mutex::new(NegativeCache::default())),
+            circuit_breakers: Arc::new(Mutex::new(CircuitBreakerRegistry::default())),
+            routing_memory: Arc::new(Mutex::new(RoutingMemory::default())),
         }
     }
 
@@ -95,113 +107,241 @@ impl Resolver {
 
         if let Some(cache) = &self.cache {
             if let Ok(Some(res)) = cache.query(url).await {
-                let mut res = res.into_iter().next().unwrap();
-                metrics.cache_hit = true;
-                res.metrics = Some(metrics);
-                return Ok(res);
-            }
-        }
-        // Default URL cascade order
-        let providers_order: Vec<ProviderType> = if self.config.providers_order.is_empty() {
-            vec![
-                ProviderType::LlmsTxt,
-                ProviderType::Jina,
-                ProviderType::Firecrawl,
-                ProviderType::DirectFetch,
-                ProviderType::MistralBrowser,
-            ]
-        } else {
-            let mut result = Vec::new();
-            for p in &self.config.providers_order {
-                if let Ok(pt) = p.parse::<ProviderType>() {
-                    if pt.is_url_provider() {
-                        result.push(pt);
-                    }
-                }
-            }
-            result
-        };
-
-        let mut hops = 0;
-        let max_hops = self.config.profile.max_hops();
-
-        // Parallel fast-path probes for llms.txt and jina
-        if self.config.providers_order.is_empty()
-            && self
-                .config
-                .profile
-                .is_provider_allowed(ProviderType::LlmsTxt)
-            && self.config.profile.is_provider_allowed(ProviderType::Jina)
-        {
-            let llms_fut = self.extract_with_provider(url, ProviderType::LlmsTxt);
-            let jina_fut = self.extract_with_provider(url, ProviderType::Jina);
-
-            let parallel_result = tokio::select! {
-                res = llms_fut => res.map(|r| (r, ProviderType::LlmsTxt)),
-                res = jina_fut => res.map(|r| (r, ProviderType::Jina)),
-            };
-
-            if let Ok((mut res, pt)) = parallel_result {
-                if res.is_valid(self.config.min_chars) {
-                    metrics.record_provider(pt, 0, true);
-                    if let Some(content) = &res.content {
-                        let links = extract_links(content);
-                        res.validated_links = validate_links(&links).await;
-                        res.score = score_result(&res.url, content);
-                        res.content = Some(compact_content(content, self.config.max_chars));
-                    }
+                if let Some(mut res) = res.into_iter().next() {
+                    metrics.cache_hit = true;
                     res.metrics = Some(metrics);
                     return Ok(res);
                 }
             }
         }
 
-        for provider_type in providers_order {
-            if self.config.is_skipped(provider_type.name()) {
-                continue;
-            }
+        let profile_name = format!("{:?}", self.config.profile).to_lowercase();
+        let profile_defaults = routing_profile_defaults(&profile_name);
+        let mut budget = self.build_budget(&profile_defaults);
+        let mut routing_decisions = Vec::new();
 
-            if !self.config.profile.is_provider_allowed(provider_type) {
-                tracing::debug!(
-                    "Provider {} skipped by profile {:?}",
-                    provider_type,
-                    self.config.profile
-                );
-                continue;
-            }
+        let planned = {
+            let routing_memory = self.routing_memory.lock().unwrap();
+            plan_provider_order(
+                url,
+                true,
+                if self.config.providers_order.is_empty() {
+                    None
+                } else {
+                    Some(&self.config.providers_order)
+                },
+                &self.config.skip_providers,
+                if self.config.disable_routing_memory {
+                    None
+                } else {
+                    Some(&routing_memory)
+                },
+            )
+        };
 
-            if hops >= max_hops {
-                tracing::warn!(
-                    "Max cascade hops ({}) reached for profile {:?}",
-                    max_hops,
-                    self.config.profile
-                );
+        for (idx, provider) in planned.iter().enumerate() {
+            if !budget.can_try(provider.is_paid) {
                 break;
             }
 
-            hops += 1;
-            metrics.cascade_depth = hops;
-            let start = Instant::now();
-            let result = self.extract_with_provider(url, provider_type).await;
-            let latency = start.elapsed().as_millis() as u64;
+            let provider_type: ProviderType = provider
+                .name
+                .parse()
+                .map_err(|e| ResolverError::Provider(format!("Invalid provider name: {}", e)))?;
 
-            if let Ok(mut res) = result {
-                metrics.record_provider(provider_type, latency, true);
-                if res.is_valid(self.config.min_chars) {
-                    if let Some(content) = &res.content {
-                        let links = extract_links(content);
-                        res.validated_links = validate_links(&links).await;
-                        res.score = score_result(&res.url, content);
-                        res.content = Some(compact_content(content, self.config.max_chars));
-                    }
-                    res.metrics = Some(metrics);
-                    if let Some(cache) = &self.cache {
-                        let _ = cache.store(url, &[res.clone()], &res.source).await;
-                    }
-                    return Ok(res);
+            {
+                let negative_cache = self.negative_cache.lock().unwrap();
+                if negative_cache.should_skip(url, &provider.name) {
+                    metrics.record_provider_detailed(
+                        provider_type,
+                        0,
+                        false,
+                        idx,
+                        None,
+                        false,
+                        Some("negative_cache".into()),
+                        budget.stop_reason.clone(),
+                        true,
+                        false,
+                    );
+                    routing_decisions.push(RoutingDecision {
+                        provider: provider.name.clone(),
+                        attempt_index: idx,
+                        quality_score: None,
+                        accepted: false,
+                        skip_reason: Some("negative_cache".into()),
+                        stop_reason: budget.stop_reason.clone(),
+                        negative_cache_hit: true,
+                        circuit_open: false,
+                        paid_provider: provider.is_paid,
+                    });
+                    continue;
                 }
-            } else {
-                metrics.record_provider(provider_type, latency, false);
+            }
+
+            {
+                let circuit_breakers = self.circuit_breakers.lock().unwrap();
+                if circuit_breakers.is_open(&provider.name) {
+                    metrics.record_provider_detailed(
+                        provider_type,
+                        0,
+                        false,
+                        idx,
+                        None,
+                        false,
+                        Some("circuit_open".into()),
+                        budget.stop_reason.clone(),
+                        false,
+                        true,
+                    );
+                    routing_decisions.push(RoutingDecision {
+                        provider: provider.name.clone(),
+                        attempt_index: idx,
+                        quality_score: None,
+                        accepted: false,
+                        skip_reason: Some("circuit_open".into()),
+                        stop_reason: budget.stop_reason.clone(),
+                        negative_cache_hit: false,
+                        circuit_open: true,
+                        paid_provider: provider.is_paid,
+                    });
+                    continue;
+                }
+            }
+
+            let started = Instant::now();
+            let result = self.extract_with_provider(url, provider_type).await;
+            let latency = started.elapsed().as_millis() as u64;
+            budget.record_attempt(provider.is_paid, latency);
+            metrics.budget_elapsed_ms = budget.elapsed_ms;
+            metrics.cascade_depth = idx + 1;
+
+            match result {
+                Ok(mut res) => {
+                    let content_str = res.content.as_deref().unwrap_or("");
+                    let links = extract_links(content_str);
+                    let threshold = self
+                        .config
+                        .quality_threshold
+                        .unwrap_or(profile_defaults.quality_threshold);
+                    let quality = score_content(content_str, &links, threshold);
+
+                    let acceptable = quality.acceptable && res.is_valid(self.config.min_chars);
+
+                    metrics.record_provider_detailed(
+                        provider_type,
+                        latency,
+                        true,
+                        idx,
+                        Some(quality.score),
+                        acceptable,
+                        None,
+                        budget.stop_reason.clone(),
+                        false,
+                        false,
+                    );
+                    routing_decisions.push(RoutingDecision {
+                        provider: provider.name.clone(),
+                        attempt_index: idx,
+                        quality_score: Some(quality.score),
+                        accepted: acceptable,
+                        skip_reason: None,
+                        stop_reason: budget.stop_reason.clone(),
+                        negative_cache_hit: false,
+                        circuit_open: false,
+                        paid_provider: provider.is_paid,
+                    });
+
+                    if acceptable {
+                        res.validated_links = validate_links(&links).await;
+                        res.score = score_result(&res.url, content_str);
+                        res.content = Some(compact_content(content_str, self.config.max_chars));
+                        res.metrics = Some(metrics);
+                        res.routing_decisions = routing_decisions;
+
+                        {
+                            let mut cb = self.circuit_breakers.lock().unwrap();
+                            cb.record_success(&provider.name);
+                        }
+                        if !self.config.disable_routing_memory {
+                            let mut rm = self.routing_memory.lock().unwrap();
+                            rm.record(
+                                &extract_domain_or_default(url),
+                                &provider.name,
+                                true,
+                                latency,
+                                quality.score,
+                            );
+                        }
+                        if let Some(cache) = &self.cache {
+                            let _ = cache.store(url, &[res.clone()], &res.source).await;
+                        }
+                        return Ok(res);
+                    } else {
+                        {
+                            let mut nc = self.negative_cache.lock().unwrap();
+                            nc.insert(
+                                url,
+                                &provider.name,
+                                "thin_content",
+                                Duration::from_secs(1800),
+                                std::collections::HashMap::new(),
+                            );
+                        }
+                        if !self.config.disable_routing_memory {
+                            let mut rm = self.routing_memory.lock().unwrap();
+                            rm.record(
+                                &extract_domain_or_default(url),
+                                &provider.name,
+                                false,
+                                latency,
+                                quality.score,
+                            );
+                        }
+                    }
+                }
+                Err(err) => {
+                    let reason = classify_error(&err);
+                    metrics.record_provider_detailed(
+                        provider_type,
+                        latency,
+                        false,
+                        idx,
+                        None,
+                        false,
+                        Some(reason.clone()),
+                        budget.stop_reason.clone(),
+                        false,
+                        false,
+                    );
+                    routing_decisions.push(RoutingDecision {
+                        provider: provider.name.clone(),
+                        attempt_index: idx,
+                        quality_score: None,
+                        accepted: false,
+                        skip_reason: Some(reason.clone()),
+                        stop_reason: budget.stop_reason.clone(),
+                        negative_cache_hit: false,
+                        circuit_open: false,
+                        paid_provider: provider.is_paid,
+                    });
+
+                    if matches!(reason.as_str(), "timeout" | "provider_5xx" | "rate_limited") {
+                        let mut cb = self.circuit_breakers.lock().unwrap();
+                        cb.record_failure(&provider.name, 3, Duration::from_secs(300));
+                    }
+
+                    {
+                        let mut nc = self.negative_cache.lock().unwrap();
+                        nc.insert(
+                            url,
+                            &provider.name,
+                            reason,
+                            Duration::from_secs(600),
+                            std::collections::HashMap::new(),
+                        );
+                    }
+                }
             }
         }
 
@@ -224,78 +364,248 @@ impl Resolver {
                 }
             }
         }
-        // Default query cascade order
-        let providers_order: Vec<ProviderType> = if self.config.providers_order.is_empty() {
-            vec![
-                ProviderType::ExaMcp,
-                ProviderType::Exa,
-                ProviderType::Tavily,
-                ProviderType::Serper,
-                ProviderType::DuckDuckGo,
-                ProviderType::MistralWebSearch,
-            ]
-        } else {
-            let mut result = Vec::new();
-            for p in &self.config.providers_order {
-                if let Ok(pt) = p.parse::<ProviderType>() {
-                    if pt.is_query_provider() {
-                        result.push(pt);
-                    }
-                }
-            }
-            result
+
+        let profile_name = format!("{:?}", self.config.profile).to_lowercase();
+        let profile_defaults = routing_profile_defaults(&profile_name);
+        let mut budget = self.build_budget(&profile_defaults);
+        let mut routing_decisions = Vec::new();
+
+        let planned = {
+            let routing_memory = self.routing_memory.lock().unwrap();
+            plan_provider_order(
+                query,
+                false,
+                if self.config.providers_order.is_empty() {
+                    None
+                } else {
+                    Some(&self.config.providers_order)
+                },
+                &self.config.skip_providers,
+                if self.config.disable_routing_memory {
+                    None
+                } else {
+                    Some(&routing_memory)
+                },
+            )
         };
 
-        let mut hops = 0;
-        let max_hops = self.config.profile.max_hops();
-
-        for provider_type in providers_order {
-            if self.config.is_skipped(provider_type.name()) {
-                continue;
-            }
-
-            if !self.config.profile.is_provider_allowed(provider_type) {
-                tracing::debug!(
-                    "Provider {} skipped by profile {:?}",
-                    provider_type,
-                    self.config.profile
-                );
-                continue;
-            }
-
-            if hops >= max_hops {
-                tracing::warn!(
-                    "Max cascade hops ({}) reached for profile {:?}",
-                    max_hops,
-                    self.config.profile
-                );
+        for (idx, provider) in planned.iter().enumerate() {
+            if !budget.can_try(provider.is_paid) {
                 break;
             }
 
-            hops += 1;
-            metrics.cascade_depth = hops;
-            let start = Instant::now();
-            let results = self.search_with_provider(query, provider_type).await;
-            let latency = start.elapsed().as_millis() as u64;
+            let provider_type: ProviderType = provider
+                .name
+                .parse()
+                .map_err(|e| ResolverError::Provider(format!("Invalid provider name: {}", e)))?;
 
-            if let Ok(results) = results {
-                metrics.record_provider(provider_type, latency, true);
-                if !results.is_empty() {
-                    let mut first = results.clone().into_iter().next().unwrap();
-                    if let Some(content) = &first.content {
-                        let links = extract_links(content);
-                        first.validated_links = validate_links(&links).await;
-                        first.score = score_result(&first.url, content);
-                        first.content = Some(compact_content(content, self.config.max_chars));
-                    }
-                    first.metrics = Some(metrics);
-                    if let Some(cache) = &self.cache {
-                        let _ = cache.store(query, &results, &first.source).await;
-                    }
-                    return Ok(first);
+            {
+                let negative_cache = self.negative_cache.lock().unwrap();
+                if negative_cache.should_skip(query, &provider.name) {
+                    metrics.record_provider_detailed(
+                        provider_type,
+                        0,
+                        false,
+                        idx,
+                        None,
+                        false,
+                        Some("negative_cache".into()),
+                        budget.stop_reason.clone(),
+                        true,
+                        false,
+                    );
+                    routing_decisions.push(RoutingDecision {
+                        provider: provider.name.clone(),
+                        attempt_index: idx,
+                        quality_score: None,
+                        accepted: false,
+                        skip_reason: Some("negative_cache".into()),
+                        stop_reason: budget.stop_reason.clone(),
+                        negative_cache_hit: true,
+                        circuit_open: false,
+                        paid_provider: provider.is_paid,
+                    });
+                    continue;
                 }
-            } else {
-                metrics.record_provider(provider_type, latency, false);
+            }
+
+            {
+                let circuit_breakers = self.circuit_breakers.lock().unwrap();
+                if circuit_breakers.is_open(&provider.name) {
+                    metrics.record_provider_detailed(
+                        provider_type,
+                        0,
+                        false,
+                        idx,
+                        None,
+                        false,
+                        Some("circuit_open".into()),
+                        budget.stop_reason.clone(),
+                        false,
+                        true,
+                    );
+                    routing_decisions.push(RoutingDecision {
+                        provider: provider.name.clone(),
+                        attempt_index: idx,
+                        quality_score: None,
+                        accepted: false,
+                        skip_reason: Some("circuit_open".into()),
+                        stop_reason: budget.stop_reason.clone(),
+                        negative_cache_hit: false,
+                        circuit_open: true,
+                        paid_provider: provider.is_paid,
+                    });
+                    continue;
+                }
+            }
+
+            let started = Instant::now();
+            let results = self.search_with_provider(query, provider_type).await;
+            let latency = started.elapsed().as_millis() as u64;
+            budget.record_attempt(provider.is_paid, latency);
+            metrics.budget_elapsed_ms = budget.elapsed_ms;
+            metrics.cascade_depth = idx + 1;
+
+            match results {
+                Ok(results) if !results.is_empty() => {
+                    let mut first = results[0].clone();
+                    let content_str = first.content.as_deref().unwrap_or("");
+                    let links = extract_links(content_str);
+                    let threshold = self
+                        .config
+                        .quality_threshold
+                        .unwrap_or(profile_defaults.quality_threshold);
+                    let quality = score_content(content_str, &links, threshold);
+
+                    let acceptable = quality.acceptable && first.is_valid(self.config.min_chars);
+
+                    metrics.record_provider_detailed(
+                        provider_type,
+                        latency,
+                        true,
+                        idx,
+                        Some(quality.score),
+                        acceptable,
+                        None,
+                        budget.stop_reason.clone(),
+                        false,
+                        false,
+                    );
+                    routing_decisions.push(RoutingDecision {
+                        provider: provider.name.clone(),
+                        attempt_index: idx,
+                        quality_score: Some(quality.score),
+                        accepted: acceptable,
+                        skip_reason: None,
+                        stop_reason: budget.stop_reason.clone(),
+                        negative_cache_hit: false,
+                        circuit_open: false,
+                        paid_provider: provider.is_paid,
+                    });
+
+                    if acceptable {
+                        first.validated_links = validate_links(&links).await;
+                        first.score = score_result(&first.url, content_str);
+                        first.content = Some(compact_content(content_str, self.config.max_chars));
+                        first.metrics = Some(metrics);
+                        first.routing_decisions = routing_decisions;
+
+                        {
+                            let mut cb = self.circuit_breakers.lock().unwrap();
+                            cb.record_success(&provider.name);
+                        }
+                        if !self.config.disable_routing_memory {
+                            let mut rm = self.routing_memory.lock().unwrap();
+                            rm.record("", &provider.name, true, latency, quality.score);
+                        }
+                        if let Some(cache) = &self.cache {
+                            let _ = cache.store(query, &results, &first.source).await;
+                        }
+                        return Ok(first);
+                    } else {
+                        {
+                            let mut nc = self.negative_cache.lock().unwrap();
+                            nc.insert(
+                                query,
+                                &provider.name,
+                                "thin_content",
+                                Duration::from_secs(1800),
+                                std::collections::HashMap::new(),
+                            );
+                        }
+                        if !self.config.disable_routing_memory {
+                            let mut rm = self.routing_memory.lock().unwrap();
+                            rm.record("", &provider.name, false, latency, quality.score);
+                        }
+                    }
+                }
+                Ok(_) => {
+                    metrics.record_provider_detailed(
+                        provider_type,
+                        latency,
+                        false,
+                        idx,
+                        None,
+                        false,
+                        Some("no_results".into()),
+                        budget.stop_reason.clone(),
+                        false,
+                        false,
+                    );
+                    routing_decisions.push(RoutingDecision {
+                        provider: provider.name.clone(),
+                        attempt_index: idx,
+                        quality_score: None,
+                        accepted: false,
+                        skip_reason: Some("no_results".into()),
+                        stop_reason: budget.stop_reason.clone(),
+                        negative_cache_hit: false,
+                        circuit_open: false,
+                        paid_provider: provider.is_paid,
+                    });
+                }
+                Err(err) => {
+                    let reason = classify_error(&err);
+                    metrics.record_provider_detailed(
+                        provider_type,
+                        latency,
+                        false,
+                        idx,
+                        None,
+                        false,
+                        Some(reason.clone()),
+                        budget.stop_reason.clone(),
+                        false,
+                        false,
+                    );
+                    routing_decisions.push(RoutingDecision {
+                        provider: provider.name.clone(),
+                        attempt_index: idx,
+                        quality_score: None,
+                        accepted: false,
+                        skip_reason: Some(reason.clone()),
+                        stop_reason: budget.stop_reason.clone(),
+                        negative_cache_hit: false,
+                        circuit_open: false,
+                        paid_provider: provider.is_paid,
+                    });
+
+                    if matches!(reason.as_str(), "timeout" | "provider_5xx" | "rate_limited") {
+                        let mut cb = self.circuit_breakers.lock().unwrap();
+                        cb.record_failure(&provider.name, 3, Duration::from_secs(300));
+                    }
+
+                    {
+                        let mut nc = self.negative_cache.lock().unwrap();
+                        nc.insert(
+                            query,
+                            &provider.name,
+                            reason,
+                            Duration::from_secs(600),
+                            std::collections::HashMap::new(),
+                        );
+                    }
+                }
             }
         }
 
@@ -539,6 +849,28 @@ impl Resolver {
 
         Err(ResolverError::Provider("No provider succeeded".to_string()))
     }
+
+    fn build_budget(&self, profile_defaults: &RoutingProfileConfig) -> ResolutionBudget {
+        ResolutionBudget {
+            max_provider_attempts: self
+                .config
+                .max_provider_attempts
+                .unwrap_or(profile_defaults.max_provider_attempts),
+            max_paid_attempts: self
+                .config
+                .max_paid_attempts
+                .unwrap_or(profile_defaults.max_paid_attempts),
+            max_total_latency_ms: self
+                .config
+                .max_total_latency_ms
+                .unwrap_or(profile_defaults.max_total_latency_ms),
+            allow_paid: profile_defaults.allow_paid,
+            attempts: 0,
+            paid_attempts: 0,
+            elapsed_ms: 0,
+            stop_reason: None,
+        }
+    }
 }
 
 impl Default for Resolver {
@@ -559,6 +891,28 @@ fn extract_links(content: &str) -> Vec<String> {
 pub fn is_url(input: &str) -> bool {
     let url_patterns = ["http://", "https://", "ftp://", "ftps://"];
     url_patterns.iter().any(|p| input.starts_with(p))
+}
+
+fn extract_domain_or_default(target: &str) -> String {
+    url::Url::parse(target)
+        .ok()
+        .and_then(|u| u.host_str().map(|s| s.to_string()))
+        .unwrap_or_default()
+}
+
+fn classify_error(err: &ResolverError) -> String {
+    let s = err.to_string().to_lowercase();
+    if s.contains("timeout") {
+        "timeout".into()
+    } else if s.contains("rate limit") || s.contains("429") {
+        "rate_limited".into()
+    } else if s.contains("500") || s.contains("502") || s.contains("503") || s.contains("504") {
+        "provider_5xx".into()
+    } else if s.contains("auth") || s.contains("api key") {
+        "auth_required".into()
+    } else {
+        "provider_error".into()
+    }
 }
 
 #[cfg(test)]

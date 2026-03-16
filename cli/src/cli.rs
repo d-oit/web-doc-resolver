@@ -86,6 +86,26 @@ pub struct ResolveArgs {
     /// Synthesize multiple results using AI
     #[arg(long, default_value = "false")]
     pub synthesize: bool,
+
+    /// Quality threshold for content scoring
+    #[arg(long)]
+    pub quality_threshold: Option<f32>,
+
+    /// Maximum provider attempts
+    #[arg(long)]
+    pub max_provider_attempts: Option<usize>,
+
+    /// Maximum paid provider attempts
+    #[arg(long)]
+    pub max_paid_attempts: Option<usize>,
+
+    /// Maximum total latency in milliseconds
+    #[arg(long)]
+    pub max_total_latency_ms: Option<u64>,
+
+    /// Disable routing memory
+    #[arg(long, default_value_t = false)]
+    pub disable_routing_memory: bool,
 }
 
 impl Cli {

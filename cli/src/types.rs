@@ -18,6 +18,22 @@ pub struct ResolvedResult {
     pub metrics: Option<ResolveMetrics>,
     /// Validated links found in content
     pub validated_links: Vec<String>,
+    /// Routing decisions made during resolution
+    pub routing_decisions: Vec<RoutingDecision>,
+}
+
+/// Decision details for a provider attempt
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RoutingDecision {
+    pub provider: String,
+    pub attempt_index: usize,
+    pub quality_score: Option<f32>,
+    pub accepted: bool,
+    pub skip_reason: Option<String>,
+    pub stop_reason: Option<String>,
+    pub negative_cache_hit: bool,
+    pub circuit_open: bool,
+    pub paid_provider: bool,
 }
 
 impl ResolvedResult {
@@ -36,6 +52,7 @@ impl ResolvedResult {
             score,
             metrics: None,
             validated_links: Vec::new(),
+            routing_decisions: Vec::new(),
         }
     }
 

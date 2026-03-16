@@ -34,12 +34,18 @@ fn init_logging(verbose: u8) {
 }
 
 /// Build config from CLI args
+#[allow(clippy::too_many_arguments)]
 fn build_config(
     skip: Option<String>,
     providers_order: Option<String>,
     max_chars: Option<usize>,
     min_chars: Option<usize>,
     profile: Option<String>,
+    quality_threshold: Option<f32>,
+    max_provider_attempts: Option<usize>,
+    max_paid_attempts: Option<usize>,
+    max_total_latency_ms: Option<u64>,
+    disable_routing_memory: bool,
 ) -> Config {
     let mut config = Config::load();
 
@@ -64,6 +70,20 @@ fn build_config(
             config.profile = prof;
         }
     }
+
+    if let Some(v) = quality_threshold {
+        config.quality_threshold = Some(v);
+    }
+    if let Some(v) = max_provider_attempts {
+        config.max_provider_attempts = Some(v);
+    }
+    if let Some(v) = max_paid_attempts {
+        config.max_paid_attempts = Some(v);
+    }
+    if let Some(v) = max_total_latency_ms {
+        config.max_total_latency_ms = Some(v);
+    }
+    config.disable_routing_memory = disable_routing_memory;
 
     config
 }
@@ -155,6 +175,11 @@ fn main() -> ExitCode {
                 args.max_chars,
                 args.min_chars,
                 args.profile.clone(),
+                args.quality_threshold,
+                args.max_provider_attempts,
+                args.max_paid_attempts,
+                args.max_total_latency_ms,
+                args.disable_routing_memory,
             );
             tokio::runtime::Runtime::new()
                 .unwrap()
