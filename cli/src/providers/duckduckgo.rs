@@ -116,12 +116,12 @@ fn parse_ddg_results(html: &str, limit: usize) -> Result<Vec<ResolvedResult>, Re
             // Extract URL and snippet
             if let Some(url) = extract_ddg_url(line) {
                 let content = extract_ddg_snippet(line);
-                results.push(ResolvedResult {
+                results.push(ResolvedResult::new(
                     url,
                     content,
-                    source: "duckduckgo".to_string(),
-                    score: 0.5,
-                });
+                    "duckduckgo",
+                    0.5,
+                ));
                 count += 1;
             }
         }

@@ -7,29 +7,30 @@
 This agent skill implements a v4 cascade resolver that prioritizes free and low-cost data sources:
 
 ### Query Resolution Cascade
-1. **Exa MCP** - FREE search via Model Context Protocol (no API key required!)
-2. **Exa highlights** - Token-efficient query resolution using highlights (low-cost)
-3. **Tavily** - Fallback for comprehensive search (configurable)
-4. **DuckDuckGo** - Free search, always available (no API key)
-5. **Mistral** - AI-powered fallback when other methods fail
+1. **Semantic Cache** - Multi-layer cache (URL, Query, Provider)
+2. **Exa MCP** - FREE search via Model Context Protocol (no API key required!)
+3. **Exa highlights** - Token-efficient query resolution using highlights (low-cost)
+4. **Tavily** - Fallback for comprehensive search (configurable)
+5. **DuckDuckGo** - Free search, always available (no API key)
+6. **Mistral** - AI-powered fallback when other methods fail
 
 ### URL Resolution Cascade
-1. **llms.txt** - Check for structured LLM documentation first (free) -> fallback: Jina Reader (FREE - https://r.jina.ai/<url>)
-2. **Firecrawl** - Deep extraction (**requires API key**)
-3. **Direct HTTP fetch** - Basic content extraction (free)
-4. **Mistral browser** - AI-powered fallback when other methods fail
+1. **Semantic Cache** - Instant retrieval for known URLs
+2. **llms.txt / Jina Reader** - Parallel fast-path probes for structured documentation
+3. **Firecrawl** - Deep extraction (**requires API key**)
+4. **Direct HTTP fetch** - Basic content extraction (free)
+5. **Mistral browser** - AI-powered fallback when other methods fail
 
 ## Features
 
-✅ **Free First**: Exa MCP provides free search without any API key
-✅ **Cost-Optimized**: Free sources first, paid APIs only when necessary
-✅ **Token-Efficient**: Uses Exa highlights to minimize token usage
-✅ **Agent-Ready**: Compatible with [agentskills.io](https://agentskills.io/)
-✅ **Flexible**: Most API keys are optional - works with free defaults
-✅ **Skip Providers**: Override cascade with `--skip` option
-✅ **Well-Tested**: Includes comprehensive test suite and CI/CD
-✅ **Self-Learning**: Detects rate limits, credit exhaustion, and adapts automatically
-✅ **Error Resilient**: Automatic fallback when providers fail
+✅ **Execution Profiles**: `free`, `balanced`, `fast`, and `quality` modes
+✅ **Telemetry & Metrics**: Detailed per-provider latency and cost tracking
+✅ **Content Compaction**: Intelligent boilerplate removal and deduplication
+✅ **AI Synthesis**: Cohesive research answers synthesized using Mistral
+✅ **Parallel Probes**: Concurrent fast-path provider checks for lower latency
+✅ **Link Validation**: Automated async HTTP status checks for returned links
+✅ **Bias Scoring**: Quality ranking based on domain trust and heuristics
+✅ **Document & OCR**: Support for PDF/DOCX via Docling and images via OCR
 
 ## Installation
 

@@ -22,6 +22,8 @@ urlencoding = "2"
 url = "2"
 chrono = { version = "0.4", features = ["serde"] }
 sha2 = "0.10"
+regex = "1"
+futures = "0.3"
 
 # Semantic cache (optional - uses Turso/libsql internally)
 chaotic_semantic_memory = { version = "0.2", optional = true }

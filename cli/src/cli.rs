@@ -50,13 +50,29 @@ pub enum Commands {
         #[arg(long)]
         min_chars: Option<usize>,
 
+        /// Execution profile (free, balanced, fast, quality)
+        #[arg(long)]
+        profile: Option<String>,
+
         /// Output as JSON
         #[arg(long, default_value = "false")]
         json: bool,
 
+        /// Output metrics as JSON
+        #[arg(long, default_value = "false")]
+        metrics_json: bool,
+
+        /// Save metrics to file
+        #[arg(long)]
+        metrics_file: Option<String>,
+
         /// Skip semantic cache
         #[arg(long, default_value = "false")]
         skip_cache: bool,
+
+        /// Synthesize multiple results using AI
+        #[arg(long, default_value = "false")]
+        synthesize: bool,
     },
 
     /// List available providers

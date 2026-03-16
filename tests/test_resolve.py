@@ -44,8 +44,8 @@ class TestIsUrl:
 class TestFetchLlmsTxt:
     """Test llms.txt fetching."""
 
-    @patch("scripts.resolve.create_session_with_retry")
-    def test_llms_txt_found(self, mock_session_factory):
+    @patch("scripts.resolve.get_session")
+    def test_llms_txt_found(self, mock_get_session):
         """Test successful llms.txt fetch."""
         mock_session = Mock()
         mock_response = Mock()
@@ -53,7 +53,11 @@ class TestFetchLlmsTxt:
         mock_response.text = "# Example llms.txt\nContent here"
         mock_response.headers = {"Content-Type": "text/plain"}
         mock_session.get.return_value = mock_response
-        mock_session_factory.return_value = mock_session
+        mock_get_session.return_value = mock_session
+
+        # Clear cache to ensure fresh test
+        import scripts.resolve
+        scripts.resolve._cache = None
 
         result = fetch_llms_txt("https://example.com")
         assert result is not None
@@ -222,18 +226,22 @@ class TestResolveIntegration:
         assert result["source"] == "llms.txt"
         assert "llms.txt content" in result["content"]
 
+    @patch("scripts.resolve.resolve_with_exa_mcp")
     @patch("scripts.resolve.resolve_with_exa")
-    def test_query_with_exa(self, mock_exa):
+    def test_query_with_exa(self, mock_exa, mock_mcp):
         """Test query resolution with Exa."""
+        mock_mcp.return_value = None
         mock_exa.return_value = ResolvedResult(source="exa", content="# Exa results")
 
         result = resolve("machine learning tutorials")
         assert result["source"] == "exa"
 
+    @patch("scripts.resolve.resolve_with_exa_mcp")
     @patch("scripts.resolve.resolve_with_exa")
     @patch("scripts.resolve.resolve_with_tavily")
-    def test_query_fallback_to_tavily(self, mock_tavily, mock_exa):
+    def test_query_fallback_to_tavily(self, mock_tavily, mock_exa, mock_mcp):
         """Test fallback from Exa to Tavily."""
+        mock_mcp.return_value = None
         mock_exa.return_value = None
         mock_tavily.return_value = ResolvedResult(source="tavily", content="# Tavily results")
 
@@ -241,10 +249,12 @@ class TestResolveIntegration:
         assert result["source"] == "tavily"
 
     @patch("scripts.resolve.fetch_llms_txt")
+    @patch("scripts.resolve.resolve_with_jina")
     @patch("scripts.resolve.resolve_with_firecrawl")
-    def test_url_fallback_to_firecrawl(self, mock_firecrawl, mock_fetch):
-        """Test URL fallback to Firecrawl when no llms.txt."""
+    def test_url_fallback_to_firecrawl(self, mock_firecrawl, mock_jina, mock_fetch):
+        """Test URL fallback to Firecrawl when no llms.txt or Jina."""
         mock_fetch.return_value = None
+        mock_jina.return_value = None
         mock_firecrawl.return_value = ResolvedResult(
             source="firecrawl", content="# Firecrawl content"
         )
@@ -287,15 +297,17 @@ class TestEdgeCases:
         assert not is_url(long_query)
 
     @patch("scripts.resolve.fetch_llms_txt")
+    @patch("scripts.resolve.resolve_with_jina")
     @patch("scripts.resolve.resolve_with_duckduckgo")
     @patch("scripts.resolve.fetch_url_content")
     @patch("scripts.resolve.resolve_with_firecrawl")
     @patch("scripts.resolve.resolve_with_mistral_browser")
     def test_url_no_llms_firecrawl_unavailable(
-        self, mock_mistral, mock_firecrawl, mock_fetch_url, mock_ddg, mock_fetch_llms
+        self, mock_mistral, mock_firecrawl, mock_fetch_url, mock_ddg, mock_jina, mock_fetch_llms
     ):
-        """Test URL when both llms.txt and Firecrawl fail."""
+        """Test URL when all methods fail."""
         mock_fetch_llms.return_value = None
+        mock_jina.return_value = None
         mock_firecrawl.return_value = None
         mock_fetch_url.return_value = None
         mock_mistral.return_value = None
@@ -324,12 +336,14 @@ class TestEdgeCases:
         assert result["source"] == "none"
         assert "error" in result
 
+    @patch("scripts.resolve.resolve_with_exa_mcp")
     @patch("scripts.resolve.resolve_with_exa")
     @patch("scripts.resolve.resolve_with_tavily")
     @patch("scripts.resolve.resolve_with_duckduckgo")
     @patch("scripts.resolve.resolve_with_mistral_websearch")
-    def test_query_mistral_fallback(self, mock_mistral, mock_ddg, mock_tavily, mock_exa):
-        """Test query fallback to Mistral when Exa, Tavily, and DuckDuckGo fail."""
+    def test_query_mistral_fallback(self, mock_mistral, mock_ddg, mock_tavily, mock_exa, mock_mcp):
+        """Test query fallback to Mistral."""
+        mock_mcp.return_value = None
         mock_exa.return_value = None
         mock_tavily.return_value = None
         mock_ddg.return_value = None
@@ -470,7 +484,7 @@ class TestDuckDuckGoFallback:
 
     @patch("scripts.resolve._get_from_cache")
     @patch("scripts.resolve._is_rate_limited")
-    @patch("ddgs.DDGS")
+    @patch("duckduckgo_search.DDGS")
     def test_duckduckgo_successful_search(self, mock_ddgs_class, mock_rate_limited, mock_cache):
         """Test successful DuckDuckGo search."""
         mock_cache.return_value = None
@@ -504,7 +518,7 @@ class TestDuckDuckGoFallback:
 
     @patch("scripts.resolve._get_from_cache")
     @patch("scripts.resolve._is_rate_limited")
-    @patch("ddgs.DDGS")
+    @patch("duckduckgo_search.DDGS")
     def test_duckduckgo_empty_results(self, mock_ddgs_class, mock_rate_limited, mock_cache):
         """Test DuckDuckGo with empty results."""
         mock_cache.return_value = None
@@ -911,7 +925,7 @@ class TestAdditionalEdgeCases:
     @patch("scripts.resolve._get_from_cache")
     @patch("scripts.resolve._is_rate_limited")
     @patch("scripts.resolve._save_to_cache")
-    @patch("ddgs.DDGS")
+    @patch("duckduckgo_search.DDGS")
     def test_duckduckgo_network_error(
         self, mock_ddgs_class, mock_save, mock_rate_limited, mock_cache
     ):
@@ -932,7 +946,7 @@ class TestAdditionalEdgeCases:
     @patch("scripts.resolve._get_from_cache")
     @patch("scripts.resolve._is_rate_limited")
     @patch("scripts.resolve._save_to_cache")
-    @patch("ddgs.DDGS")
+    @patch("duckduckgo_search.DDGS")
     def test_duckduckgo_with_unicode_query(
         self, mock_ddgs_class, mock_save, mock_rate_limited, mock_cache
     ):
@@ -969,11 +983,13 @@ class TestAdditionalEdgeCases:
         mock_mistral.assert_not_called()
 
     @patch("scripts.resolve.fetch_llms_txt")
+    @patch("scripts.resolve.resolve_with_jina")
     @patch("scripts.resolve.resolve_with_firecrawl")
     @patch("scripts.resolve.resolve_with_mistral_browser")
-    def test_url_cascade_firecrawl_second(self, mock_mistral, mock_firecrawl, mock_fetch):
-        """Test that Firecrawl is tried second when llms.txt not found."""
+    def test_url_cascade_firecrawl_second(self, mock_mistral, mock_firecrawl, mock_jina, mock_fetch):
+        """Test that Firecrawl is tried when llms.txt and Jina fail."""
         mock_fetch.return_value = None
+        mock_jina.return_value = None
         mock_firecrawl.return_value = ResolvedResult(source="firecrawl", content="content")
 
         result = resolve("https://example.com")
@@ -983,11 +999,13 @@ class TestAdditionalEdgeCases:
         mock_mistral.assert_not_called()
 
     @patch("scripts.resolve.fetch_llms_txt")
+    @patch("scripts.resolve.resolve_with_jina")
     @patch("scripts.resolve.resolve_with_firecrawl")
     @patch("scripts.resolve.resolve_with_mistral_browser")
-    def test_url_cascade_mistral_last(self, mock_mistral, mock_firecrawl, mock_fetch):
+    def test_url_cascade_mistral_last(self, mock_mistral, mock_firecrawl, mock_jina, mock_fetch):
         """Test that Mistral is tried last for URLs."""
         mock_fetch.return_value = None
+        mock_jina.return_value = None
         mock_firecrawl.return_value = None
         mock_mistral.return_value = ResolvedResult(source="mistral-browser", content="content")
 

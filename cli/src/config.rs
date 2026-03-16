@@ -3,6 +3,7 @@
 //! Provides layered config loading: config.toml + WDR_* env vars + API key env vars.
 
 use crate::semantic_cache::SemanticCacheConfig;
+use crate::types::Profile;
 use serde::Deserialize;
 use std::env;
 use std::path::Path;
@@ -49,6 +50,9 @@ pub struct Config {
     /// Semantic cache configuration
     #[serde(default)]
     pub semantic_cache: SemanticCacheConfig,
+    /// Execution profile (default: balanced)
+    #[serde(default)]
+    pub profile: Profile,
 }
 
 fn default_max_chars() -> usize {
@@ -83,6 +87,7 @@ impl Default for Config {
             skip_providers: Vec::new(),
             providers_order: Vec::new(),
             semantic_cache: SemanticCacheConfig::default(),
+            profile: Profile::Balanced,
         }
     }
 }
@@ -149,6 +154,11 @@ impl Config {
         }
         if let Ok(val) = env::var("WDR_PROVIDERS_ORDER") {
             config.providers_order = val.split(',').map(|s| s.trim().to_string()).collect();
+        }
+        if let Ok(val) = env::var("WDR_PROFILE") {
+            if let Ok(p) = val.parse() {
+                config.profile = p;
+            }
         }
 
         // Semantic cache config from env vars

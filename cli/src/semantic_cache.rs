@@ -167,9 +167,14 @@ impl SemanticCache {
                 query,
                 best_match.score
             );
-            // Return cached results - in a full implementation,
-            // we'd store the actual results in the concept metadata
-            return Ok(None); // TODO: Store/retrieve results in metadata
+
+            if let Some(metadata) = &best_match.concept.metadata {
+                if let Ok(entry) = serde_json::from_str::<serde_json::Value>(metadata) {
+                    if let Ok(results) = serde_json::from_value::<Vec<ResolvedResult>>(entry["results"].clone()) {
+                        return Ok(Some(results));
+                    }
+                }
+            }
         }
 
         tracing::debug!(
@@ -236,14 +241,25 @@ impl SemanticCache {
         Ok(())
     }
 
+    /// Query the cache for a specific URL (L2 Cache)
+    #[cfg(feature = "semantic-cache")]
+    pub async fn query_url(&self, url: &str) -> Result<Option<ResolvedResult>, ResolverError> {
+        self.query(url).await.map(|opt| opt.and_then(|vec| vec.into_iter().next()))
+    }
+
+    /// Query the cache for a specific provider (L4 Cache)
+    #[cfg(feature = "semantic-cache")]
+    pub async fn query_provider(&self, query: &str, provider: &str) -> Result<Option<Vec<ResolvedResult>>, ResolverError> {
+        let key = format!("{}:{}", provider, query);
+        self.query(&key).await
+    }
+
     /// Get cache statistics
     #[cfg(feature = "semantic-cache")]
     pub async fn stats(&self) -> Result<CacheStats, ResolverError> {
-        // Get concept count from framework
-        // This is an approximation - in production, track hits separately
         Ok(CacheStats {
-            entries: 0, // Would need to query framework
-            hit_rate: 0.0,
+            entries: self.framework.concept_count().await.unwrap_or(0),
+            hit_rate: 0.0, // Needs separate tracking
             path: self.config.path.clone(),
         })
     }

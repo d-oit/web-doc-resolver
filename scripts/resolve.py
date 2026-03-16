@@ -156,6 +156,32 @@ class ErrorType(Enum):
     UNKNOWN = "unknown"
 
 
+class Profile(Enum):
+    """Execution profiles for resource management."""
+
+    FREE = "free"
+    BALANCED = "balanced"
+    FAST = "fast"
+    QUALITY = "quality"
+
+    def is_provider_allowed(self, provider: "ProviderType") -> bool:
+        if self == Profile.FREE:
+            return not provider.is_paid()
+        if self == Profile.FAST:
+            return provider.is_fast()
+        return True
+
+    def max_hops(self) -> int:
+        if self == Profile.FREE:
+            return 3
+        if self == Profile.FAST:
+            return 2
+        if self == Profile.BALANCED:
+            return 5
+        if self == Profile.QUALITY:
+            return 8
+
+
 class ProviderType(Enum):
     """Available providers for resolution."""
 
@@ -172,6 +198,22 @@ class ProviderType(Enum):
     TAVILY = "tavily"
     DUCKDUCKGO = "duckduckgo"
     MISTRAL_WEBSEARCH = "mistral_websearch"
+
+    def is_paid(self) -> bool:
+        return self in (
+            ProviderType.EXA,
+            ProviderType.TAVILY,
+            ProviderType.FIRECRAWL,
+            ProviderType.MISTRAL_WEBSEARCH,
+        )
+
+    def is_fast(self) -> bool:
+        return self in (
+            ProviderType.EXA_MCP,
+            ProviderType.DUCKDUCKGO,
+            ProviderType.LLMS_TXT,
+            ProviderType.JINA,
+        )
 
 
 # Default provider orders
@@ -206,6 +248,41 @@ class ValidationResult:
 
 
 @dataclass
+class ProviderMetric:
+    """Metrics for a single provider call."""
+
+    provider: str
+    latency_ms: int
+    success: bool
+    paid: bool
+
+
+@dataclass
+class ResolveMetrics:
+    """Aggregated metrics for a resolution request."""
+
+    total_latency_ms: int = 0
+    provider_metrics: list[ProviderMetric] = field(default_factory=list)
+    cascade_depth: int = 0
+    paid_usage: bool = False
+    cache_hit: bool = False
+
+    def record_provider(self, provider: "ProviderType", latency_ms: int, success: bool):
+        paid = provider.is_paid()
+        if paid and success:
+            self.paid_usage = True
+        self.provider_metrics.append(
+            ProviderMetric(
+                provider=provider.value,
+                latency_ms=latency_ms,
+                success=success,
+                paid=paid,
+            )
+        )
+        self.total_latency_ms += latency_ms
+
+
+@dataclass
 class ResolvedResult:
     """Result of a successful resolution."""
 
@@ -216,6 +293,7 @@ class ResolvedResult:
     score: float = 0.0
     validated_links: list[str] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
+    metrics: ResolveMetrics | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for JSON serialization."""
@@ -595,6 +673,123 @@ def validate_links(links: list[str], timeout: int = 5) -> list[str]:
 # ============================================================================
 
 
+def score_result(url: str, content: str) -> float:
+    """Score a result based on domain trust and content quality."""
+    score = 0.5
+
+    # Domain trust heuristics
+    try:
+        parsed_url = urlparse(url)
+        domain = parsed_url.netloc.lower()
+
+        trusted_tlds = [".edu", ".gov", ".org", ".rs", ".io"]
+        if any(domain.endswith(tld) for tld in trusted_tlds):
+            score += 0.2
+
+        news_sites = ["nytimes.com", "bbc.co.uk", "reuters.com", "theguardian.com"]
+        if any(site in domain for site in news_sites):
+            score += 0.1
+
+        dev_sites = ["github.com", "stackoverflow.com", "docs.rs", "mozilla.org"]
+        if any(site in domain for site in dev_sites):
+            score += 0.2
+    except Exception:
+        pass
+
+    # Content quality heuristics
+    word_count = len(content.split())
+    if word_count > 500:
+        score += 0.1
+    elif word_count < 50:
+        score -= 0.2
+
+    # SEO spam detection
+    spam_terms = ["buy now", "cheap", "discount", "free trial", "best price"]
+    lower_content = content.lower()
+    for term in spam_terms:
+        if term in lower_content:
+            score -= 0.1
+
+    return max(0.0, min(1.0, score))
+
+
+def synthesize_results(query: str, results: list[dict], api_key: str, model: str) -> str:
+    """Synthesize multiple results into a cohesive response using Mistral API."""
+    if not results:
+        return "No results to synthesize."
+
+    context_parts = []
+    for i, res in enumerate(results):
+        content = res.get("content", "")
+        url = res.get("url", "unknown")
+        context_parts.append(f"\nResult {i + 1}:\nURL: {url}\nContent: {content}\n---\n")
+
+    context = "".join(context_parts)
+    prompt = (
+        f"Synthesize the following research results for the query: '{query}'. "
+        "Provide a cohesive, well-structured answer in markdown format. "
+        "Cite sources using [1], [2], etc.\n\nContext:\n" + context
+    )
+
+    try:
+        response = requests.post(
+            "https://api.mistral.ai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": "You are a helpful research assistant."},
+                    {"role": "user", "content": prompt},
+                ],
+            },
+            timeout=30,
+        )
+        response.raise_for_status()
+        data = response.json()
+        return str(data["choices"][0]["message"]["content"])
+    except Exception as e:
+        logger.error(f"Synthesis failed: {e}")
+        # Fallback to concatenated results
+        return "\n\n---\n\n".join([r.get("content", "") for r in results])
+
+
+def compact_content(content: str, max_chars: int) -> str:
+    """Compact content by removing boilerplate and redundant information."""
+    lines = content.splitlines()
+    unique_lines = set()
+    compacted = []
+
+    boilerplate_terms = [
+        "cookie policy",
+        "all rights reserved",
+        "terms of service",
+        "privacy policy",
+        "subscribe to our newsletter",
+        "follow us on",
+        "click here",
+    ]
+
+    for line in lines:
+        trimmed = line.strip()
+        if not trimmed:
+            compacted.append("")
+            continue
+
+        lower = trimmed.lower()
+        if any(term in lower for term in boilerplate_terms):
+            continue
+
+        if trimmed not in unique_lines:
+            compacted.append(trimmed)
+            unique_lines.add(trimmed)
+
+    joined = "\n".join(compacted)
+    return joined[:max_chars]
+
+
 def extract_text_from_html(html: str, base_url: str = "") -> str:
     """
     Extract clean text content from HTML.
@@ -843,10 +1038,15 @@ def resolve_with_jina(url: str, max_chars: int = MAX_CHARS) -> ResolvedResult | 
         if not content or len(content) < MIN_CHARS:
             return None
 
+        # Extract links for validation
+        links = re.findall(r'https?://[^\s<>"{}|\\^`\[\]]+', content)
+        validated_links = validate_links(links[:5])
+
         result = ResolvedResult(
             source="jina",
             content=content[:max_chars],
             url=url,
+            validated_links=validated_links,
         )
         _save_to_cache(url, "jina", result.to_dict())
         return result
@@ -1144,7 +1344,7 @@ def resolve_with_duckduckgo(
     last_error = None
     for attempt in range(retries + 1):
         try:
-            from ddgs import DDGS
+            from duckduckgo_search import DDGS
 
             logger.info(f"Using DuckDuckGo to search: {query}")
 
@@ -1245,11 +1445,16 @@ def resolve_with_firecrawl(url: str, max_chars: int = MAX_CHARS) -> ResolvedResu
         if result and hasattr(result, "markdown"):
             markdown = result.markdown or ""
 
+        # Extract links for validation
+        links = re.findall(r'https?://[^\s<>"{}|\\^`\[\]]+', markdown)
+        validated_links = validate_links(links[:5])
+
         result = ResolvedResult(
             source="firecrawl",
             content=markdown[:max_chars],
             url=validation.final_url or url,
             metadata={"original_url": url},
+            validated_links=validated_links,
         )
         _save_to_cache(url, "firecrawl", result.to_dict())
         return result
@@ -1323,11 +1528,16 @@ def resolve_with_mistral_browser(url: str, max_chars: int = MAX_CHARS) -> Resolv
         else:
             content = ""
 
+        # Extract links for validation
+        links = re.findall(r'https?://[^\s<>"{}|\\^`\[\]]+', str(content))
+        validated_links = validate_links(links[:5])
+
         result = ResolvedResult(
             source="mistral-browser",
             content=content[:max_chars],  # type: ignore[arg-type]
             url=validation.final_url or url,
             metadata={"original_url": url},
+            validated_links=validated_links,
         )
         _save_to_cache(url, "mistral_browser", result.to_dict())
         return result
@@ -1397,10 +1607,15 @@ def resolve_with_mistral_websearch(query: str, max_chars: int = MAX_CHARS) -> Re
         else:
             content = ""
 
+        # Extract links for validation
+        links = re.findall(r'https?://[^\s<>"{}|\\^`\[\]]+', str(content))
+        validated_links = validate_links(links[:5])
+
         result = ResolvedResult(
             source="mistral-websearch",
             content=content[:max_chars],  # type: ignore[arg-type]
             query=query,
+            validated_links=validated_links,
         )
         _save_to_cache(query, "mistral_websearch", result.to_dict())
         return result
@@ -1433,46 +1648,124 @@ def resolve_with_mistral_websearch(query: str, max_chars: int = MAX_CHARS) -> Re
 # ============================================================================
 
 
-def resolve_url(url: str, max_chars: int = MAX_CHARS) -> dict[str, Any]:
+def resolve_url(
+    url: str, max_chars: int = MAX_CHARS, profile: Profile = Profile.BALANCED
+) -> dict[str, Any]:
     """
     Resolve a URL using the cascade: llms.txt → Jina Reader → Firecrawl → Direct fetch → Mistral browser → DuckDuckGo search.
     """
     logger.info(f"Resolving URL: {url}")
+    hops = 0
+    max_hops = profile.max_hops()
+    metrics = ResolveMetrics()
+    llms_content = None
+    jina_result = None
+    firecrawl_result = None
+    direct_result = None
+    mistral_result = None
+    ddg_result = None
+    latency = 0
 
     # Step 1: Check for llms.txt
-    llms_content = fetch_llms_txt(url)
+    if profile.is_provider_allowed(ProviderType.LLMS_TXT):
+        hops += 1
+        metrics.cascade_depth = hops
+        start = time.time()
+        llms_content = fetch_llms_txt(url)
+        latency = int((time.time() - start) * 1000)
     if llms_content:
+        metrics.record_provider(ProviderType.LLMS_TXT, latency, True)
+        compacted = compact_content(llms_content, max_chars)
         return {
             "source": "llms.txt",
             "url": url,
-            "content": llms_content[:max_chars],
+            "content": compacted,
             "validated_links": [],
+            "metrics": asdict(metrics),
         }
+    else:
+        if profile.is_provider_allowed(ProviderType.LLMS_TXT):
+            metrics.record_provider(ProviderType.LLMS_TXT, latency, False)
 
     # Step 2: Try Jina Reader (FREE, no API key required)
-    jina_result = resolve_with_jina(url, max_chars)
-    if jina_result:
-        return jina_result.to_dict()
+    if hops < max_hops and profile.is_provider_allowed(ProviderType.JINA):
+        hops += 1
+        metrics.cascade_depth = hops
+        start = time.time()
+        jina_result = resolve_with_jina(url, max_chars)
+        latency = int((time.time() - start) * 1000)
+        if jina_result:
+            metrics.record_provider(ProviderType.JINA, latency, True)
+            jina_result.content = compact_content(jina_result.content, max_chars)
+            jina_result.score = score_result(jina_result.url or url, jina_result.content)
+            jina_result.metrics = metrics
+            return jina_result.to_dict()
+        else:
+            metrics.record_provider(ProviderType.JINA, latency, False)
 
     # Step 3: Try Firecrawl (if API key available)
-    firecrawl_result = resolve_with_firecrawl(url, max_chars)
-    if firecrawl_result:
-        return firecrawl_result.to_dict()
+    if hops < max_hops and profile.is_provider_allowed(ProviderType.FIRECRAWL):
+        hops += 1
+        metrics.cascade_depth = hops
+        start = time.time()
+        firecrawl_result = resolve_with_firecrawl(url, max_chars)
+        latency = int((time.time() - start) * 1000)
+        if firecrawl_result:
+            metrics.record_provider(ProviderType.FIRECRAWL, latency, True)
+            firecrawl_result.content = compact_content(firecrawl_result.content, max_chars)
+            firecrawl_result.score = score_result(firecrawl_result.url or url, firecrawl_result.content)
+            firecrawl_result.metrics = metrics
+            return firecrawl_result.to_dict()
+        else:
+            metrics.record_provider(ProviderType.FIRECRAWL, latency, False)
 
     # Step 4: Try direct HTTP fetch
-    direct_result = fetch_url_content(url, max_chars=max_chars)
-    if direct_result:
-        return direct_result.to_dict()
+    if hops < max_hops and profile.is_provider_allowed(ProviderType.DIRECT_FETCH):
+        hops += 1
+        metrics.cascade_depth = hops
+        start = time.time()
+        direct_result = fetch_url_content(url, max_chars=max_chars)
+        latency = int((time.time() - start) * 1000)
+        if direct_result:
+            metrics.record_provider(ProviderType.DIRECT_FETCH, latency, True)
+            direct_result.content = compact_content(direct_result.content, max_chars)
+            direct_result.score = score_result(direct_result.url or url, direct_result.content)
+            direct_result.metrics = metrics
+            return direct_result.to_dict()
+        else:
+            metrics.record_provider(ProviderType.DIRECT_FETCH, latency, False)
 
     # Step 5: Try Mistral browser (if API key available)
-    mistral_result = resolve_with_mistral_browser(url, max_chars)
-    if mistral_result:
-        return mistral_result.to_dict()
+    if hops < max_hops and profile.is_provider_allowed(ProviderType.MISTRAL_BROWSER):
+        hops += 1
+        metrics.cascade_depth = hops
+        start = time.time()
+        mistral_result = resolve_with_mistral_browser(url, max_chars)
+        latency = int((time.time() - start) * 1000)
+        if mistral_result:
+            metrics.record_provider(ProviderType.MISTRAL_BROWSER, latency, True)
+            mistral_result.content = compact_content(mistral_result.content, max_chars)
+            mistral_result.score = score_result(mistral_result.url or url, mistral_result.content)
+            mistral_result.metrics = metrics
+            return mistral_result.to_dict()
+        else:
+            metrics.record_provider(ProviderType.MISTRAL_BROWSER, latency, False)
 
     # Step 6: Fall back to DuckDuckGo search for the URL
-    ddg_result = resolve_with_duckduckgo(url, max_chars)
-    if ddg_result:
-        return ddg_result.to_dict()
+    if hops < max_hops and profile.is_provider_allowed(ProviderType.DUCKDUCKGO):
+        hops += 1
+        metrics.cascade_depth = hops
+        start = time.time()
+        ddg_result = resolve_with_duckduckgo(url, max_chars)
+        latency = int((time.time() - start) * 1000)
+        if ddg_result:
+            metrics.record_provider(ProviderType.DUCKDUCKGO, latency, True)
+            ddg_result.content = compact_content(ddg_result.content, max_chars)
+            ddg_result.score = score_result(ddg_result.url or url, ddg_result.content)
+            ddg_result.metrics = metrics
+            return ddg_result.to_dict()
+        else:
+            metrics.record_provider(ProviderType.DUCKDUCKGO, latency, False)
 
     # All methods failed
     return {
@@ -1485,7 +1778,10 @@ def resolve_url(url: str, max_chars: int = MAX_CHARS) -> dict[str, Any]:
 
 
 def resolve_query(
-    query: str, max_chars: int = MAX_CHARS, skip_providers: set[str] | None = None
+    query: str,
+    max_chars: int = MAX_CHARS,
+    skip_providers: set[str] | None = None,
+    profile: Profile = Profile.BALANCED,
 ) -> dict[str, Any]:
     """
     Resolve a search query using the cascade: Exa MCP (free) → Exa SDK → Tavily → DuckDuckGo → Mistral websearch.
@@ -1494,41 +1790,115 @@ def resolve_query(
         query: Search query string
         max_chars: Maximum characters in output
         skip_providers: Set of provider names to skip (e.g., {'exa_mcp', 'exa', 'tavily'})
+        profile: Execution profile for resource management
     """
     skip_providers = skip_providers or set()
     logger.info(f"Resolving query: {query}")
     if skip_providers:
         logger.info(f"Skipping providers: {', '.join(skip_providers)}")
 
+    hops = 0
+    max_hops = profile.max_hops()
+    metrics = ResolveMetrics()
+    exa_mcp_result = None
+    exa_result = None
+    tavily_result = None
+    ddg_result = None
+    mistral_result = None
+
     # Step 1: Try Exa MCP (FREE, no API key required)
-    if "exa_mcp" not in skip_providers:
+    if (
+        "exa_mcp" not in skip_providers
+        and hops < max_hops
+        and profile.is_provider_allowed(ProviderType.EXA_MCP)
+    ):
+        hops += 1
+        metrics.cascade_depth = hops
+        start = time.time()
         exa_mcp_result = resolve_with_exa_mcp(query, max_chars)
+        latency = int((time.time() - start) * 1000)
         if exa_mcp_result:
+            metrics.record_provider(ProviderType.EXA_MCP, latency, True)
+            exa_mcp_result.content = compact_content(exa_mcp_result.content, max_chars)
+            exa_mcp_result.score = score_result(exa_mcp_result.url or "", exa_mcp_result.content)
+            exa_mcp_result.metrics = metrics
             return exa_mcp_result.to_dict()
+        else:
+            metrics.record_provider(ProviderType.EXA_MCP, latency, False)
 
     # Step 2: Try Exa SDK (if API key available)
-    if "exa" not in skip_providers:
+    if (
+        "exa" not in skip_providers
+        and hops < max_hops
+        and profile.is_provider_allowed(ProviderType.EXA)
+    ):
+        hops += 1
+        metrics.cascade_depth = hops
+        start = time.time()
         exa_result = resolve_with_exa(query, max_chars)
+        latency = int((time.time() - start) * 1000)
         if exa_result:
+            metrics.record_provider(ProviderType.EXA, latency, True)
+            exa_result.content = compact_content(exa_result.content, max_chars)
+            exa_result.score = score_result(exa_result.url or "", exa_result.content)
+            exa_result.metrics = metrics
             return exa_result.to_dict()
+        else:
+            metrics.record_provider(ProviderType.EXA, latency, False)
 
     # Step 3: Try Tavily (if API key available)
-    if "tavily" not in skip_providers:
-        tavily_result = resolve_with_tavily(query, max_chars)
-        if tavily_result:
-            return tavily_result.to_dict()
+    if (
+        "tavily" not in skip_providers
+        and profile.is_provider_allowed(ProviderType.TAVILY)
+    ):
+        if hops < max_hops:
+            hops += 1
+            metrics.cascade_depth = hops
+            start = time.time()
+            tavily_result = resolve_with_tavily(query, max_chars)
+            latency = int((time.time() - start) * 1000)
+            if tavily_result:
+                metrics.record_provider(ProviderType.TAVILY, latency, True)
+                tavily_result.content = compact_content(tavily_result.content, max_chars)
+                tavily_result.score = score_result(tavily_result.url or "", tavily_result.content)
+                tavily_result.metrics = metrics
+                return tavily_result.to_dict()
+            else:
+                metrics.record_provider(ProviderType.TAVILY, latency, False)
 
     # Step 4: DuckDuckGo (always available, no API key required)
-    if "duckduckgo" not in skip_providers:
-        ddg_result = resolve_with_duckduckgo(query, max_chars)
-        if ddg_result:
-            return ddg_result.to_dict()
+    if "duckduckgo" not in skip_providers and profile.is_provider_allowed(ProviderType.DUCKDUCKGO):
+        if hops < max_hops:
+            hops += 1
+            metrics.cascade_depth = hops
+            start = time.time()
+            ddg_result = resolve_with_duckduckgo(query, max_chars)
+            latency = int((time.time() - start) * 1000)
+            if ddg_result:
+                metrics.record_provider(ProviderType.DUCKDUCKGO, latency, True)
+                ddg_result.content = compact_content(ddg_result.content, max_chars)
+                ddg_result.score = score_result(ddg_result.url or "", ddg_result.content)
+                ddg_result.metrics = metrics
+                return ddg_result.to_dict()
+            else:
+                metrics.record_provider(ProviderType.DUCKDUCKGO, latency, False)
 
     # Step 5: Try Mistral websearch (if API key available)
-    if "mistral" not in skip_providers:
-        mistral_result = resolve_with_mistral_websearch(query, max_chars)
-        if mistral_result:
-            return mistral_result.to_dict()
+    if "mistral" not in skip_providers and profile.is_provider_allowed(ProviderType.MISTRAL_WEBSEARCH):
+        if hops < max_hops:
+            hops += 1
+            metrics.cascade_depth = hops
+            start = time.time()
+            mistral_result = resolve_with_mistral_websearch(query, max_chars)
+            latency = int((time.time() - start) * 1000)
+            if mistral_result:
+                metrics.record_provider(ProviderType.MISTRAL_WEBSEARCH, latency, True)
+                mistral_result.content = compact_content(mistral_result.content, max_chars)
+                mistral_result.score = score_result(mistral_result.url or "", mistral_result.content)
+                mistral_result.metrics = metrics
+                return mistral_result.to_dict()
+            else:
+                metrics.record_provider(ProviderType.MISTRAL_WEBSEARCH, latency, False)
 
     # All methods failed
     return {
@@ -1541,7 +1911,10 @@ def resolve_query(
 
 
 def resolve(
-    input_str: str, max_chars: int = MAX_CHARS, skip_providers: set[str] | None = None
+    input_str: str,
+    max_chars: int = MAX_CHARS,
+    skip_providers: set[str] | None = None,
+    profile: Profile = Profile.BALANCED,
 ) -> dict[str, Any]:
     """
     Main entry point - resolve a URL or query into LLM-ready markdown.
@@ -1553,11 +1926,12 @@ def resolve(
         input_str: URL or search query to resolve
         max_chars: Maximum characters in output
         skip_providers: Set of provider names to skip (e.g., {'exa_mcp', 'exa', 'tavily'})
+        profile: Execution profile for resource management
     """
     if is_url(input_str):
-        return resolve_url(input_str, max_chars)
+        return resolve_url(input_str, max_chars, profile=profile)
     else:
-        return resolve_query(input_str, max_chars, skip_providers)
+        return resolve_query(input_str, max_chars, skip_providers, profile=profile)
 
 
 def resolve_direct(
@@ -1884,6 +2258,8 @@ def main():
         help="Logging level",
     )
     parser.add_argument("--json", action="store_true", help="Output as JSON")
+    parser.add_argument("--metrics-json", action="store_true", help="Output metrics as JSON")
+    parser.add_argument("--metrics-file", type=str, help="Save metrics to file")
     parser.add_argument("--validate-links", action="store_true", help="Validate all returned links")
     parser.add_argument(
         "--skip",
@@ -1901,6 +2277,18 @@ def main():
         "--providers-order",
         type=str,
         help="Custom provider order (comma-separated). Example: 'llms_txt,jina,direct_fetch' for URLs or 'exa_mcp,duckduckgo' for queries",
+    )
+    parser.add_argument(
+        "--profile",
+        type=str,
+        choices=[p.value for p in Profile],
+        default="balanced",
+        help="Execution profile (default: balanced)",
+    )
+    parser.add_argument(
+        "--synthesize",
+        action="store_true",
+        help="Synthesize multiple results using AI",
     )
 
     args = parser.parse_args()
@@ -1929,14 +2317,52 @@ def main():
     if args.provider:
         single_provider = ProviderType(args.provider)
 
+    profile = Profile(args.profile)
+
     def process_input(inp: str) -> dict[str, Any]:
         """Process a single input string."""
+        if args.synthesize:
+            # Simple aggregation for Python script
+            results = []
+            if is_url(inp):
+                results.append(resolve_url(inp, args.max_chars, profile=profile))
+            else:
+                # Aggregate from multiple query providers
+                for pt in [ProviderType.EXA_MCP, ProviderType.EXA, ProviderType.TAVILY]:
+                    if skip_providers and pt.value in skip_providers:
+                        continue
+                    res = resolve_direct(inp, pt, args.max_chars)
+                    if res.get("source") != "none":
+                        results.append(res)
+                    if len(results) >= 3:
+                        break
+
+            if not results:
+                return {"source": "none", "content": "No results to synthesize", "error": "No results"}
+
+            # AI synthesis if MISTRAL_API_KEY is available
+            api_key = os.getenv("MISTRAL_API_KEY")
+            model = os.getenv("WDR_SYNTHESIS_MODEL", "mistral-large-latest")
+            if api_key:
+                content = synthesize_results(inp, results, api_key, model)
+                source = "synthesis"
+            else:
+                # Fallback to concatenated results
+                content = "\n\n---\n\n".join([r.get("content", "") for r in results])
+                source = "aggregated"
+
+            return {
+                "source": source,
+                "content": content,
+                "metadata": {"count": len(results)},
+            }
+
         if single_provider:
             return resolve_direct(inp, single_provider, args.max_chars)
         elif providers_order:
             return resolve_with_order(inp, providers_order, args.max_chars)
         else:
-            return resolve(inp, args.max_chars, skip_providers)
+            return resolve(inp, args.max_chars, skip_providers, profile=profile)
 
     if args.input == "-":
         inputs = [line.strip() for line in sys.stdin if line.strip()]
@@ -1957,6 +2383,12 @@ def main():
                 print("\n" + "=" * 40 + "\n")
     else:
         result = process_input(args.input)
+
+        if args.metrics_json and result.get("metrics"):
+            print(json.dumps(result["metrics"], indent=2))
+        if args.metrics_file and result.get("metrics"):
+            with open(args.metrics_file, "w") as f:
+                json.dump(result["metrics"], f, indent=2)
 
         if args.json:
             print(json.dumps(result, indent=2))

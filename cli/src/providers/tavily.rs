@@ -108,12 +108,12 @@ impl crate::providers::QueryProvider for TavilyProvider {
             .results
             .unwrap_or_default()
             .into_iter()
-            .map(|r| ResolvedResult {
-                url: r.url,
-                content: Some(r.content),
-                source: "tavily".to_string(),
-                score: r.score,
-            })
+            .map(|r| ResolvedResult::new(
+                r.url,
+                Some(r.content),
+                "tavily",
+                r.score,
+            ))
             .collect();
 
         Ok(results)

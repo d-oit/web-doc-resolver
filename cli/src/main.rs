@@ -10,7 +10,7 @@ use tracing_subscriber::{EnvFilter, fmt};
 use wdr_lib::{
     cli::Cli,
     config::Config,
-    output::{ConfigOutput, JsonOutput, ProviderList, TextOutput},
+    output::{ConfigOutput, JsonOutput, ProviderList},
     resolver::Resolver,
     types::ProviderType,
 };
@@ -39,6 +39,7 @@ fn build_config(
     providers_order: Option<String>,
     max_chars: Option<usize>,
     min_chars: Option<usize>,
+    profile: Option<String>,
 ) -> Config {
     let mut config = Config::load();
 
@@ -58,6 +59,12 @@ fn build_config(
         config.min_chars = m;
     }
 
+    if let Some(p) = profile {
+        if let Ok(prof) = p.parse() {
+            config.profile = prof;
+        }
+    }
+
     config
 }
 
@@ -68,12 +75,22 @@ async fn handle_resolve(
     provider: Option<&str>,
     config: Config,
     json: bool,
+    metrics_json: bool,
+    metrics_file: Option<String>,
+    skip_cache: bool,
+    synthesize: bool,
 ) -> Result<()> {
     tracing::info!("Resolving: {}", input);
 
+    let mut config = config;
+    if skip_cache {
+        config.semantic_cache.enabled = false;
+    }
     let resolver = Resolver::with_config(config);
 
-    let result = if let Some(p) = provider {
+    let result = if synthesize {
+        resolver.resolve_aggregated(input).await
+    } else if let Some(p) = provider {
         let provider_type: ProviderType = p
             .parse()
             .map_err(|e| anyhow::anyhow!("Invalid provider: {}", e))?;
@@ -84,6 +101,15 @@ async fn handle_resolve(
 
     match result {
         Ok(res) => {
+            if let Some(metrics) = &res.metrics {
+                if metrics_json {
+                    println!("{}", serde_json::to_string_pretty(metrics)?);
+                }
+                if let Some(path) = metrics_file {
+                    std::fs::write(path, serde_json::to_string_pretty(metrics)?)?;
+                }
+            }
+
             if json {
                 let json_output = JsonOutput::from_result(&res);
                 if let Some(out_path) = output {
@@ -129,10 +155,14 @@ fn main() -> ExitCode {
             providers_order,
             max_chars,
             min_chars,
+            profile,
             json,
-            skip_cache: _,
+            metrics_json,
+            metrics_file,
+            skip_cache,
+            synthesize,
         } => {
-            let config = build_config(skip, providers_order, max_chars, min_chars);
+            let config = build_config(skip, providers_order, max_chars, min_chars, profile);
             tokio::runtime::Runtime::new()
                 .unwrap()
                 .block_on(handle_resolve(
@@ -141,6 +171,10 @@ fn main() -> ExitCode {
                     provider.as_deref(),
                     config,
                     json,
+                    metrics_json,
+                    metrics_file,
+                    skip_cache,
+                    synthesize,
                 ))
         }
         wdr_lib::cli::Commands::Providers => {
@@ -153,9 +187,19 @@ fn main() -> ExitCode {
             Ok(())
         }
         wdr_lib::cli::Commands::CacheStats => {
-            // TODO: Implement when semantic cache is integrated
-            TextOutput::print_info("Cache statistics not yet available");
-            Ok(())
+            let config = Config::load();
+            tokio::runtime::Runtime::new()
+                .unwrap()
+                .block_on(async {
+                    if let Some(cache) = wdr_lib::SemanticCache::new(&config)? {
+                        let stats = cache.stats().await?;
+                        wdr_lib::output::CacheStatsOutput::print(&stats);
+                        Ok(())
+                    } else {
+                        eprintln!("Info: Semantic cache is disabled");
+                        Ok(())
+                    }
+                })
         }
     };
 

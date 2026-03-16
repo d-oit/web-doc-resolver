@@ -1,6 +1,7 @@
 //! Types for the Web Documentation Resolver.
 
 use serde::{Deserialize, Serialize};
+use crate::metrics::ResolveMetrics;
 
 /// Result from resolving a URL or query
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -13,6 +14,10 @@ pub struct ResolvedResult {
     pub source: String,
     /// Relevance score (0.0 - 1.0)
     pub score: f64,
+    /// Telemetry and metrics
+    pub metrics: Option<ResolveMetrics>,
+    /// Validated links found in content
+    pub validated_links: Vec<String>,
 }
 
 impl ResolvedResult {
@@ -29,6 +34,8 @@ impl ResolvedResult {
             content,
             source: source.into(),
             score,
+            metrics: None,
+            validated_links: Vec::new(),
         }
     }
 
@@ -38,6 +45,57 @@ impl ResolvedResult {
             .as_ref()
             .map(|c| c.len() >= min_chars)
             .unwrap_or(false)
+    }
+}
+
+/// Execution profiles for resource management
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum Profile {
+    /// Use only free providers
+    Free,
+    /// Balance cost and quality (default)
+    #[default]
+    Balanced,
+    /// Prioritize speed, skip slow providers
+    Fast,
+    /// Prioritize quality, use best (even paid) providers
+    Quality,
+}
+
+impl std::str::FromStr for Profile {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "free" => Ok(Profile::Free),
+            "balanced" => Ok(Profile::Balanced),
+            "fast" => Ok(Profile::Fast),
+            "quality" => Ok(Profile::Quality),
+            _ => Err(format!("Unknown profile: {}", s)),
+        }
+    }
+}
+
+impl Profile {
+    /// Get allowed provider types for this profile
+    pub fn is_provider_allowed(&self, provider: ProviderType) -> bool {
+        match self {
+            Profile::Free => !provider.is_paid(),
+            Profile::Fast => provider.is_fast(),
+            Profile::Balanced => true,
+            Profile::Quality => true,
+        }
+    }
+
+    /// Get max hops/cascade depth for this profile
+    pub fn max_hops(&self) -> usize {
+        match self {
+            Profile::Free => 3,
+            Profile::Fast => 2,
+            Profile::Balanced => 5,
+            Profile::Quality => 8,
+        }
     }
 }
 
@@ -109,6 +167,22 @@ impl ProviderType {
                 | ProviderType::Firecrawl
                 | ProviderType::DirectFetch
                 | ProviderType::MistralBrowser
+        )
+    }
+
+    /// Check if this is a paid provider
+    pub fn is_paid(&self) -> bool {
+        matches!(
+            self,
+            ProviderType::Exa | ProviderType::Tavily | ProviderType::Firecrawl | ProviderType::MistralWebSearch
+        )
+    }
+
+    /// Check if this is a fast provider
+    pub fn is_fast(&self) -> bool {
+        matches!(
+            self,
+            ProviderType::ExaMcp | ProviderType::DuckDuckGo | ProviderType::LlmsTxt | ProviderType::Jina
         )
     }
 }

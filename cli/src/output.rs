@@ -143,12 +143,12 @@ mod tests {
 
     #[test]
     fn test_json_output_from_result() {
-        let result = ResolvedResult {
-            source: "jina".to_string(),
-            url: "https://example.com".to_string(),
-            content: Some("Test content".to_string()),
-            score: 0.95,
-        };
+        let result = ResolvedResult::new(
+            "https://example.com",
+            Some("Test content".to_string()),
+            "jina",
+            0.95,
+        );
         let json = JsonOutput::from_result(&result);
         assert_eq!(json.source, "jina");
         assert_eq!(json.score, 0.95);
