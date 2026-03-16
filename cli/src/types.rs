@@ -125,6 +125,10 @@ pub enum ProviderType {
     DirectFetch,
     /// Mistral browser (requires API key)
     MistralBrowser,
+    /// Docling document parsing
+    Docling,
+    /// Image OCR
+    Ocr,
 }
 
 impl ProviderType {
@@ -142,6 +146,8 @@ impl ProviderType {
             ProviderType::Firecrawl => "firecrawl",
             ProviderType::DirectFetch => "direct_fetch",
             ProviderType::MistralBrowser => "mistral_browser",
+            ProviderType::Docling => "docling",
+            ProviderType::Ocr => "ocr",
         }
     }
 
@@ -167,6 +173,8 @@ impl ProviderType {
                 | ProviderType::Firecrawl
                 | ProviderType::DirectFetch
                 | ProviderType::MistralBrowser
+                | ProviderType::Docling
+                | ProviderType::Ocr
         )
     }
 
@@ -174,7 +182,12 @@ impl ProviderType {
     pub fn is_paid(&self) -> bool {
         matches!(
             self,
-            ProviderType::Exa | ProviderType::Tavily | ProviderType::Firecrawl | ProviderType::MistralWebSearch
+            ProviderType::Exa
+                | ProviderType::Tavily
+                | ProviderType::Firecrawl
+                | ProviderType::MistralWebSearch
+                | ProviderType::MistralBrowser
+                | ProviderType::Serper
         )
     }
 
@@ -209,6 +222,8 @@ impl std::str::FromStr for ProviderType {
             "firecrawl" => Ok(ProviderType::Firecrawl),
             "direct_fetch" => Ok(ProviderType::DirectFetch),
             "mistral_browser" => Ok(ProviderType::MistralBrowser),
+            "docling" => Ok(ProviderType::Docling),
+            "ocr" => Ok(ProviderType::Ocr),
             _ => Err(format!("Unknown provider: {}", s)),
         }
     }

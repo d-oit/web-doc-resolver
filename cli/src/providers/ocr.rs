@@ -13,6 +13,12 @@ impl OcrProvider {
     }
 }
 
+impl Default for OcrProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait]
 impl UrlProvider for OcrProvider {
     fn name(&self) -> &str {

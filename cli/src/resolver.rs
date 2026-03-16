@@ -85,6 +85,14 @@ impl Resolver {
     pub async fn resolve_url(&self, url: &str) -> Result<ResolvedResult, ResolverError> {
         let mut metrics = ResolveMetrics::new();
 
+        // Check for document or image format first
+        if url.ends_with(".pdf") || url.ends_with(".docx") || url.ends_with(".pptx") {
+            return self.resolve_direct(url, ProviderType::Docling).await;
+        }
+        if url.ends_with(".png") || url.ends_with(".jpg") || url.ends_with(".jpeg") {
+            return self.resolve_direct(url, ProviderType::Ocr).await;
+        }
+
         if let Some(cache) = &self.cache {
             if let Ok(Some(res)) = cache.query(url).await {
                 let mut res = res.into_iter().next().unwrap();
@@ -295,14 +303,14 @@ impl Resolver {
                     Err(ResolverError::Provider("jina unavailable".to_string()))
                 }
             }
-            _ if url.ends_with(".pdf") || url.ends_with(".docx") => {
+            ProviderType::Docling => {
                 if self.docling.is_available() {
                     self.docling.extract(url).await
                 } else {
                     Err(ResolverError::Provider("docling unavailable".to_string()))
                 }
             }
-            _ if url.ends_with(".png") || url.ends_with(".jpg") || url.ends_with(".jpeg") => {
+            ProviderType::Ocr => {
                 if self.ocr.is_available() {
                     self.ocr.extract(url).await
                 } else {
@@ -519,7 +527,7 @@ impl Default for Resolver {
 
 fn extract_links(content: &str) -> Vec<String> {
     let re = LINK_REGEX.get_or_init(|| {
-        regex::Regex::new(r"https?://[^\s\)\>\]]+").unwrap()
+        regex::Regex::new(r"https?://[^\s)>\]]+").unwrap()
     });
     re.find_iter(content)
         .map(|m| m.as_str().to_string())

@@ -69,6 +69,7 @@ fn build_config(
 }
 
 /// Handle the resolve command
+#[allow(clippy::too_many_arguments)]
 async fn handle_resolve(
     input: &str,
     output: Option<&str>,
@@ -147,34 +148,26 @@ fn main() -> ExitCode {
 
     // Run the appropriate command
     let result = match cli.command {
-        wdr_lib::cli::Commands::Resolve {
-            input,
-            output,
-            provider,
-            skip,
-            providers_order,
-            max_chars,
-            min_chars,
-            profile,
-            json,
-            metrics_json,
-            metrics_file,
-            skip_cache,
-            synthesize,
-        } => {
-            let config = build_config(skip, providers_order, max_chars, min_chars, profile);
+        wdr_lib::cli::Commands::Resolve(args) => {
+            let config = build_config(
+                args.skip.clone(),
+                args.providers_order.clone(),
+                args.max_chars,
+                args.min_chars,
+                args.profile.clone(),
+            );
             tokio::runtime::Runtime::new()
                 .unwrap()
                 .block_on(handle_resolve(
-                    &input,
-                    output.as_deref(),
-                    provider.as_deref(),
+                    &args.input,
+                    args.output.as_deref(),
+                    args.provider.as_deref(),
                     config,
-                    json,
-                    metrics_json,
-                    metrics_file,
-                    skip_cache,
-                    synthesize,
+                    args.json,
+                    args.metrics_json,
+                    args.metrics_file.clone(),
+                    args.skip_cache,
+                    args.synthesize,
                 ))
         }
         wdr_lib::cli::Commands::Providers => {
