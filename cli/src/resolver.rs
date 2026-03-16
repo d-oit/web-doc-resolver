@@ -141,6 +141,12 @@ impl Resolver {
 
         for (idx, provider) in planned.iter().enumerate() {
             if !budget.can_try(provider.is_paid) {
+                if matches!(
+                    budget.stop_reason.as_deref(),
+                    Some("paid_disabled") | Some("max_paid_attempts")
+                ) {
+                    continue;
+                }
                 break;
             }
 
@@ -391,6 +397,12 @@ impl Resolver {
 
         for (idx, provider) in planned.iter().enumerate() {
             if !budget.can_try(provider.is_paid) {
+                if matches!(
+                    budget.stop_reason.as_deref(),
+                    Some("paid_disabled") | Some("max_paid_attempts")
+                ) {
+                    continue;
+                }
                 break;
             }
 

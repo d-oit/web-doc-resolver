@@ -58,7 +58,21 @@ pub fn plan_provider_order(
     routing_memory: Option<&RoutingMemory>,
 ) -> Vec<PlannedProvider> {
     let mut base: Vec<String> = if let Some(custom) = custom_order {
-        custom.to_vec()
+        custom
+            .iter()
+            .filter(|p| {
+                if let Ok(pt) = p.parse::<crate::types::ProviderType>() {
+                    if is_url {
+                        pt.is_url_provider()
+                    } else {
+                        pt.is_query_provider()
+                    }
+                } else {
+                    false
+                }
+            })
+            .cloned()
+            .collect()
     } else if is_url {
         vec![
             "llms_txt".into(),

@@ -83,7 +83,9 @@ fn build_config(
     if let Some(v) = max_total_latency_ms {
         config.max_total_latency_ms = Some(v);
     }
-    config.disable_routing_memory = disable_routing_memory;
+    if disable_routing_memory {
+        config.disable_routing_memory = true;
+    }
 
     config
 }
