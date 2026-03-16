@@ -104,12 +104,12 @@ impl crate::providers::QueryProvider for ExaMcpProvider {
             .results
             .unwrap_or_default()
             .into_iter()
-            .map(|r| ResolvedResult {
-                url: r.url,
-                content: r.highlight.or(r.text),
-                source: "exa_mcp".to_string(),
-                score: r.score,
-            })
+            .map(|r| ResolvedResult::new(
+                r.url,
+                r.highlight.or(r.text),
+                "exa_mcp",
+                r.score,
+            ))
             .collect();
 
         Ok(results)

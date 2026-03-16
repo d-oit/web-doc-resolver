@@ -106,12 +106,12 @@ impl crate::providers::UrlProvider for FirecrawlProvider {
 
         let content = firecrawl_response.data.and_then(|d| d.markdown);
 
-        Ok(ResolvedResult {
-            url: url.to_string(),
+        Ok(ResolvedResult::new(
+            url,
             content,
-            source: "firecrawl".to_string(),
-            score: 0.95,
-        })
+            "firecrawl",
+            0.95,
+        ))
     }
 }
 

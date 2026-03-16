@@ -197,12 +197,12 @@ impl crate::providers::QueryProvider for SerperProvider {
             .organic
             .unwrap_or_default()
             .into_iter()
-            .map(|r| ResolvedResult {
-                url: r.link,
-                content: Some(r.snippet),
-                source: "serper".to_string(),
-                score: r.sitelinks.map(|_| 1.0).unwrap_or(0.8),
-            })
+            .map(|r| ResolvedResult::new(
+                r.link,
+                Some(r.snippet),
+                "serper",
+                r.sitelinks.map(|_| 1.0).unwrap_or(0.8),
+            ))
             .collect();
 
         let total_chars: usize = results

@@ -10,7 +10,7 @@ use tracing_subscriber::{EnvFilter, fmt};
 use wdr_lib::{
     cli::Cli,
     config::Config,
-    output::{ConfigOutput, JsonOutput, ProviderList, TextOutput},
+    output::{ConfigOutput, JsonOutput, ProviderList},
     resolver::Resolver,
     types::ProviderType,
 };
@@ -39,6 +39,7 @@ fn build_config(
     providers_order: Option<String>,
     max_chars: Option<usize>,
     min_chars: Option<usize>,
+    profile: Option<String>,
 ) -> Config {
     let mut config = Config::load();
 
@@ -58,35 +59,53 @@ fn build_config(
         config.min_chars = m;
     }
 
+    if let Some(p) = profile {
+        if let Ok(prof) = p.parse() {
+            config.profile = prof;
+        }
+    }
+
     config
 }
 
 /// Handle the resolve command
 async fn handle_resolve(
-    input: &str,
-    output: Option<&str>,
-    provider: Option<&str>,
+    args: wdr_lib::cli::ResolveArgs,
     config: Config,
-    json: bool,
 ) -> Result<()> {
-    tracing::info!("Resolving: {}", input);
+    tracing::info!("Resolving: {}", args.input);
 
+    let mut config = config;
+    if args.skip_cache {
+        config.semantic_cache.enabled = false;
+    }
     let resolver = Resolver::with_config(config);
 
-    let result = if let Some(p) = provider {
+    let result = if args.synthesize {
+        resolver.resolve_aggregated(&args.input).await
+    } else if let Some(p) = &args.provider {
         let provider_type: ProviderType = p
             .parse()
             .map_err(|e| anyhow::anyhow!("Invalid provider: {}", e))?;
-        resolver.resolve_direct(input, provider_type).await
+        resolver.resolve_direct(&args.input, provider_type).await
     } else {
-        resolver.resolve(input).await
+        resolver.resolve(&args.input).await
     };
 
     match result {
         Ok(res) => {
-            if json {
+            if let Some(metrics) = &res.metrics {
+                if args.metrics_json {
+                    println!("{}", serde_json::to_string_pretty(metrics)?);
+                }
+                if let Some(path) = args.metrics_file {
+                    std::fs::write(path, serde_json::to_string_pretty(metrics)?)?;
+                }
+            }
+
+            if args.json {
                 let json_output = JsonOutput::from_result(&res);
-                if let Some(out_path) = output {
+                if let Some(out_path) = args.output {
                     let json_str = serde_json::to_string_pretty(&json_output)?;
                     std::fs::write(out_path, &json_str)?;
                 } else {
@@ -94,7 +113,7 @@ async fn handle_resolve(
                 }
             } else {
                 let content = res.content.unwrap_or_default();
-                if let Some(out_path) = output {
+                if let Some(out_path) = args.output {
                     std::fs::write(out_path, &content)?;
                 } else {
                     println!("{}", content);
@@ -103,7 +122,7 @@ async fn handle_resolve(
             Ok(())
         }
         Err(e) => {
-            if json {
+            if args.json {
                 let err_msg = e.to_string();
                 let json_output = JsonOutput::error(&err_msg);
                 json_output.print();
@@ -121,26 +140,19 @@ fn main() -> ExitCode {
 
     // Run the appropriate command
     let result = match cli.command {
-        wdr_lib::cli::Commands::Resolve {
-            input,
-            output,
-            provider,
-            skip,
-            providers_order,
-            max_chars,
-            min_chars,
-            json,
-            skip_cache: _,
-        } => {
-            let config = build_config(skip, providers_order, max_chars, min_chars);
+        wdr_lib::cli::Commands::Resolve(args) => {
+            let config = build_config(
+                args.skip.clone(),
+                args.providers_order.clone(),
+                args.max_chars,
+                args.min_chars,
+                args.profile.clone(),
+            );
             tokio::runtime::Runtime::new()
                 .unwrap()
                 .block_on(handle_resolve(
-                    &input,
-                    output.as_deref(),
-                    provider.as_deref(),
+                    *args,
                     config,
-                    json,
                 ))
         }
         wdr_lib::cli::Commands::Providers => {
@@ -153,9 +165,19 @@ fn main() -> ExitCode {
             Ok(())
         }
         wdr_lib::cli::Commands::CacheStats => {
-            // TODO: Implement when semantic cache is integrated
-            TextOutput::print_info("Cache statistics not yet available");
-            Ok(())
+            let config = Config::load();
+            tokio::runtime::Runtime::new()
+                .unwrap()
+                .block_on(async {
+                    if let Some(cache) = wdr_lib::SemanticCache::new(&config)? {
+                        let stats = cache.stats().await?;
+                        wdr_lib::output::CacheStatsOutput::print(&stats);
+                        Ok(())
+                    } else {
+                        eprintln!("Info: Semantic cache is disabled");
+                        Ok(())
+                    }
+                })
         }
     };
 

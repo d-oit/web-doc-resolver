@@ -86,12 +86,12 @@ impl crate::providers::UrlProvider for JinaProvider {
             .await
             .map_err(|e| ResolverError::ParseError(e.to_string()))?;
 
-        Ok(ResolvedResult {
-            url: url.to_string(),
-            content: Some(content),
-            source: "jina".to_string(),
-            score: 0.9,
-        })
+        Ok(ResolvedResult::new(
+            url,
+            Some(content),
+            "jina",
+            0.9,
+        ))
     }
 }
 

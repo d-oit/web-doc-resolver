@@ -121,12 +121,12 @@ impl crate::providers::QueryProvider for MistralWebSearchProvider {
             .unwrap_or_default()
             .into_iter()
             .filter_map(|tc| tc.function.arguments)
-            .map(|args| ResolvedResult {
-                url: args.url,
-                content: Some(args.content),
-                source: "mistral-websearch".to_string(),
-                score: 0.8,
-            })
+            .map(|args| ResolvedResult::new(
+                args.url,
+                Some(args.content),
+                "mistral-websearch",
+                0.8,
+            ))
             .collect();
 
         Ok(results)

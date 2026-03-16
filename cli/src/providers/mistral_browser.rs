@@ -111,12 +111,12 @@ impl crate::providers::UrlProvider for MistralBrowserProvider {
 
         let content = browser_response.output.and_then(|o| o.text);
 
-        Ok(ResolvedResult {
-            url: url.to_string(),
+        Ok(ResolvedResult::new(
+            url,
             content,
-            source: "mistral_browser".to_string(),
-            score: 0.85,
-        })
+            "mistral_browser",
+            0.85,
+        ))
     }
 }
 

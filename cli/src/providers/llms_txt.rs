@@ -100,12 +100,12 @@ impl crate::providers::UrlProvider for LlmsTxtProvider {
             .await
             .map_err(|e| ResolverError::ParseError(e.to_string()))?;
 
-        Ok(ResolvedResult {
-            url: llms_txt_url,
-            content: Some(content),
-            source: "llms_txt".to_string(),
-            score: 1.0,
-        })
+        Ok(ResolvedResult::new(
+            llms_txt_url,
+            Some(content),
+            "llms_txt",
+            1.0,
+        ))
     }
 }
 

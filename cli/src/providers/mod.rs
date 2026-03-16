@@ -3,9 +3,11 @@
 //! Each provider is in its own module.
 
 pub mod direct_fetch;
+pub mod docling;
 pub mod duckduckgo;
 pub mod exa_mcp;
 pub mod exa_sdk;
+pub mod ocr;
 pub mod firecrawl;
 pub mod jina;
 pub mod llms_txt;
@@ -15,9 +17,11 @@ pub mod serper;
 pub mod tavily;
 
 pub use self::direct_fetch::DirectFetchProvider;
+pub use docling::DoclingProvider;
 pub use self::duckduckgo::DuckDuckGoProvider;
 pub use self::exa_mcp::ExaMcpProvider;
 pub use self::exa_sdk::ExaSdkProvider;
+pub use ocr::OcrProvider;
 pub use self::firecrawl::FirecrawlProvider;
 pub use self::jina::JinaProvider;
 pub use self::llms_txt::LlmsTxtProvider;

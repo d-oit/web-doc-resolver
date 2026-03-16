@@ -22,42 +22,8 @@ pub struct Cli {
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     /// Resolve a URL or query to markdown documentation
-    Resolve {
-        /// URL or query to resolve
-        input: String,
-
-        /// Output file (stdout if not specified)
-        #[arg(short, long)]
-        output: Option<String>,
-
-        /// Provider to use (auto-detect if not specified)
-        #[arg(short, long)]
-        provider: Option<String>,
-
-        /// Skip specific providers (comma-separated)
-        #[arg(long)]
-        skip: Option<String>,
-
-        /// Custom provider order (comma-separated)
-        #[arg(long)]
-        providers_order: Option<String>,
-
-        /// Maximum characters in output
-        #[arg(long)]
-        max_chars: Option<usize>,
-
-        /// Minimum characters for valid content
-        #[arg(long)]
-        min_chars: Option<usize>,
-
-        /// Output as JSON
-        #[arg(long, default_value = "false")]
-        json: bool,
-
-        /// Skip semantic cache
-        #[arg(long, default_value = "false")]
-        skip_cache: bool,
-    },
+    Resolve(Box<ResolveArgs>),
+    /// List available providers
 
     /// List available providers
     Providers,
@@ -67,6 +33,61 @@ pub enum Commands {
 
     /// Show cache statistics
     CacheStats,
+}
+
+/// Arguments for the resolve command
+#[derive(Parser, Debug)]
+pub struct ResolveArgs {
+    /// URL or query to resolve
+    pub input: String,
+
+    /// Output file (stdout if not specified)
+    #[arg(short, long)]
+    pub output: Option<String>,
+
+    /// Provider to use (auto-detect if not specified)
+    #[arg(short, long)]
+    pub provider: Option<String>,
+
+    /// Skip specific providers (comma-separated)
+    #[arg(long)]
+    pub skip: Option<String>,
+
+    /// Custom provider order (comma-separated)
+    #[arg(long)]
+    pub providers_order: Option<String>,
+
+    /// Maximum characters in output
+    #[arg(long)]
+    pub max_chars: Option<usize>,
+
+    /// Minimum characters for valid content
+    #[arg(long)]
+    pub min_chars: Option<usize>,
+
+    /// Execution profile (free, balanced, fast, quality)
+    #[arg(long)]
+    pub profile: Option<String>,
+
+    /// Output as JSON
+    #[arg(long, default_value = "false")]
+    pub json: bool,
+
+    /// Output metrics as JSON
+    #[arg(long, default_value = "false")]
+    pub metrics_json: bool,
+
+    /// Save metrics to file
+    #[arg(long)]
+    pub metrics_file: Option<String>,
+
+    /// Skip semantic cache
+    #[arg(long, default_value = "false")]
+    pub skip_cache: bool,
+
+    /// Synthesize multiple results using AI
+    #[arg(long, default_value = "false")]
+    pub synthesize: bool,
 }
 
 impl Cli {
@@ -84,8 +105,8 @@ mod tests {
     fn test_cli_parse_resolve() {
         let cli = Cli::parse_from(&["wdr", "resolve", "https://example.com"]);
         match cli.command {
-            Commands::Resolve { input, .. } => {
-                assert_eq!(input, "https://example.com");
+            Commands::Resolve(args) => {
+                assert_eq!(args.input, "https://example.com");
             }
             _ => panic!("Expected Resolve command"),
         }
@@ -104,17 +125,11 @@ mod tests {
             "--json",
         ]);
         match cli.command {
-            Commands::Resolve {
-                input,
-                provider,
-                skip,
-                json,
-                ..
-            } => {
-                assert_eq!(input, "test query");
-                assert_eq!(provider, Some("exa".to_string()));
-                assert_eq!(skip, Some("tavily".to_string()));
-                assert!(json);
+            Commands::Resolve(args) => {
+                assert_eq!(args.input, "test query");
+                assert_eq!(args.provider, Some("exa".to_string()));
+                assert_eq!(args.skip, Some("tavily".to_string()));
+                assert!(args.json);
             }
             _ => panic!("Expected Resolve command"),
         }
