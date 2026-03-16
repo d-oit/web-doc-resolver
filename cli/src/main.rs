@@ -181,18 +181,16 @@ fn main() -> ExitCode {
         }
         wdr_lib::cli::Commands::CacheStats => {
             let config = Config::load();
-            tokio::runtime::Runtime::new()
-                .unwrap()
-                .block_on(async {
-                    if let Some(cache) = wdr_lib::SemanticCache::new(&config)? {
-                        let stats = cache.stats().await?;
-                        wdr_lib::output::CacheStatsOutput::print(&stats);
-                        Ok(())
-                    } else {
-                        eprintln!("Info: Semantic cache is disabled");
-                        Ok(())
-                    }
-                })
+            tokio::runtime::Runtime::new().unwrap().block_on(async {
+                if let Some(cache) = wdr_lib::SemanticCache::new(&config)? {
+                    let stats = cache.stats().await?;
+                    wdr_lib::output::CacheStatsOutput::print(&stats);
+                    Ok(())
+                } else {
+                    eprintln!("Info: Semantic cache is disabled");
+                    Ok(())
+                }
+            })
         }
     };
 

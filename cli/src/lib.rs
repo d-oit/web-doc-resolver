@@ -3,12 +3,12 @@
 //! A library for resolving queries or URLs into compact, LLM-ready markdown
 //! using a low-cost provider cascade.
 
-pub mod cli;
 pub mod bias_scorer;
+pub mod cli;
 pub mod compaction;
 pub mod config;
-pub mod link_validator;
 pub mod error;
+pub mod link_validator;
 pub mod metrics;
 pub mod output;
 pub mod providers;

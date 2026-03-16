@@ -1,7 +1,7 @@
 //! Types for the Web Documentation Resolver.
 
-use serde::{Deserialize, Serialize};
 use crate::metrics::ResolveMetrics;
+use serde::{Deserialize, Serialize};
 
 /// Result from resolving a URL or query
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -195,7 +195,11 @@ impl ProviderType {
     pub fn is_fast(&self) -> bool {
         matches!(
             self,
-            ProviderType::ExaMcp | ProviderType::DuckDuckGo | ProviderType::LlmsTxt | ProviderType::Jina
+            ProviderType::ExaMcp
+                | ProviderType::DuckDuckGo
+                | ProviderType::LlmsTxt
+                | ProviderType::Jina
+                | ProviderType::DirectFetch
         )
     }
 }

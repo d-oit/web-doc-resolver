@@ -2,19 +2,19 @@
 //!
 //! Orchestrates the provider cascade for query and URL resolution.
 
-use crate::compaction::compact_content;
 use crate::bias_scorer::score_result;
-use crate::link_validator::validate_links;
+use crate::compaction::compact_content;
 use crate::config::Config;
 use crate::error::ResolverError;
-use crate::semantic_cache::SemanticCache;
-use crate::synthesis::synthesize_results;
+use crate::link_validator::validate_links;
 use crate::metrics::ResolveMetrics;
 use crate::providers::{
     DuckDuckGoProvider, ExaMcpProvider, ExaSdkProvider, FirecrawlProvider, JinaProvider,
     LlmsTxtProvider, MistralBrowserProvider, MistralWebSearchProvider, QueryProvider,
     SerperProvider, UrlProvider,
 };
+use crate::semantic_cache::SemanticCache;
+use crate::synthesis::synthesize_results;
 use crate::types::{ProviderType, ResolvedResult};
 use std::result::Result;
 use std::sync::OnceLock;
@@ -126,7 +126,13 @@ impl Resolver {
         let max_hops = self.config.profile.max_hops();
 
         // Parallel fast-path probes for llms.txt and jina
-        if self.config.providers_order.is_empty() && self.config.profile.is_provider_allowed(ProviderType::LlmsTxt) && self.config.profile.is_provider_allowed(ProviderType::Jina) {
+        if self.config.providers_order.is_empty()
+            && self
+                .config
+                .profile
+                .is_provider_allowed(ProviderType::LlmsTxt)
+            && self.config.profile.is_provider_allowed(ProviderType::Jina)
+        {
             let llms_fut = self.extract_with_provider(url, ProviderType::LlmsTxt);
             let jina_fut = self.extract_with_provider(url, ProviderType::Jina);
 
@@ -156,12 +162,20 @@ impl Resolver {
             }
 
             if !self.config.profile.is_provider_allowed(provider_type) {
-                tracing::debug!("Provider {} skipped by profile {:?}", provider_type, self.config.profile);
+                tracing::debug!(
+                    "Provider {} skipped by profile {:?}",
+                    provider_type,
+                    self.config.profile
+                );
                 continue;
             }
 
             if hops >= max_hops {
-                tracing::warn!("Max cascade hops ({}) reached for profile {:?}", max_hops, self.config.profile);
+                tracing::warn!(
+                    "Max cascade hops ({}) reached for profile {:?}",
+                    max_hops,
+                    self.config.profile
+                );
                 break;
             }
 
@@ -241,12 +255,20 @@ impl Resolver {
             }
 
             if !self.config.profile.is_provider_allowed(provider_type) {
-                tracing::debug!("Provider {} skipped by profile {:?}", provider_type, self.config.profile);
+                tracing::debug!(
+                    "Provider {} skipped by profile {:?}",
+                    provider_type,
+                    self.config.profile
+                );
                 continue;
             }
 
             if hops >= max_hops {
-                tracing::warn!("Max cascade hops ({}) reached for profile {:?}", max_hops, self.config.profile);
+                tracing::warn!(
+                    "Max cascade hops ({}) reached for profile {:?}",
+                    max_hops,
+                    self.config.profile
+                );
                 break;
             }
 
@@ -427,7 +449,9 @@ impl Resolver {
                     ProviderType::Tavily,
                 ]
             } else {
-                self.config.providers_order.iter()
+                self.config
+                    .providers_order
+                    .iter()
                     .filter_map(|p| p.parse::<ProviderType>().ok())
                     .filter(|pt| pt.is_query_provider())
                     .collect()
@@ -435,17 +459,23 @@ impl Resolver {
 
             let mut all_results = Vec::new();
             for pt in providers {
-                if self.config.is_skipped(pt.name()) { continue; }
+                if self.config.is_skipped(pt.name()) {
+                    continue;
+                }
                 if let Ok(res) = self.search_with_provider(query, pt).await {
                     all_results.extend(res);
                 }
-                if all_results.len() >= self.config.output_limit { break; }
+                if all_results.len() >= self.config.output_limit {
+                    break;
+                }
             }
             all_results
         };
 
         if results.is_empty() {
-            return Err(ResolverError::Provider("No results to aggregate".to_string()));
+            return Err(ResolverError::Provider(
+                "No results to aggregate".to_string(),
+            ));
         }
 
         // Synthesize if MISTRAL_API_KEY is available
@@ -453,12 +483,8 @@ impl Resolver {
             let model = std::env::var("WDR_SYNTHESIS_MODEL")
                 .unwrap_or_else(|_| "mistral-large-latest".to_string());
             let synthesized = synthesize_results(query, &results, &api_key, &model).await?;
-            let mut res = ResolvedResult::new(
-                results[0].url.clone(),
-                Some(synthesized),
-                "synthesis",
-                1.0
-            );
+            let mut res =
+                ResolvedResult::new(results[0].url.clone(), Some(synthesized), "synthesis", 1.0);
             metrics.record_provider(ProviderType::MistralWebSearch, 0, true); // Dummy record for synthesis
             res.metrics = Some(metrics);
             return Ok(res);
@@ -472,12 +498,8 @@ impl Resolver {
             }
         }
 
-        let mut final_res = ResolvedResult::new(
-            results[0].url.clone(),
-            Some(content),
-            "aggregated",
-            1.0
-        );
+        let mut final_res =
+            ResolvedResult::new(results[0].url.clone(), Some(content), "aggregated", 1.0);
         final_res.metrics = Some(metrics);
         Ok(final_res)
     }
@@ -526,9 +548,7 @@ impl Default for Resolver {
 }
 
 fn extract_links(content: &str) -> Vec<String> {
-    let re = LINK_REGEX.get_or_init(|| {
-        regex::Regex::new(r"https?://[^\s)>\]]+").unwrap()
-    });
+    let re = LINK_REGEX.get_or_init(|| regex::Regex::new(r"https?://[^\s)>\]]+").unwrap());
     re.find_iter(content)
         .map(|m| m.as_str().to_string())
         .take(10)

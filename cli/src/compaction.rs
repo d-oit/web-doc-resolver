@@ -49,5 +49,6 @@ fn is_boilerplate(line: &str) -> bool {
         "click here",
     ];
 
-    boilerplate_terms.iter().any(|&term| lower.contains(term)) || (line.len() < 10 && line.chars().all(|c| !c.is_alphanumeric()))
+    boilerplate_terms.iter().any(|&term| lower.contains(term))
+        || (line.len() < 10 && line.chars().all(|c| !c.is_alphanumeric()))
 }

@@ -31,6 +31,7 @@ from typing import Any
 from urllib.parse import urlparse
 from html.parser import HTMLParser
 
+import subprocess
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
@@ -198,6 +199,10 @@ class ProviderType(Enum):
     TAVILY = "tavily"
     DUCKDUCKGO = "duckduckgo"
     MISTRAL_WEBSEARCH = "mistral_websearch"
+
+    # New providers
+    DOCLING = "docling"
+    OCR = "ocr"
 
     def is_paid(self) -> bool:
         return self in (
@@ -1648,6 +1653,68 @@ def resolve_with_mistral_websearch(query: str, max_chars: int = MAX_CHARS) -> Re
 # ============================================================================
 
 
+def resolve_with_docling(url: str, max_chars: int) -> ResolvedResult | None:
+    """Extract content from document using docling CLI if available."""
+    try:
+        logger.info(f"Attempting docling for: {url}")
+        result = subprocess.run(
+            ["docling", "--format", "markdown", url],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        if result.returncode == 0:
+            return ResolvedResult(
+                source="docling",
+                content=result.stdout[:max_chars],
+                url=url,
+            )
+    except Exception as e:
+        logger.debug(f"Docling failed: {e}")
+    return None
+
+
+def resolve_with_ocr(url: str, max_chars: int) -> ResolvedResult | None:
+    """Extract text from image using tesseract or surya CLI."""
+    # Try tesseract
+    try:
+        logger.info(f"Attempting tesseract OCR for: {url}")
+        result = subprocess.run(
+            ["tesseract", url, "stdout"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if result.returncode == 0:
+            return ResolvedResult(
+                source="ocr-tesseract",
+                content=result.stdout[:max_chars],
+                url=url,
+            )
+    except Exception:
+        pass
+
+    # Try surya
+    try:
+        logger.info(f"Attempting surya OCR for: {url}")
+        result = subprocess.run(
+            ["surya_ocr", url],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if result.returncode == 0:
+            return ResolvedResult(
+                source="ocr-surya",
+                content=result.stdout[:max_chars],
+                url=url,
+            )
+    except Exception:
+        pass
+
+    return None
+
+
 def resolve_url(
     url: str, max_chars: int = MAX_CHARS, profile: Profile = Profile.BALANCED
 ) -> dict[str, Any]:
@@ -1658,6 +1725,23 @@ def resolve_url(
     hops = 0
     max_hops = profile.max_hops()
     metrics = ResolveMetrics()
+
+    # Document/Image format check first
+    lower_url = url.lower()
+    if any(lower_url.endswith(ext) for ext in [".pdf", ".docx", ".pptx"]):
+        doc_res = resolve_with_docling(url, max_chars)
+        if doc_res:
+            metrics.record_provider(ProviderType.DOCLING, 0, True)
+            doc_res.metrics = metrics
+            return doc_res.to_dict()
+
+    if any(lower_url.endswith(ext) for ext in [".png", ".jpg", ".jpeg"]):
+        ocr_res = resolve_with_ocr(url, max_chars)
+        if ocr_res:
+            metrics.record_provider(ProviderType.OCR, 0, True)
+            ocr_res.metrics = metrics
+            return ocr_res.to_dict()
+
     llms_content = None
     jina_result = None
     firecrawl_result = None

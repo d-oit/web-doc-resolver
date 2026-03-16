@@ -1,9 +1,9 @@
 //! Docling provider for PDF/DOCX/PPTX parsing.
 
 use crate::error::ResolverError;
+use crate::providers::UrlProvider;
 use crate::types::ResolvedResult;
 use async_trait::async_trait;
-use crate::providers::UrlProvider;
 
 pub struct DoclingProvider;
 
@@ -32,7 +32,9 @@ impl UrlProvider for DoclingProvider {
 
     async fn extract(&self, url: &str) -> Result<ResolvedResult, ResolverError> {
         if !url.ends_with(".pdf") && !url.ends_with(".docx") && !url.ends_with(".pptx") {
-            return Err(ResolverError::Provider("Not a supported document format".to_string()));
+            return Err(ResolverError::Provider(
+                "Not a supported document format".to_string(),
+            ));
         }
 
         tracing::info!("Attempting to parse document with docling: {}", url);
@@ -57,7 +59,9 @@ impl UrlProvider for DoclingProvider {
             }
             Err(_) => {
                 // Command not found or other exec error
-                Err(ResolverError::Provider("Docling CLI not found in environment".to_string()))
+                Err(ResolverError::Provider(
+                    "Docling CLI not found in environment".to_string(),
+                ))
             }
         }
     }

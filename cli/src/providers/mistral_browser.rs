@@ -111,12 +111,7 @@ impl crate::providers::UrlProvider for MistralBrowserProvider {
 
         let content = browser_response.output.and_then(|o| o.text);
 
-        Ok(ResolvedResult::new(
-            url,
-            content,
-            "mistral_browser",
-            0.85,
-        ))
+        Ok(ResolvedResult::new(url, content, "mistral_browser", 0.85))
     }
 }
 

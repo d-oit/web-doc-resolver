@@ -91,12 +91,7 @@ impl crate::providers::UrlProvider for DirectFetchProvider {
         // Simple HTML to text conversion
         let content = strip_html(&html);
 
-        Ok(ResolvedResult::new(
-            url,
-            Some(content),
-            "direct_fetch",
-            0.5,
-        ))
+        Ok(ResolvedResult::new(url, Some(content), "direct_fetch", 0.5))
     }
 }
 

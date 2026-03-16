@@ -1,7 +1,7 @@
 //! Telemetry and metrics for resolution tracking.
 
-use serde::{Deserialize, Serialize};
 use crate::types::ProviderType;
+use serde::{Deserialize, Serialize};
 
 /// Metrics for a single provider call
 #[derive(Debug, Clone, Serialize, Deserialize)]

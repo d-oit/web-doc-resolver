@@ -1,8 +1,8 @@
 //! Async link validation for research results.
 
+use futures::future::join_all;
 use reqwest::Client;
 use std::time::Duration;
-use futures::future::join_all;
 
 /// Validate a list of links using HTTP HEAD requests
 pub async fn validate_links(links: &[String]) -> Vec<String> {
@@ -24,7 +24,8 @@ pub async fn validate_links(links: &[String]) -> Vec<String> {
     }
 
     let results = join_all(futures).await;
-    results.into_iter()
+    results
+        .into_iter()
         .filter_map(|r| r.ok().flatten())
         .collect()
 }

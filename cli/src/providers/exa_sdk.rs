@@ -107,12 +107,7 @@ impl crate::providers::QueryProvider for ExaSdkProvider {
             .results
             .unwrap_or_default()
             .into_iter()
-            .map(|r| ResolvedResult::new(
-                r.url,
-                r.highlight,
-                "exa",
-                r.score,
-            ))
+            .map(|r| ResolvedResult::new(r.url, r.highlight, "exa", r.score))
             .collect();
 
         Ok(results)

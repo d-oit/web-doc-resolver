@@ -1,7 +1,7 @@
 //! AI synthesis and summarization of multiple results.
 
-use crate::types::ResolvedResult;
 use crate::error::ResolverError;
+use crate::types::ResolvedResult;
 use reqwest::Client;
 use serde_json::json;
 
@@ -21,7 +21,12 @@ pub async fn synthesize_results(
     let mut context = String::new();
     for (i, res) in results.iter().enumerate() {
         if let Some(content) = &res.content {
-            context.push_str(&format!("\nResult {}:\nURL: {}\nContent: {}\n---\n", i + 1, res.url, content));
+            context.push_str(&format!(
+                "\nResult {}:\nURL: {}\nContent: {}\n---\n",
+                i + 1,
+                res.url,
+                content
+            ));
         }
     }
 
@@ -46,10 +51,9 @@ pub async fn synthesize_results(
         .await
         .map_err(|e| ResolverError::Provider(format!("Synthesis request failed: {}", e)))?;
 
-    let json: serde_json::Value = response
-        .json()
-        .await
-        .map_err(|e| ResolverError::Provider(format!("Failed to parse synthesis response: {}", e)))?;
+    let json: serde_json::Value = response.json().await.map_err(|e| {
+        ResolverError::Provider(format!("Failed to parse synthesis response: {}", e))
+    })?;
 
     let content = json["choices"][0]["message"]["content"]
         .as_str()
