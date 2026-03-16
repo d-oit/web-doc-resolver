@@ -93,7 +93,7 @@ impl Profile {
         match self {
             Profile::Free => 3,
             Profile::Fast => 2,
-            Profile::Balanced => 5,
+            Profile::Balanced => 6,
             Profile::Quality => 8,
         }
     }

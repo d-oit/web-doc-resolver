@@ -178,7 +178,7 @@ class Profile(Enum):
         if self == Profile.FAST:
             return 2
         if self == Profile.BALANCED:
-            return 5
+            return 6
         if self == Profile.QUALITY:
             return 8
 
@@ -197,6 +197,7 @@ class ProviderType(Enum):
     EXA_MCP = "exa_mcp"
     EXA = "exa"
     TAVILY = "tavily"
+    SERPER = "serper"
     DUCKDUCKGO = "duckduckgo"
     MISTRAL_WEBSEARCH = "mistral_websearch"
 
@@ -208,8 +209,10 @@ class ProviderType(Enum):
         return self in (
             ProviderType.EXA,
             ProviderType.TAVILY,
+            ProviderType.SERPER,
             ProviderType.FIRECRAWL,
             ProviderType.MISTRAL_WEBSEARCH,
+            ProviderType.MISTRAL_BROWSER,
         )
 
     def is_fast(self) -> bool:
@@ -218,6 +221,7 @@ class ProviderType(Enum):
             ProviderType.DUCKDUCKGO,
             ProviderType.LLMS_TXT,
             ProviderType.JINA,
+            ProviderType.DIRECT_FETCH,
         )
 
 
@@ -235,6 +239,7 @@ DEFAULT_QUERY_PROVIDERS: list[ProviderType] = [
     ProviderType.EXA_MCP,
     ProviderType.EXA,
     ProviderType.TAVILY,
+    ProviderType.SERPER,
     ProviderType.DUCKDUCKGO,
     ProviderType.MISTRAL_WEBSEARCH,
 ]
@@ -1324,6 +1329,93 @@ def resolve_with_tavily(query: str, max_chars: int = MAX_CHARS) -> ResolvedResul
             return None
 
 
+def resolve_with_serper(query: str, max_chars: int = MAX_CHARS) -> ResolvedResult | None:
+    """
+    Resolve query using Serper.dev API (Google Search).
+    Requires SERPER_API_KEY environment variable.
+    """
+    cached = _get_from_cache(query, "serper")
+    if cached:
+        return ResolvedResult(**cached)
+
+    if _is_rate_limited("serper"):
+        logger.warning("Serper is rate-limited, skipping")
+        return None
+
+    api_key = os.getenv("SERPER_API_KEY")
+    if not api_key:
+        logger.debug("SERPER_API_KEY not set, skipping Serper")
+        return None
+
+    try:
+        logger.info(f"Using Serper to search: {query}")
+
+        response = requests.post(
+            "https://google.serper.dev/search",
+            headers={
+                "X-API-KEY": api_key,
+                "Content-Type": "application/json",
+            },
+            json={
+                "q": query,
+                "num": DDG_RESULTS,
+            },
+            timeout=DEFAULT_TIMEOUT,
+        )
+
+        if response.status_code == 429:
+            logger.warning("Serper rate limit hit")
+            _set_rate_limit("serper", cooldown=60)
+            return None
+
+        if response.status_code in (401, 403):
+            logger.error("Serper API key invalid")
+            return None
+
+        response.raise_for_status()
+        data = response.json()
+
+        organic_results = data.get("organic", [])
+        if not organic_results:
+            return None
+
+        content_parts = [f"# Search Results for: {query}\n"]
+        urls = []
+        for r in organic_results:
+            title = r.get("title", "")
+            snippet = r.get("snippet", "")
+            link = r.get("link", "")
+            if link:
+                content_parts.append(f"## {title}\n\n{snippet}\n\nSource: {link}")
+                urls.append(link)
+
+        content = "\n\n---\n\n".join(content_parts)[:max_chars]
+
+        # Validate returned URLs
+        validated_links = validate_links(urls[:5])
+
+        result = ResolvedResult(
+            source="serper",
+            content=content,
+            url=urls[0] if urls else None,
+            query=query,
+            validated_links=validated_links,
+        )
+        _save_to_cache(query, "serper", result.to_dict())
+        return result
+
+    except Exception as e:
+        error_type = _detect_error_type(e)
+
+        if error_type == ErrorType.RATE_LIMIT:
+            logger.warning(f"Serper rate limit hit: {e}")
+            _set_rate_limit("serper", cooldown=60)
+            return None
+        else:
+            logger.error(f"Serper search failed: {e}")
+            return None
+
+
 def resolve_with_duckduckgo(
     query: str, max_chars: int = MAX_CHARS, retries: int = 2
 ) -> ResolvedResult | None:
@@ -1950,7 +2042,27 @@ def resolve_query(
             else:
                 metrics.record_provider(ProviderType.TAVILY, latency, False)
 
-    # Step 4: DuckDuckGo (always available, no API key required)
+    # Step 4: Try Serper (if API key available)
+    if (
+        "serper" not in skip_providers
+        and profile.is_provider_allowed(ProviderType.SERPER)
+    ):
+        if hops < max_hops:
+            hops += 1
+            metrics.cascade_depth = hops
+            start = time.time()
+            serper_result = resolve_with_serper(query, max_chars)
+            latency = int((time.time() - start) * 1000)
+            if serper_result:
+                metrics.record_provider(ProviderType.SERPER, latency, True)
+                serper_result.content = compact_content(serper_result.content, max_chars)
+                serper_result.score = score_result(serper_result.url or "", serper_result.content)
+                serper_result.metrics = metrics
+                return serper_result.to_dict()
+            else:
+                metrics.record_provider(ProviderType.SERPER, latency, False)
+
+    # Step 5: DuckDuckGo (always available, no API key required)
     if "duckduckgo" not in skip_providers and profile.is_provider_allowed(ProviderType.DUCKDUCKGO):
         if hops < max_hops:
             hops += 1
@@ -1962,12 +2074,13 @@ def resolve_query(
                 metrics.record_provider(ProviderType.DUCKDUCKGO, latency, True)
                 ddg_result.content = compact_content(ddg_result.content, max_chars)
                 ddg_result.score = score_result(ddg_result.url or "", ddg_result.content)
+                # Ensure metrics correctly identifies this as a success record
                 ddg_result.metrics = metrics
                 return ddg_result.to_dict()
             else:
                 metrics.record_provider(ProviderType.DUCKDUCKGO, latency, False)
 
-    # Step 5: Try Mistral websearch (if API key available)
+    # Step 6: Try Mistral websearch (if API key available)
     if "mistral" not in skip_providers and profile.is_provider_allowed(ProviderType.MISTRAL_WEBSEARCH):
         if hops < max_hops:
             hops += 1
@@ -2178,6 +2291,18 @@ def resolve_direct(
             "source": "none",
             "query": input_str,
             "error": "Tavily search failed or API key not set",
+            "content": "",
+            "validated_links": [],
+        }
+
+    elif provider == ProviderType.SERPER:
+        result = resolve_with_serper(input_str, max_chars)
+        if result:
+            return result.to_dict()
+        return {
+            "source": "none",
+            "query": input_str,
+            "error": "Serper search failed or API key not set",
             "content": "",
             "validated_links": [],
         }
