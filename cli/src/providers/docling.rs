@@ -13,6 +13,12 @@ impl DoclingProvider {
     }
 }
 
+impl Default for DoclingProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[async_trait]
 impl UrlProvider for DoclingProvider {
     fn name(&self) -> &str {
