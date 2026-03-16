@@ -57,6 +57,7 @@ class TestFetchLlmsTxt:
 
         # Clear cache to ensure fresh test
         import scripts.resolve
+
         scripts.resolve._cache = None
 
         result = fetch_llms_txt("https://example.com")
@@ -986,7 +987,9 @@ class TestAdditionalEdgeCases:
     @patch("scripts.resolve.resolve_with_jina")
     @patch("scripts.resolve.resolve_with_firecrawl")
     @patch("scripts.resolve.resolve_with_mistral_browser")
-    def test_url_cascade_firecrawl_second(self, mock_mistral, mock_firecrawl, mock_jina, mock_fetch):
+    def test_url_cascade_firecrawl_second(
+        self, mock_mistral, mock_firecrawl, mock_jina, mock_fetch
+    ):
         """Test that Firecrawl is tried when llms.txt and Jina fail."""
         mock_fetch.return_value = None
         mock_jina.return_value = None

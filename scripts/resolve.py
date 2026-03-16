@@ -27,9 +27,9 @@ import sys
 import time
 from dataclasses import asdict, dataclass, field
 from enum import Enum
+from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import urlparse
-from html.parser import HTMLParser
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -799,6 +799,7 @@ def extract_text_from_html(html: str, base_url: str = "") -> str:
 
     Uses simple regex-based extraction for reliability.
     """
+
     # Remove script and style elements using a tolerant HTML parser
     class ScriptStyleStripper(HTMLParser):
         def __init__(self) -> None:
@@ -1716,7 +1717,9 @@ def resolve_url(
         if firecrawl_result:
             metrics.record_provider(ProviderType.FIRECRAWL, latency, True)
             firecrawl_result.content = compact_content(firecrawl_result.content, max_chars)
-            firecrawl_result.score = score_result(firecrawl_result.url or url, firecrawl_result.content)
+            firecrawl_result.score = score_result(
+                firecrawl_result.url or url, firecrawl_result.content
+            )
             firecrawl_result.metrics = metrics
             return firecrawl_result.to_dict()
         else:
@@ -1850,10 +1853,7 @@ def resolve_query(
             metrics.record_provider(ProviderType.EXA, latency, False)
 
     # Step 3: Try Tavily (if API key available)
-    if (
-        "tavily" not in skip_providers
-        and profile.is_provider_allowed(ProviderType.TAVILY)
-    ):
+    if "tavily" not in skip_providers and profile.is_provider_allowed(ProviderType.TAVILY):
         if hops < max_hops:
             hops += 1
             metrics.cascade_depth = hops
@@ -1887,7 +1887,9 @@ def resolve_query(
                 metrics.record_provider(ProviderType.DUCKDUCKGO, latency, False)
 
     # Step 5: Try Mistral websearch (if API key available)
-    if "mistral" not in skip_providers and profile.is_provider_allowed(ProviderType.MISTRAL_WEBSEARCH):
+    if "mistral" not in skip_providers and profile.is_provider_allowed(
+        ProviderType.MISTRAL_WEBSEARCH
+    ):
         if hops < max_hops:
             hops += 1
             metrics.cascade_depth = hops
@@ -1897,7 +1899,9 @@ def resolve_query(
             if mistral_result:
                 metrics.record_provider(ProviderType.MISTRAL_WEBSEARCH, latency, True)
                 mistral_result.content = compact_content(mistral_result.content, max_chars)
-                mistral_result.score = score_result(mistral_result.url or "", mistral_result.content)
+                mistral_result.score = score_result(
+                    mistral_result.url or "", mistral_result.content
+                )
                 mistral_result.metrics = metrics
                 return mistral_result.to_dict()
             else:
@@ -2341,7 +2345,11 @@ def main():
                         break
 
             if not results:
-                return {"source": "none", "content": "No results to synthesize", "error": "No results"}
+                return {
+                    "source": "none",
+                    "content": "No results to synthesize",
+                    "error": "No results",
+                }
 
             # AI synthesis if MISTRAL_API_KEY is available
             api_key = os.getenv("MISTRAL_API_KEY")
