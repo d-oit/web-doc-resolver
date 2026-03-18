@@ -1,22 +1,29 @@
-import pytest
-import scripts.resolve
-import scripts.utils
-import scripts.routing
-import scripts.quality
-import scripts.providers_impl
-import scripts.synthesis
-import scripts.routing_memory
 from unittest.mock import Mock, patch
+
+import pytest
+
+import scripts.providers_impl
+import scripts.quality
+import scripts.resolve
+import scripts.routing
+import scripts.routing_memory
+import scripts.synthesis
+import scripts.utils
+
 
 class MemoryCache:
     def __init__(self):
         self.data = {}
+
     def get(self, key):
         return self.data.get(key)
+
     def set(self, key, value, expire=None):
         self.data[key] = value
+
     def clear(self):
         self.data.clear()
+
 
 @pytest.fixture(autouse=True)
 def setup_test_env():
@@ -51,15 +58,25 @@ def setup_test_env():
 
         # Force synchronous-like behavior by mocking p75 latency
         original_p75 = scripts.routing_memory.RoutingMemory.get_p75_latency
-        scripts.routing_memory.RoutingMemory.get_p75_latency = lambda self, d, p, default=2500: 999999
+        scripts.routing_memory.RoutingMemory.get_p75_latency = (
+            lambda self, d, p, default=2500: 999999
+        )
 
         # Force deterministic order for tests
         original_plan = scripts.routing.plan_provider_order
+
         def mock_plan(target, is_url, custom_order=None, skip_providers=None, **kwargs):
             if custom_order:
                 base = list(custom_order)
             elif is_url:
-                base = ["llms_txt", "jina", "firecrawl", "direct_fetch", "mistral_browser", "duckduckgo"]
+                base = [
+                    "llms_txt",
+                    "jina",
+                    "firecrawl",
+                    "direct_fetch",
+                    "mistral_browser",
+                    "duckduckgo",
+                ]
             else:
                 base = ["exa_mcp", "exa", "tavily", "duckduckgo", "mistral_websearch"]
 

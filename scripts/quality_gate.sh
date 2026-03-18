@@ -8,11 +8,14 @@
 
 set -e
 
+# Get repo root
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
 echo "=== Quality Gate ==="
 
 # Python checks
 echo "Running Python tests (unit only)..."
-cd /workspaces/web-doc-resolver
+cd "$REPO_ROOT"
 python -m pytest --tb=short -q -m "not live"
 
 echo "Running ruff..."
@@ -23,7 +26,7 @@ python -m black --check .
 
 # Rust CLI checks
 echo "Running Rust CLI tests..."
-cd /workspaces/web-doc-resolver/cli
+cd "$REPO_ROOT/cli"
 cargo test --quiet
 
 echo "Running cargo fmt..."
