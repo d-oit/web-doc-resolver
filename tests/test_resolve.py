@@ -44,7 +44,7 @@ class TestIsUrl:
 class TestFetchLlmsTxt:
     """Test llms.txt fetching."""
 
-    @patch("scripts.resolve.get_session")
+    @patch("scripts.utils.get_session")
     def test_llms_txt_found(self, mock_get_session):
         """Test successful llms.txt fetch."""
         mock_session = Mock()
@@ -57,13 +57,14 @@ class TestFetchLlmsTxt:
 
         # Clear cache to ensure fresh test
         import scripts.resolve
+
         scripts.resolve._cache = None
 
         result = fetch_llms_txt("https://example.com")
         assert result is not None
         assert "Example llms.txt" in result
 
-    @patch("scripts.resolve.get_session")
+    @patch("scripts.utils.get_session")
     def test_llms_txt_not_found(self, mock_get_session):
         """Test when llms.txt doesn't exist."""
         mock_session = Mock()
@@ -299,7 +300,7 @@ class TestEdgeCases:
     @patch("scripts.resolve.fetch_llms_txt")
     @patch("scripts.resolve.resolve_with_jina")
     @patch("scripts.resolve.resolve_with_duckduckgo")
-    @patch("scripts.resolve.fetch_url_content")
+    @patch("scripts.utils.fetch_url_content")
     @patch("scripts.resolve.resolve_with_firecrawl")
     @patch("scripts.resolve.resolve_with_mistral_browser")
     def test_url_no_llms_firecrawl_unavailable(
@@ -387,7 +388,7 @@ class TestEdgeCases:
 class TestCacheBehavior:
     """Test caching behavior."""
 
-    @patch("scripts.resolve._get_cache")
+    @patch("scripts.utils._get_cache")
     def test_cache_hit(self, mock_get_cache):
         """Test cache hit returns cached result."""
         mock_cache = Mock()
@@ -401,7 +402,7 @@ class TestCacheBehavior:
         assert result is not None
         assert result["source"] == "cached"
 
-    @patch("scripts.resolve._get_cache")
+    @patch("scripts.utils._get_cache")
     def test_cache_miss(self, mock_get_cache):
         """Test cache miss returns None."""
         mock_cache = Mock()
@@ -414,7 +415,7 @@ class TestCacheBehavior:
 
         assert result is None
 
-    @patch("scripts.resolve._get_cache")
+    @patch("scripts.utils._get_cache")
     def test_cache_disabled(self, mock_get_cache):
         """Test when cache is not available."""
         mock_get_cache.return_value = None
@@ -482,8 +483,8 @@ class TestSkillSymlink:
 class TestDuckDuckGoFallback:
     """Test DuckDuckGo free search fallback."""
 
-    @patch("scripts.resolve._get_from_cache")
-    @patch("scripts.resolve._is_rate_limited")
+    @patch("scripts.utils._get_from_cache")
+    @patch("scripts.providers_impl._is_rate_limited")
     @patch("duckduckgo_search.DDGS")
     def test_duckduckgo_successful_search(self, mock_ddgs_class, mock_rate_limited, mock_cache):
         """Test successful DuckDuckGo search."""
@@ -505,8 +506,8 @@ class TestDuckDuckGoFallback:
         assert result.source == "duckduckgo"
         assert "Result 1" in result.content
 
-    @patch("scripts.resolve._get_from_cache")
-    @patch("scripts.resolve._is_rate_limited")
+    @patch("scripts.utils._get_from_cache")
+    @patch("scripts.providers_impl._is_rate_limited")
     def test_duckduckgo_rate_limited(self, mock_rate_limited, mock_cache):
         """Test DuckDuckGo when rate-limited."""
         mock_cache.return_value = None
@@ -516,8 +517,8 @@ class TestDuckDuckGoFallback:
 
         assert result is None
 
-    @patch("scripts.resolve._get_from_cache")
-    @patch("scripts.resolve._is_rate_limited")
+    @patch("scripts.utils._get_from_cache")
+    @patch("scripts.providers_impl._is_rate_limited")
     @patch("duckduckgo_search.DDGS")
     def test_duckduckgo_empty_results(self, mock_ddgs_class, mock_rate_limited, mock_cache):
         """Test DuckDuckGo with empty results."""
@@ -922,9 +923,9 @@ class TestAdditionalEdgeCases:
         assert _detect_error_type(Exception("Something went wrong")) == ErrorType.UNKNOWN
         assert _detect_error_type(Exception("")) == ErrorType.UNKNOWN
 
-    @patch("scripts.resolve._get_from_cache")
-    @patch("scripts.resolve._is_rate_limited")
-    @patch("scripts.resolve._save_to_cache")
+    @patch("scripts.utils._get_from_cache")
+    @patch("scripts.providers_impl._is_rate_limited")
+    @patch("scripts.utils._save_to_cache")
     @patch("duckduckgo_search.DDGS")
     def test_duckduckgo_network_error(
         self, mock_ddgs_class, mock_save, mock_rate_limited, mock_cache
@@ -943,9 +944,9 @@ class TestAdditionalEdgeCases:
 
         assert result is None
 
-    @patch("scripts.resolve._get_from_cache")
-    @patch("scripts.resolve._is_rate_limited")
-    @patch("scripts.resolve._save_to_cache")
+    @patch("scripts.utils._get_from_cache")
+    @patch("scripts.providers_impl._is_rate_limited")
+    @patch("scripts.utils._save_to_cache")
     @patch("duckduckgo_search.DDGS")
     def test_duckduckgo_with_unicode_query(
         self, mock_ddgs_class, mock_save, mock_rate_limited, mock_cache
@@ -986,7 +987,9 @@ class TestAdditionalEdgeCases:
     @patch("scripts.resolve.resolve_with_jina")
     @patch("scripts.resolve.resolve_with_firecrawl")
     @patch("scripts.resolve.resolve_with_mistral_browser")
-    def test_url_cascade_firecrawl_second(self, mock_mistral, mock_firecrawl, mock_jina, mock_fetch):
+    def test_url_cascade_firecrawl_second(
+        self, mock_mistral, mock_firecrawl, mock_jina, mock_fetch
+    ):
         """Test that Firecrawl is tried when llms.txt and Jina fail."""
         mock_fetch.return_value = None
         mock_jina.return_value = None

@@ -44,6 +44,7 @@ all = [
 ]
 
 [project.scripts]
+wdr = "scripts.resolve:main"
 web-doc-resolver = "scripts.resolve:main"
 
 [project.urls]
