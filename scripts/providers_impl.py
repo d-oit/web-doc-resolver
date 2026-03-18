@@ -220,9 +220,7 @@ def resolve_with_mistral_browser(url: str, max_chars: int = MAX_CHARS) -> Resolv
         return None
 
 
-def resolve_with_mistral_websearch(
-    query: str, max_chars: int = MAX_CHARS
-) -> ResolvedResult | None:
+def resolve_with_mistral_websearch(query: str, max_chars: int = MAX_CHARS) -> ResolvedResult | None:
     cached = _get_from_cache(query, "mistral_websearch")
     if cached:
         return ResolvedResult(**cached)

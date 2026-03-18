@@ -29,20 +29,6 @@ from scripts.models import (
     ResolveMetrics,
     ValidationResult,
 )
-
-# Configuration Constants
-MAX_CHARS = int(os.getenv("WEB_RESOLVER_MAX_CHARS", "8000"))
-MIN_CHARS = int(os.getenv("WEB_RESOLVER_MIN_CHARS", "200"))
-DEFAULT_TIMEOUT = int(os.getenv("WEB_RESOLVER_TIMEOUT", "30"))
-
-logger = logging.getLogger(__name__)
-
-# Global State
-_circuit_breakers = scripts.circuit_breaker.CircuitBreakerRegistry()
-_routing_memory = scripts.routing_memory.RoutingMemory()
-_cache = None
-
-# Local imports for patching in tests
 from scripts.providers_impl import (
     _is_rate_limited,
     _rate_limits,
@@ -73,6 +59,18 @@ from scripts.utils import (
     validate_links,
     validate_url,
 )
+
+# Configuration Constants
+MAX_CHARS = int(os.getenv("WEB_RESOLVER_MAX_CHARS", "8000"))
+MIN_CHARS = int(os.getenv("WEB_RESOLVER_MIN_CHARS", "200"))
+DEFAULT_TIMEOUT = int(os.getenv("WEB_RESOLVER_TIMEOUT", "30"))
+
+logger = logging.getLogger(__name__)
+
+# Global State
+_circuit_breakers = scripts.circuit_breaker.CircuitBreakerRegistry()
+_routing_memory = scripts.routing_memory.RoutingMemory()
+_cache = None
 
 # Aliases for backward compatibility in tests
 is_rate_limited = _is_rate_limited
@@ -224,10 +222,13 @@ def resolve_url_stream(
 
             while active_futures:
                 elapsed = time.time() - start_time_probe
+
+                # If we've hit the threshold, start the next provider (hedging)
                 if i < len(eligible) - 1 and elapsed >= threshold:
                     logger.info(f"Hedging threshold reached for {p_name} ({threshold}s)")
                     break
 
+                # Wait for any task to complete
                 done, not_done = concurrent.futures.wait(
                     active_futures.keys(),
                     timeout=0.01,
@@ -243,8 +244,10 @@ def resolve_url_stream(
                     budget.record_attempt(is_paid=pt_done.is_paid(), latency_ms=latency)
                     try:
                         res_or_content = f.result()
-                    except Exception:
-                        _circuit_breakers.record_failure(p_name_done)
+                    except Exception as e:
+                        err_type = _detect_error_type(e)
+                        if err_type not in (ErrorType.AUTH_ERROR, ErrorType.SSRF_BLOCKED):
+                            _circuit_breakers.record_failure(p_name_done)
                         metrics.record_provider(pt_done, latency, False)
                         continue
                     if res_or_content:
@@ -379,8 +382,10 @@ def resolve_query_stream(
                     budget.record_attempt(is_paid=pt_done.is_paid(), latency_ms=latency)
                     try:
                         res = f.result()
-                    except Exception:
-                        _circuit_breakers.record_failure(p_name_done)
+                    except Exception as e:
+                        err_type = _detect_error_type(e)
+                        if err_type not in (ErrorType.AUTH_ERROR, ErrorType.SSRF_BLOCKED):
+                            _circuit_breakers.record_failure(p_name_done)
                         metrics.record_provider(pt_done, latency, False)
                         continue
                     if res:

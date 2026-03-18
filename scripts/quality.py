@@ -8,44 +8,58 @@ from dataclasses import dataclass
 @dataclass
 class QualityScore:
     score: float
+    too_short: bool
+    missing_links: bool
+    duplicate_heavy: bool
+    noisy: bool
     acceptable: bool
 
 
-def score_content(text: str) -> QualityScore:
+def score_content(markdown: str, links: list[str] | None = None) -> QualityScore:
     # Handle MagicMocks in tests
-    if not isinstance(text, str):
-        return QualityScore(1.0, True)
+    if not isinstance(markdown, str):
+        return QualityScore(1.0, False, False, False, False, True)
 
-    if not text:
-        return QualityScore(0.0, False)
+    text = (markdown or "").strip()
+    links = links or []
 
-    score = 0.5
+    length = len(text)
+    too_short = length < 500
+    missing_links = len(links) == 0
 
-    # Positive signals
-    if len(text) > 1000:
-        score += 0.2
-    if len(text) > 3000:
-        score += 0.1
-    if "##" in text:
-        score += 0.1
-    if "[" in text and "]" in text:
-        score += 0.1  # likely has links
+    lines = text.splitlines()
+    num_lines = len(lines)
+    duplicate_heavy = False
+    if num_lines > 0:
+        unique_lines = len({line.strip() for line in lines if line.strip()})
+        # If fewer than 5 unique lines OR unique lines are less than half of total lines
+        duplicate_heavy = unique_lines < max(5, num_lines // 2)
 
-    # Negative signals
-    if "just a moment" in text.lower() or "enable javascript" in text.lower():
-        score -= 0.4
-    if "captcha" in text.lower() or "access denied" in text.lower():
-        score -= 0.5
+    noisy_signals = ["cookie", "subscribe", "javascript", "log in", "sign up"]
+    noise_count = sum(text.lower().count(signal) for signal in noisy_signals)
+    noisy = noise_count > 6
 
-    # Content density
-    noisy = text.count("cookie") + text.count("subscribe") + text.count("javascript") > 6
+    score = 1.0
+    if too_short:
+        score -= 0.35
+    if missing_links:
+        score -= 0.15
+    if duplicate_heavy:
+        score -= 0.25
     if noisy:
-        score -= 0.2
+        score -= 0.20
 
     # Ensure range
-    score = max(0.0, min(1.0, score))
+    score = max(0.0, score)
 
-    # Threshold for acceptance
-    acceptable = score >= 0.4
+    # Threshold for acceptance as per #59: 0.65 and not too_short
+    acceptable = score >= 0.65 and not too_short
 
-    return QualityScore(score, acceptable)
+    return QualityScore(
+        score=score,
+        too_short=too_short,
+        missing_links=missing_links,
+        duplicate_heavy=duplicate_heavy,
+        noisy=noisy,
+        acceptable=acceptable,
+    )
