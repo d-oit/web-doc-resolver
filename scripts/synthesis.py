@@ -18,10 +18,11 @@ def should_call_llm_synthesis(results: list[ResolvedResult], threshold: float = 
 
     # If we only have one result and it's high quality, skip LLM
     if len(results) == 1:
-        score = getattr(results[0], "score", 0.0)
+        score = results[0].score
         if score >= threshold:
             logger.info(f"Skipping LLM synthesis: single high-quality result (score={score:.2f})")
             return False
+        logger.info(f"Calling LLM synthesis: single low-quality result (score={score:.2f})")
         return True
 
     # If we have multiple results, check for length and diversity
@@ -32,6 +33,7 @@ def should_call_llm_synthesis(results: list[ResolvedResult], threshold: float = 
 
     # Check if results are too similar (might not need synthesis)
     # Simplified: always synthesize if multiple results to merge them properly
+    logger.info("Calling LLM synthesis: reconciling multiple results")
     return True
 
 

@@ -1,1 +1,1 @@
-/workspaces/web-doc-resolver/SKILL.md
+../../../SKILL.md

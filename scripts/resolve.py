@@ -140,7 +140,8 @@ def synthesize_results(query: str, results: list[ResolvedResult], api_key: str, 
             timeout=30,
         )
         resp.raise_for_status()
-        return resp.json()["choices"][0]["message"]["content"]
+        content = resp.json()["choices"][0]["message"]["content"]
+        return str(content)
     except Exception as e:
         logger.error(f"LLM Synthesis failed: {e}")
         return scripts.synthesis.deterministic_merge(results)
@@ -163,7 +164,12 @@ def resolve_url_stream(
     budget_data = scripts.routing.PROFILE_BUDGETS.get(
         profile.value, scripts.routing.PROFILE_BUDGETS["balanced"]
     )
-    budget = scripts.routing.ResolutionBudget(**budget_data)
+    budget = scripts.routing.ResolutionBudget(
+        max_provider_attempts=budget_data["max_provider_attempts"],
+        max_paid_attempts=budget_data["max_paid_attempts"],
+        max_total_latency_ms=budget_data["max_total_latency_ms"],
+        allow_paid=budget_data["allow_paid"],
+    )
 
     if any(url.lower().endswith(ext) for ext in [".pdf", ".docx", ".pptx"]):
         res = resolve_with_docling(url, max_chars)
@@ -181,7 +187,7 @@ def resolve_url_stream(
     provider_names = scripts.routing.plan_provider_order(
         target=url, is_url=True, routing_memory=_routing_memory
     )
-    cascade_map = {
+    cascade_map: dict[str, tuple[ProviderType, Any]] = {
         "llms_txt": (ProviderType.LLMS_TXT, lambda: fetch_llms_txt(url)),
         "jina": (ProviderType.JINA, lambda: resolve_with_jina(url, max_chars)),
         "firecrawl": (ProviderType.FIRECRAWL, lambda: resolve_with_firecrawl(url, max_chars)),
@@ -229,7 +235,7 @@ def resolve_url_stream(
                     break
 
                 # Wait for any task to complete
-                done, not_done = concurrent.futures.wait(
+                done, _ = concurrent.futures.wait(
                     active_futures.keys(),
                     timeout=0.01,
                     return_when=concurrent.futures.FIRST_COMPLETED,
@@ -251,11 +257,11 @@ def resolve_url_stream(
                         metrics.record_provider(pt_done, latency, False)
                         continue
                     if res_or_content:
-                        content = (
-                            res_or_content
-                            if pt_done == ProviderType.LLMS_TXT
-                            else res_or_content.content
-                        )
+                        if isinstance(res_or_content, ResolvedResult):
+                            content = res_or_content.content
+                        else:
+                            content = str(res_or_content)
+
                         q_score = scripts.quality.score_content(content)
                         if q_score.acceptable or pt_done == ProviderType.LLMS_TXT:
                             _circuit_breakers.record_success(p_name_done)
@@ -270,10 +276,10 @@ def resolve_url_stream(
                                 yield {
                                     "source": "llms.txt",
                                     "url": url,
-                                    "content": compact_content(res_or_content, max_chars),
+                                    "content": compact_content(content, max_chars),
                                     "metrics": metrics,
                                 }
-                            else:
+                            elif isinstance(res_or_content, ResolvedResult):
                                 res_or_content.metrics, res_or_content.score = (
                                     metrics,
                                     q_score.score,
@@ -332,7 +338,12 @@ def resolve_query_stream(
     budget_data = scripts.routing.PROFILE_BUDGETS.get(
         profile.value, scripts.routing.PROFILE_BUDGETS["balanced"]
     )
-    budget = scripts.routing.ResolutionBudget(**budget_data)
+    budget = scripts.routing.ResolutionBudget(
+        max_provider_attempts=budget_data["max_provider_attempts"],
+        max_paid_attempts=budget_data["max_paid_attempts"],
+        max_total_latency_ms=budget_data["max_total_latency_ms"],
+        allow_paid=budget_data["allow_paid"],
+    )
     provider_names = scripts.routing.plan_provider_order(
         target=query, is_url=False, skip_providers=skip, routing_memory=_routing_memory
     )
@@ -368,7 +379,7 @@ def resolve_query_stream(
                 if i < len(eligible) - 1 and elapsed >= threshold:
                     break
 
-                done, not_done = concurrent.futures.wait(
+                done, _ = concurrent.futures.wait(
                     active_futures.keys(),
                     timeout=0.01,
                     return_when=concurrent.futures.FIRST_COMPLETED,
