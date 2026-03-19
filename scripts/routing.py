@@ -49,7 +49,7 @@ PROFILE_BUDGETS = {
         "allow_paid": False,
     },
     "balanced": {
-        "max_provider_attempts": 6,  # Increased to accommodate full cascade in tests
+        "max_provider_attempts": 6,
         "max_paid_attempts": 2,
         "max_total_latency_ms": 12000,
         "allow_paid": True,
@@ -87,33 +87,89 @@ def detect_doc_platform(url: str) -> str | None:
     hostname = (parsed.hostname or "").lower()
     path = (parsed.path or "").lower()
 
-    # GitBook
     if hostname == "gitbook.io" or hostname.endswith(".gitbook.io"):
         return "gitbook"
     if hostname == "gitbook.com" or hostname.endswith(".gitbook.com"):
         return "gitbook"
-
-    # Sphinx / ReadTheDocs
     if hostname == "readthedocs.io" or hostname.endswith(".readthedocs.io"):
         return "sphinx"
     if hostname == "rtfd.io" or hostname.endswith(".rtfd.io"):
         return "sphinx"
-
-    # MkDocs official site (heuristic only)
     if hostname == "www.mkdocs.org" or hostname == "mkdocs.org":
         return "mkdocs"
-
-    # Notion
     if hostname == "notion.so" or hostname.endswith(".notion.so"):
         return "notion"
     if hostname == "notion.site" or hostname.endswith(".notion.site"):
         return "notion"
-
-    # Confluence (Atlassian Cloud and generic self-hosted)
-    if (hostname.endswith(".atlassian.net") and path.startswith("/wiki")) or "confluence" in hostname or "confluence" in path:
+    if (
+        (hostname.endswith(".atlassian.net") and path.startswith("/wiki"))
+        or "confluence" in hostname
+        or "confluence" in path
+    ):
         return "confluence"
 
     return None
+
+
+def preflight_route(url: str) -> dict:
+    """
+    Cheap preflight classifier: inspect URL signals to route to best extraction strategy.
+
+    Returns dict with:
+    - platform: detected doc platform or None
+    - preferred_strategy: 'direct_fetch', 'llms_txt', 'extraction', 'browser'
+    - confidence: 0.0-1.0
+    - js_heavy: bool - likely needs JS rendering
+    """
+    platform = detect_doc_platform(url)
+    parsed = urlparse(url)
+    hostname = (parsed.hostname or "").lower()
+    path = (parsed.path or "").lower()
+
+    # Static doc platforms: prefer llms.txt → direct fetch
+    if platform in ("gitbook", "sphinx", "mkdocs"):
+        return {
+            "platform": platform,
+            "preferred_strategy": "llms_txt",
+            "confidence": 0.85,
+            "js_heavy": False,
+        }
+
+    # JS-heavy platforms: need browser or extraction
+    if platform in ("notion", "confluence"):
+        return {
+            "platform": platform,
+            "preferred_strategy": "extraction",
+            "confidence": 0.8,
+            "js_heavy": True,
+        }
+
+    # Known doc sites
+    doc_signals = ["docs.", "doc.", "documentation", "/docs/", "/doc/", "/api/", "/reference/"]
+    if any(s in hostname or s in path for s in doc_signals):
+        return {
+            "platform": None,
+            "preferred_strategy": "llms_txt",
+            "confidence": 0.6,
+            "js_heavy": False,
+        }
+
+    # GitHub/GitLab: direct content
+    if any(d in hostname for d in ["github.com", "gitlab.com", "bitbucket.org"]):
+        return {
+            "platform": None,
+            "preferred_strategy": "direct_fetch",
+            "confidence": 0.7,
+            "js_heavy": False,
+        }
+
+    # Default: try llms.txt first, then extraction
+    return {
+        "platform": None,
+        "preferred_strategy": "llms_txt",
+        "confidence": 0.4,
+        "js_heavy": False,
+    }
 
 
 def plan_provider_order(
@@ -127,18 +183,21 @@ def plan_provider_order(
     if custom_order:
         base = list(custom_order)
     elif is_url:
-        platform = detect_doc_platform(target)
-        if platform in ("gitbook", "sphinx", "mkdocs"):
+        preflight = preflight_route(target)
+        platform = preflight.get("platform")
+        strategy = preflight.get("preferred_strategy", "llms_txt")
+
+        if platform in ("notion", "confluence") or preflight.get("js_heavy"):
+            base = ["firecrawl", "mistral_browser", "jina", "direct_fetch", "duckduckgo"]
+        elif strategy == "direct_fetch":
             base = [
+                "direct_fetch",
                 "llms_txt",
                 "jina",
-                "direct_fetch",
                 "firecrawl",
                 "mistral_browser",
                 "duckduckgo",
             ]
-        elif platform in ("notion", "confluence"):
-            base = ["firecrawl", "mistral_browser", "jina", "direct_fetch", "duckduckgo"]
         else:
             base = [
                 "llms_txt",
