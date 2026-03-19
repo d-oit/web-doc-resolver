@@ -79,17 +79,40 @@ def extract_domain(url: str) -> str | None:
 
 def detect_doc_platform(url: str) -> str | None:
     """Detect common documentation platforms from URL."""
-    url_lower = url.lower()
-    if "gitbook.io" in url_lower or "gitbook.com" in url_lower:
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        return None
+
+    hostname = (parsed.hostname or "").lower()
+    path = (parsed.path or "").lower()
+
+    # GitBook
+    if hostname == "gitbook.io" or hostname.endswith(".gitbook.io"):
         return "gitbook"
-    if "readthedocs.io" in url_lower or "rtfd.io" in url_lower:
+    if hostname == "gitbook.com" or hostname.endswith(".gitbook.com"):
+        return "gitbook"
+
+    # Sphinx / ReadTheDocs
+    if hostname == "readthedocs.io" or hostname.endswith(".readthedocs.io"):
         return "sphinx"
-    if "mkdocs.org" in url_lower:
+    if hostname == "rtfd.io" or hostname.endswith(".rtfd.io"):
+        return "sphinx"
+
+    # MkDocs official site (heuristic only)
+    if hostname == "www.mkdocs.org" or hostname == "mkdocs.org":
         return "mkdocs"
-    if "notion.site" in url_lower or "notion.so" in url_lower:
+
+    # Notion
+    if hostname == "notion.so" or hostname.endswith(".notion.so"):
         return "notion"
-    if "atlassian.net/wiki" in url_lower or "confluence" in url_lower:
+    if hostname == "notion.site" or hostname.endswith(".notion.site"):
+        return "notion"
+
+    # Confluence (Atlassian Cloud and generic self-hosted)
+    if (hostname.endswith(".atlassian.net") and path.startswith("/wiki")) or "confluence" in hostname or "confluence" in path:
         return "confluence"
+
     return None
 
 
