@@ -1,6 +1,5 @@
 name: Release
 
-# Trigger on version tags: v1.0.0, v1.2.3, etc.
 on:
   push:
     tags:
@@ -8,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   python-test:
@@ -43,21 +43,74 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Run tests
-        run: |
-          cd cli && cargo test
+        run: cd cli && cargo test
 
       - name: Run clippy
-        run: |
-          cd cli && cargo clippy -- -D warnings
+        run: cd cli && cargo clippy -- -D warnings
 
       - name: Run fmt
-        run: |
-          cd cli && cargo fmt --check
+        run: cd cli && cargo fmt --check
+
+  build-binaries:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    needs: [python-test, rust-test]
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary: wdr
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            binary: wdr
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary: wdr.exe
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build release
+        run: cd cli && cargo build --release
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wdr-${{ matrix.target }}
+          path: cli/target/release/${{ matrix.binary }}
+
+  pypi-publish:
+    name: Publish to PyPI
+    runs-on: ubuntu-latest
+    needs: [python-test]
+    environment: pypi
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: pip install build
+
+      - name: Build package
+        run: python -m build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
 
   release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: [python-test, rust-test]
+    needs: [build-binaries, pypi-publish]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -76,11 +129,9 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.85
-          components: clippy, rustfmt
 
       - name: Build CLI
-        run: |
-          cd cli && cargo build --release
+        run: cd cli && cargo build --release
 
       - name: Extract version from tag
         id: version
@@ -89,10 +140,8 @@ jobs:
       - name: Update SKILL.md version
         run: |
           VERSION=${{ steps.version.outputs.VERSION }}
-          # Strip leading 'v' for semver field
           SEMVER=${VERSION#v}
           sed -i "s/  version: \".*\"/  version: \"${SEMVER}\"/" SKILL.md
-          # Update version comment in AGENTS.md
           sed -i "s/<!-- skill: web-doc-resolver v.* -->/<!-- skill: web-doc-resolver ${VERSION} -->/" AGENTS.md
           sed -i "s|tree/v.*\"|tree/${VERSION}\"|" AGENTS.md
           git config user.name "github-actions[bot]"
@@ -101,30 +150,49 @@ jobs:
           git diff --staged --quiet || git commit -m "chore: bump version to ${VERSION} in skill files"
           git push origin HEAD:main
 
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist/
+          merge-multiple: true
+
+      - name: Rename binaries
+        run: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          cd dist
+          [ -f x86_64-unknown-linux-gnu/wdr ] && cp x86_64-unknown-linux-gnu/wdr wdr-linux-x86_64
+          [ -f aarch64-apple-darwin/wdr ] && cp aarch64-apple-darwin/wdr wdr-macos-aarch64
+          [ -f x86_64-pc-windows-msvc/wdr.exe ] && cp x86_64-pc-windows-msvc/wdr.exe wdr-windows-x86_64.exe
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.VERSION }}
           name: "Release ${{ steps.version.outputs.VERSION }}"
           generate_release_notes: true
-          files: cli/target/release/wdr
+          files: |
+            cli/target/release/wdr
+            dist/wdr-linux-x86_64
+            dist/wdr-macos-aarch64
+            dist/wdr-windows-x86_64.exe
           body: |
             ## web-doc-resolver ${{ steps.version.outputs.VERSION }}
 
-            ### Install this Agent Skill
+            ### Install
 
             ```bash
-            # Latest
-            claude skills add github:d-oit/web-doc-resolver
+            # PyPI
+            pip install web-doc-resolver
+            pipx install web-doc-resolver
 
-            # This exact version
+            # Prebuilt binary
+            curl -L https://github.com/d-oit/web-doc-resolver/releases/download/${{ steps.version.outputs.VERSION }}/wdr-linux-x86_64 -o wdr && chmod +x wdr
+
+            # Agent skill
             claude skills add github:d-oit/web-doc-resolver@${{ steps.version.outputs.VERSION }}
             ```
 
-            ### Direct SKILL.md URL
-            ```
-            https://raw.githubusercontent.com/d-oit/web-doc-resolver/${{ steps.version.outputs.VERSION }}/SKILL.md
-            ```
-
-            ### Rust CLI
-            Binary: `cli/target/release/wdr`
+            ### Binaries
+            - `wdr-linux-x86_64` — Linux x86_64
+            - `wdr-macos-aarch64` — macOS Apple Silicon
+            - `wdr-windows-x86_64.exe` — Windows x86_64
