@@ -1,7 +1,7 @@
 # ADR-001: GitHub Issue Decomposition & Task Plan
 
 **Date:** 2026-03-19
-**Status:** Accepted
+**Status:** Implemented
 **Context:** 4 open enhancement issues (#59, #62, #63, #64) + recurring CI failures on integration tests
 
 ## Problem Summary
