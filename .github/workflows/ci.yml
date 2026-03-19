@@ -31,10 +31,10 @@ jobs:
     name: Validate Skill Symlink
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
@@ -46,10 +46,10 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: 'pip'
@@ -86,10 +86,10 @@ jobs:
       matrix:
         python-version: ['3.10', '3.11', '3.12']
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
@@ -116,7 +116,7 @@ jobs:
     name: Rust CLI
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
@@ -144,7 +144,7 @@ jobs:
           cd cli && cargo build --release
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: wdr-linux-x86_64
           path: cli/target/release/wdr
@@ -153,10 +153,10 @@ jobs:
     name: Sample Run
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: 'pip'
@@ -173,28 +173,29 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
+          pip install -e .
 
       - name: Run sample query (no API keys)
         run: |
-          python scripts/resolve.py "Rust agent frameworks" --log-level INFO
+          wdr "Rust agent frameworks" --log-level INFO
 
       - name: Run sample URL (no API keys)
         run: |
-          python scripts/resolve.py "https://docs.rs/tokio" --log-level INFO
+          wdr "https://docs.rs/tokio" --log-level INFO
 
       - name: Test help output
         run: |
-          python scripts/resolve.py --help
+          wdr --help
 
   mistral-test:
     name: Mistral Integration Test
     runs-on: ubuntu-latest
     if: (github.event_name == 'workflow_dispatch' && (inputs.test_mistral == true || inputs.test_mistral == 'true')) || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: 'pip'
@@ -223,10 +224,10 @@ jobs:
     runs-on: ubuntu-latest
     if: (github.event_name == 'workflow_dispatch' && (inputs.test_firecrawl == true || inputs.test_firecrawl == 'true')) || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: 'pip'
@@ -255,10 +256,10 @@ jobs:
     runs-on: ubuntu-latest
     if: (github.event_name == 'workflow_dispatch' && (inputs.test_tavily == true || inputs.test_tavily == 'true')) || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: 'pip'
