@@ -15,9 +15,8 @@ from scripts.cache_negative import (
 )
 from scripts.circuit_breaker import CircuitBreakerRegistry, CircuitBreakerState
 from scripts.quality import QualityScore
-from scripts.routing import ResolutionBudget, PROFILE_BUDGETS, detect_doc_platform, extract_domain
+from scripts.routing import PROFILE_BUDGETS, ResolutionBudget, detect_doc_platform, extract_domain
 from scripts.routing_memory import RoutingMemory
-
 
 # ─── Quality Scoring (T59.2) ───────────────────────────────────────────────
 
