@@ -290,24 +290,86 @@ def fetch_llms_txt(url: str) -> str | None:
     return None
 
 
+_TRACKING_PARAMS = {
+    # UTM parameters
+    "utm_source",
+    "utm_medium",
+    "utm_campaign",
+    "utm_term",
+    "utm_content",
+    # Social/tracking parameters
+    "fbclid",
+    "gclid",
+    "gclsrc",
+    "dclid",
+    "msclkid",
+    "twclid",
+    "li_fat_id",
+    "mc_cid",
+    "mc_eid",
+    # Referral/tracking
+    "ref",
+    "ref_src",
+    "ref_url",
+    "source",
+    "via",
+    # Session/tracking
+    "session_id",
+    "sid",
+    "_ga",
+    "_gl",
+    # Misc tracking
+    "hsa_cam",
+    "hsa_grp",
+    "hsa_mt",
+    "hsa_src",
+    "hsa_ad",
+    "hsa_acc",
+    "hsa_net",
+    "hsa_kw",
+    "hsa_tgt",
+    "hsa_ver",
+}
+
+
 def normalize_url(url: str) -> str:
-    """Normalize URL by stripping tracking params and anchors."""
+    """Normalize URL by stripping tracking params, anchors, and common aliases."""
     try:
         parsed = urlparse(url)
-        # Strip tracking/UTM params
+        # Strip all known tracking params
         if parsed.query:
             from urllib.parse import parse_qs, urlencode
 
             params = parse_qs(parsed.query)
-            filtered_params = {k: v for k, v in params.items() if not k.startswith("utm_")}
+            filtered_params = {
+                k: v
+                for k, v in params.items()
+                if k.lower() not in _TRACKING_PARAMS and not k.startswith("utm_")
+            }
             query = urlencode(filtered_params, doseq=True)
         else:
             query = ""
 
-        # Strip anchor
-        # Reconstruct normalized URL
-        normalized = parsed._replace(query=query, fragment="").geturl()
-        return normalized.lower().strip()
+        # Normalize fragment: strip if empty or just a section ref
+        fragment = "" if not parsed.fragment else parsed.fragment
+
+        # Normalize trailing slash (keep for root, strip for paths)
+        path = parsed.path
+        if path and path != "/" and path.endswith("/"):
+            path = path.rstrip("/")
+
+        # Normalize netloc: lowercase, strip default ports
+        netloc = parsed.netloc.lower()
+        if netloc.endswith(":80") and parsed.scheme == "http":
+            netloc = netloc[:-3]
+        elif netloc.endswith(":443") and parsed.scheme == "https":
+            netloc = netloc[:-4]
+
+        # Reconstruct
+        normalized = parsed._replace(
+            scheme=parsed.scheme.lower(), netloc=netloc, path=path, query=query, fragment=fragment
+        ).geturl()
+        return normalized.strip()
     except Exception:
         return url.lower().strip()
 
