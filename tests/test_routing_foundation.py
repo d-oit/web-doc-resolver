@@ -9,16 +9,13 @@ production implementations where we re-implement core logic inline.
 
 from datetime import datetime, timedelta, timezone
 
-import pytest
-
 from scripts.cache_negative import (
-    NegativeCacheEntry,
     should_skip_from_negative_cache,
     write_negative_cache,
 )
 from scripts.circuit_breaker import CircuitBreakerRegistry, CircuitBreakerState
 from scripts.quality import QualityScore
-from scripts.routing import ResolutionBudget, detect_doc_platform, extract_domain, PROFILE_BUDGETS
+from scripts.routing import ResolutionBudget, PROFILE_BUDGETS, detect_doc_platform, extract_domain
 from scripts.routing_memory import RoutingMemory
 
 
