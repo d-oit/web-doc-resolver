@@ -63,64 +63,82 @@ python -m scripts.resolve "query" --json
 ### Synopsis
 
 ```bash
-wdr [OPTIONS] <QUERY_OR_URL>
-wdr resolve [OPTIONS] <QUERY_OR_URL>
-wdr config [SUBCOMMAND]
+wdr resolve [OPTIONS] <INPUT>
+wdr providers
+wdr config
+wdr cache-stats
 ```
 
 ### Global Options
 
 | Flag | Short | Description |
 |------|-------|------------|
-| `--skip <name>` | `-s` | Skip provider (repeatable) |
-| `--provider <name>` | `-p` | Use only this provider |
-| `--providers-order <csv>` | `-P` | Override cascade order |
-| `--min-chars <n>` | `-m` | Min chars threshold (default: 200) |
-| `--json` | `-j` | JSON output to stdout |
-| `--log-level <level>` | `-l` | Log level: error/warn/info/debug/trace |
-| `--log-json` | | Structured JSON logs to stderr |
-| `--config <path>` | `-c` | Path to config.toml |
-| `--version` | `-V` | Print version |
-| `--help` | `-h` | Print help |
+| `--verbose` | `-v` | Increase verbosity (-v, -vv, -vvv) |
+| `--version` | | Print version |
+
+### Resolve Options
+
+| Flag | Short | Description |
+|------|-------|------------|
+| `--output` | `-o` | Write result to file |
+| `--provider` | `-p` | Force a single provider |
+| `--skip` | | Comma-separated providers to skip |
+| `--providers-order` | | Override cascade order |
+| `--max-chars` | | Max output characters (default: 8000) |
+| `--min-chars` | | Min chars for valid content (default: 200) |
+| `--profile` | | Execution profile: free/balanced/fast/quality |
+| `--json` | | JSON output to stdout |
+| `--metrics-json` | | Print metrics as JSON |
+| `--metrics-file` | | Save metrics JSON to file |
+| `--skip-cache` | | Bypass semantic cache |
+| `--synthesize` | | Aggregate results via AI synthesis |
+| `--quality-threshold` | | Min quality score |
+| `--max-provider-attempts` | | Limit cascade depth |
+| `--max-paid-attempts` | | Limit paid provider calls |
+| `--max-total-latency-ms` | | Total latency ceiling (ms) |
+| `--disable-routing-memory` | | Ignore learned provider rankings |
 
 ### Subcommands
 
 | Subcommand | Description |
 |------------|------------|
-| `resolve` | Resolve a query or URL (default) |
-| `config show` | Print effective config (merged layers) |
-| `config init` | Write default config.toml to current dir |
-| `providers list` | List available providers and status |
+| `resolve <input>` | Resolve a query or URL (primary command) |
+| `providers` | List available providers and their status |
+| `config` | Print current effective configuration |
+| `cache-stats` | Show semantic cache statistics |
 
 ### Examples
 
 ```bash
 # Basic query
-wdr "rust async book"
+wdr resolve "rust async book"
 
 # Resolve URL
 wdr resolve "https://example.com"
 
-# Skip paid providers
-wdr "query" --skip exa --skip tavily --skip mistral
+# Output as JSON
+wdr resolve "query" --json
 
-# Custom cascade
-wdr "query" --providers-order "llms_txt,jina,direct_fetch"
+# Save to file
+wdr resolve "https://example.com" -o result.md
 
-# JSON output
-wdr "query" --json
+# Use profile
+wdr resolve "query" --profile free
 
-# JSON structured logs
-wdr "query" --log-json 2>run.log
+# Skip providers
+wdr resolve "query" --skip exa_mcp,exa
 
-# Show merged config
-wdr config show
+# AI synthesis
+wdr resolve "query" --synthesize
+
+# Metrics
+wdr resolve "query" --metrics-json
 
 # List providers
-wdr providers list
+wdr providers
 
-# Use custom config file
-wdr --config ~/.config/wdr/config.toml "query"
+# Show config
+wdr config
 ```
 
 ## Output Format

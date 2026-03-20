@@ -21,25 +21,32 @@ Query Input
    Rate limit: 60s cooldown
    On error: continue
     |
-    v (fail / no key)
+     v (fail / no key)
 3. Tavily (if TAVILY_API_KEY set)
    Comprehensive search results
    Rate limit: 60s cooldown
    On error: continue
-    |
-    v (fail / no key)
-4. DuckDuckGo (FREE - always available)
+     |
+     v (fail / no key)
+4. Serper (if SERPER_API_KEY set)
+   Google search results via Serper API
+   2500 free credits
+   Rate limit: 60s cooldown
+   On error: continue
+     |
+     v (fail / no key)
+5. DuckDuckGo (FREE - always available)
    HTML scraping, no auth needed
    Rate limit: 30s cooldown
     |
-    v (fail)
-5. Mistral websearch (if MISTRAL_API_KEY set)
+     v (fail)
+6. Mistral websearch (if MISTRAL_API_KEY set)
    Mistral chat API with web_search tool
    Free tier available
    Rate limit: 60s cooldown
-    |
-    v (all fail)
-6. Return error: source="none"
+     |
+     v (all fail)
+7. Return error: source="none"
 ```
 
 ## URL Resolution Cascade

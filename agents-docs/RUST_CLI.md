@@ -5,31 +5,43 @@ Architecture reference for the `wdr` Rust CLI. Related epic: #18.
 ## Project Structure
 
 ```
-wdr/
+cli/
 ├── Cargo.toml
 ├── src/
-│   ├── main.rs          # Entry point, CLI parse, dispatch (<500 LOC)
-│   ├── cli.rs           # Clap arg structs + subcommands (<500 LOC)
-│   ├── config.rs        # Config loading (file + env + flags) (<500 LOC)
-│   ├── error.rs         # Typed errors with thiserror (<500 LOC)
-│   ├── resolver.rs      # Cascade orchestrator (<500 LOC)
-│   ├── output.rs        # Stdout/stderr formatting (<500 LOC)
+│   ├── main.rs               # Entry point, CLI parse, dispatch
+│   ├── lib.rs                # Library root, module declarations
+│   ├── cli.rs                # Clap arg structs + subcommands
+│   ├── config.rs             # Config loading (TOML + env + flags)
+│   ├── resolver.rs           # Cascade orchestrator
+│   ├── routing.rs            # ResolutionBudget, provider ordering
+│   ├── routing_memory.rs     # Per-domain provider learning
+│   ├── types.rs              # ResolvedResult, Profile, ProviderType enums
+│   ├── output.rs             # Stdout/stderr formatting
+│   ├── metrics.rs            # Per-provider telemetry
+│   ├── quality.rs            # Content quality scoring
+│   ├── bias_scorer.rs        # Domain trust scoring
+│   ├── compaction.rs         # Boilerplate removal
+│   ├── link_validator.rs     # Async HTTP HEAD validation
+│   ├── circuit_breaker.rs    # Per-provider failure tracking
+│   ├── negative_cache.rs     # TTL-based failed pair cache
+│   ├── semantic_cache.rs     # Semantic similarity cache (feature-gated)
+│   ├── synthesis.rs          # AI synthesis via Mistral
+│   ├── error.rs              # Typed errors with thiserror
 │   └── providers/
-│       ├── mod.rs         # Provider trait + registry (<500 LOC)
-│       ├── exa_mcp.rs     # Exa MCP provider (<500 LOC)
-│       ├── llms_txt.rs    # llms.txt provider (<500 LOC)
-│       ├── direct_fetch.rs # Direct HTTP provider (<500 LOC)
-│       ├── jina.rs        # Jina Reader provider (<500 LOC)
-│       ├── exa.rs         # Exa API provider (<500 LOC)
-│       ├── tavily.rs      # Tavily API provider (<500 LOC)
-│       ├── mistral.rs     # Mistral OCR provider (<500 LOC)
-│       └── duckduckgo.rs  # DuckDuckGo scraper (<500 LOC)
-├── tests/
-│   ├── integration/     # End-to-end tests (mock server)
-│   └── providers/       # Per-provider unit tests
-└── .github/
-    └── workflows/
-        └── rust-cli.yml   # CI: build, test, clippy, release
+│       ├── mod.rs              # QueryProvider + UrlProvider traits
+│       ├── exa_mcp.rs         # Exa MCP (free)
+│       ├── exa_sdk.rs         # Exa SDK (paid)
+│       ├── tavily.rs          # Tavily (paid)
+│       ├── serper.rs          # Serper Google Search (paid)
+│       ├── duckduckgo.rs      # DuckDuckGo (free)
+│       ├── mistral_websearch.rs # Mistral web search (paid)
+│       ├── llms_txt.rs        # llms.txt (free)
+│       ├── jina.rs            # Jina Reader (free)
+│       ├── firecrawl.rs       # Firecrawl (paid)
+│       ├── direct_fetch.rs    # Direct HTTP (free)
+│       ├── mistral_browser.rs # Mistral browser (paid)
+│       ├── docling.rs         # Document parser (PDF/DOCX)
+│       └── ocr.rs             # Image OCR (PNG/JPG)
 ```
 
 ## Key Dependencies
@@ -49,10 +61,20 @@ wdr/
 ## Provider Trait
 
 ```rust
+// Two separate traits for query and URL providers:
+
 #[async_trait]
-pub trait Provider: Send + Sync {
+pub trait QueryProvider: Send + Sync {
     fn name(&self) -> &'static str;
-    async fn resolve(&self, input: &str, cfg: &Config) -> Result<String, ProviderError>;
+    fn is_available(&self) -> bool;
+    async fn search(&self, query: &str, limit: usize) -> Result<Vec<ResolvedResult>, ProviderError>;
+}
+
+#[async_trait]
+pub trait UrlProvider: Send + Sync {
+    fn name(&self) -> &'static str;
+    fn is_available(&self) -> bool;
+    async fn extract(&self, url: &str) -> Result<ResolvedResult, ProviderError>;
 }
 ```
 
@@ -60,17 +82,27 @@ pub trait Provider: Send + Sync {
 
 ```rust
 #[derive(Debug, thiserror::Error)]
-pub enum ProviderError {
+pub enum ResolverError {
+    #[error("network error: {0}")]
+    Network(String),
     #[error("rate limited (retry after {retry_after}s)")]
     RateLimit { retry_after: u64 },
     #[error("auth error: {0}")]
     Auth(String),
-    #[error("content too short ({actual} < {min})")]
-    TooShort { actual: usize, min: usize },
-    #[error("http error {status}: {body}")]
-    Http { status: u16, body: String },
-    #[error("network error: {0}")]
-    Network(#[from] reqwest::Error),
+    #[error("quota exceeded")]
+    Quota,
+    #[error("content not found")]
+    NotFound,
+    #[error("parse error: {0}")]
+    Parse(String),
+    #[error("config error: {0}")]
+    Config(String),
+    #[error("cache error: {0}")]
+    Cache(String),
+    #[error("provider error: {0}")]
+    Provider(String),
+    #[error("unknown error: {0}")]
+    Unknown(String),
 }
 ```
 
@@ -125,12 +157,12 @@ Checks: cargo test, cargo fmt, cargo clippy, Python tests, ruff, black
 
 ## Sub-issues
 
-See GitHub epic [#18](../../../issues/18) for implementation sub-issues:
-- #19 Scaffold + Cargo.toml
-- #20 Config module
-- #21 Error types
-- #22 Provider trait + registry
-- #23-#29 Individual providers
-- #28 Resolver orchestrator
-- #27 Output module
-- #26 CI/CD
+See GitHub epic for implementation sub-issues covering:
+- Scaffold + Cargo.toml
+- Config module
+- Error types
+- Provider trait + registry
+- Individual provider implementations
+- Resolver orchestrator
+- Output module
+- CI/CD

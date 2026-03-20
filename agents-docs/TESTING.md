@@ -1,17 +1,16 @@
 # Testing Reference
 
-Test structure and guidelines for `web-doc-resolver` (Python skill + Rust `wdr` CLI).
+Test structure and guidelines for `web-doc-resolver` (Python skill + Rust CLI).
 
 ## Python Skill Tests
 
 ### Location
 ```
 tests/
-├── test_resolve.py             # Unit tests for resolve logic
-├── test_routing_foundation.py  # Tests for #59: routing, budget, negative cache, circuit breakers
-├── test_providers.py           # Per-provider mock tests
-├── test_cascade.py             # Cascade order + skip logic
-└── conftest.py                 # Fixtures, mock HTTP server
+├── conftest.py                    # Fixtures: mock HTTP, cache, quality scoring
+├── test_resolve.py                # Main resolver unit tests (URL detection, cascade, cache, edge cases)
+├── test_routing_foundation.py     # Routing, budget, negative cache, circuit breakers, routing memory
+└── test_live_api_integrations.py  # Live integration tests (require API keys, marked @pytest.mark.live)
 ```
 
 ### Running
@@ -29,22 +28,14 @@ pytest tests/ -v
 - All providers fail → return error JSON
 - Missing API key → provider silently skipped
 
-## Rust CLI Tests (wdr)
+## Rust CLI Tests
 
 ### Location
 ```
-wdr/
+cli/
 ├── src/
 │   └── **/*.rs              # Unit tests in #[cfg(test)] modules
-└── tests/
-    ├── integration/
-    │   ├── cascade_test.rs  # End-to-end cascade tests
-    │   ├── cli_test.rs      # CLI flag parsing tests
-    │   └── output_test.rs   # JSON output format tests
-    └── providers/
-        ├── jina_test.rs     # Jina provider with mock
-        ├── exa_test.rs      # Exa provider with mock
-        └── ...              # One file per provider
+└── tests/                   # Integration tests (if present)
 ```
 
 ### Running
@@ -99,3 +90,31 @@ cargo fmt --check
 ruff check scripts/ tests/
 mypy scripts/
 ```
+
+## Web UI Tests
+
+### Location
+```
+web/
+├── tests/
+│   └── e2e/
+│       └── app.spec.ts      # Playwright E2E tests (~30 tests, 8 suites)
+└── playwright.config.ts     # 3 projects: desktop, mobile, dark-mode
+```
+
+### Running
+```bash
+cd web && npx playwright test --project=desktop
+cd web && npx playwright test --ui  # Interactive UI mode
+```
+
+### Test Suites
+- Page Load & Structure
+- CSS & Theme (Tailwind, fonts)
+- Form Interaction (input, submit, loading states)
+- Error Handling
+- Dark Mode
+- Responsive Layout
+- Keyboard Navigation
+- Network Interception (mocked backend)
+- Security Headers

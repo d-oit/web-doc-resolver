@@ -2,18 +2,23 @@
 
 Detailed reference for all resolution providers in `web-doc-resolver`.
 
-## Provider Cascade Order
+## Query Cascade Order
 
-Default order (free-first):
+1. `exa_mcp` — Exa MCP tool (free, no API key)
+2. `exa` — Exa Search API (requires `EXA_API_KEY`)
+3. `tavily` — Tavily Search API (requires `TAVILY_API_KEY`)
+4. `serper` — Serper Google Search (requires `SERPER_API_KEY`, 2500 free credits)
+5. `duckduckgo` — DuckDuckGo HTML scrape, no key required
+6. `mistral_websearch` — Mistral AI web search (requires `MISTRAL_API_KEY`)
 
-1. `exa_mcp` — Exa MCP tool (no API key if MCP configured)
-2. `llms_txt` — Fetch `/llms.txt` or `/llms-full.txt` from domain
-3. `direct_fetch` — Direct HTTP GET of the URL
-4. `jina` — Jina Reader (`r.jina.ai/<url>`), free tier
-5. `exa` — Exa Search API (requires `EXA_API_KEY`)
-6. `tavily` — Tavily Search API (requires `TAVILY_API_KEY`)
-7. `mistral` — Mistral OCR API (requires `MISTRAL_API_KEY`)
-8. `duckduckgo` — DuckDuckGo HTML scrape, no key required
+## URL Cascade Order
+
+1. `llms_txt` — Fetch `/llms.txt` from domain (free)
+2. `jina` — Jina Reader (`r.jina.ai/<url>`), free tier
+3. `firecrawl` — Deep extraction (requires `FIRECRAWL_API_KEY`)
+4. `direct_fetch` — Direct HTTP GET of the URL (free)
+5. `mistral_browser` — Mistral AI browser (requires `MISTRAL_API_KEY`)
+6. `duckduckgo` — DuckDuckGo search fallback (free)
 
 ## Provider Details
 
@@ -54,17 +59,44 @@ Default order (free-first):
 - **Skip flag**: `--skip tavily`
 - **Missing key**: Provider skipped silently
 
-### mistral
-- **Type**: REST API (OCR)
-- **Key required**: `MISTRAL_API_KEY`
-- **Skip flag**: `--skip mistral`
-- **Use case**: PDF/image-heavy pages
-
 ### duckduckgo
 - **Type**: HTML scrape
 - **Key required**: No
 - **Skip flag**: `--skip duckduckgo`
 - **Notes**: Scrapes DDG HTML results page, no official API
+
+### serper
+- **Type**: REST API (Google Search)
+- **Key required**: `SERPER_API_KEY`
+- **Skip flag**: `--skip serper`
+- **Notes**: 2500 free credits on signup
+- **Missing key**: Provider skipped silently
+
+### mistral_websearch
+- **Type**: REST API (Mistral chat with web search)
+- **Key required**: `MISTRAL_API_KEY`
+- **Skip flag**: `--skip mistral_websearch`
+- **Notes**: AI-powered search synthesis
+
+### mistral_browser
+- **Type**: REST API (Mistral agent with browser)
+- **Key required**: `MISTRAL_API_KEY`
+- **Skip flag**: `--skip mistral_browser`
+- **Notes**: AI-powered page browsing and extraction
+
+### docling
+- **Type**: Document parser
+- **Key required**: No (local processing)
+- **Skip flag**: `--skip docling`
+- **Notes**: Handles PDF, DOCX, PPTX files
+- **Auto-routed**: URLs ending in .pdf, .docx, .pptx
+
+### ocr
+- **Type**: Image OCR
+- **Key required**: No (local processing)
+- **Skip flag**: `--skip ocr`
+- **Notes**: Handles PNG, JPG images
+- **Auto-routed**: URLs ending in .png, .jpg, .jpeg
 
 ## Error Handling Per Provider
 

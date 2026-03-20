@@ -109,7 +109,7 @@ The resolver auto-detects URL vs query and runs a free-first cascade. See [`agen
 
 | Input type | Cascade order |
 |---|---|
-| **Query** | Exa MCP (free) → Exa SDK → Tavily → DuckDuckGo (free) → Mistral |
+| **Query** | Exa MCP (free) → Exa SDK → Tavily → Serper → DuckDuckGo (free) → Mistral |
 | **URL** | llms.txt (free) → Jina (free) → Firecrawl → Direct fetch (free) → Mistral browser → DuckDuckGo |
 
 Skip providers: `--skip exa_mcp --skip exa` — see [`agents-docs/CLI.md`](./agents-docs/CLI.md).
@@ -120,6 +120,7 @@ Skip providers: `--skip exa_mcp --skip exa` — see [`agents-docs/CLI.md`](./age
 |---|---|---|
 | `EXA_API_KEY` | Exa SDK | Exa MCP is free and runs first |
 | `TAVILY_API_KEY` | Tavily | Optional comprehensive search |
+| `SERPER_API_KEY` | Serper | Google search (2500 free credits) |
 | `FIRECRAWL_API_KEY` | Firecrawl | Optional deep extraction |
 | `MISTRAL_API_KEY` | Mistral | Optional AI-powered fallback |
 
