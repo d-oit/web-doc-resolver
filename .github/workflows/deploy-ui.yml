@@ -9,18 +9,12 @@ permissions:
   contents: read
   deployments: write
 
-env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: prj_DTw0VtkzBWQUnIF16jtPrRKVeXNe
-  VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-
 jobs:
-  deploy:
-    name: Deploy to Vercel
+  build-and-deploy:
+    name: Build & Deploy
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: ${{ steps.deploy.outputs.url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -28,24 +22,28 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install Vercel CLI
-        run: npm i -g vercel
-
       - name: Install dependencies
         run: npm ci
         working-directory: web
 
-      - name: Pull Vercel environment
-        run: vercel pull --yes --environment=production
+      - name: Build
+        run: npm run build
         working-directory: web
 
-      - name: Build project
-        run: vercel build --prod
+      - name: Install Vercel CLI
+        run: npm i -g vercel
+
+      - name: Pull Vercel environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        working-directory: web
+
+      - name: Build for Vercel
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
         working-directory: web
 
       - name: Deploy to Vercel
         id: deploy
         run: |
-          URL=$(vercel deploy --prebuilt --prod --yes)
+          URL=$(vercel deploy --prebuilt --prod --yes --token=${{ secrets.VERCEL_TOKEN }})
           echo "url=$URL" >> "$GITHUB_OUTPUT"
         working-directory: web

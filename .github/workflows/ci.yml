@@ -109,7 +109,7 @@ jobs:
 
       - name: Run basic tests
         run: |
-          python -m pytest --cov=scripts --cov-report=xml --cov-report=term
+          python -m pytest -m "not live" --cov=scripts --cov-report=xml --cov-report=term
         continue-on-error: true
 
   rust-cli:

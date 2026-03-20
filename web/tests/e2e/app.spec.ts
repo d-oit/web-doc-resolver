@@ -278,6 +278,8 @@ test.describe("Keyboard Navigation", () => {
   test("input is focusable via Tab", async ({ page }) => {
     await page.goto("/");
     await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
     const input = page.locator("input");
     await expect(input).toBeFocused();
   });
@@ -286,6 +288,7 @@ test.describe("Keyboard Navigation", () => {
     await page.goto("/");
     const input = page.locator("input");
     await input.fill("some query");
+    await input.focus();
     await page.keyboard.press("Tab");
     const button = page.locator("button");
     await expect(button).toBeFocused();
@@ -431,5 +434,89 @@ test.describe("Security Headers", () => {
     const response = await page.goto("/");
     const headers = response?.headers();
     expect(headers?.["x-frame-options"]).toBe("DENY");
+  });
+});
+
+test.describe("Navigation", () => {
+  test("home page has nav bar with app name", async ({ page }) => {
+    await page.goto("/");
+    const nav = page.locator("nav");
+    await expect(nav).toBeVisible();
+    await expect(nav.locator("a").first()).toContainText("Web Doc Resolver");
+  });
+
+  test("nav has link to help page", async ({ page }) => {
+    await page.goto("/");
+    const helpLink = page.locator('nav a[href="/help"]');
+    await expect(helpLink).toBeVisible();
+    await expect(helpLink).toContainText("Help");
+  });
+
+  test("clicking help link navigates to /help", async ({ page }) => {
+    await page.goto("/");
+    await page.click('nav a[href="/help"]');
+    await expect(page).toHaveURL(/\/help/);
+    await expect(page.locator("h1")).toContainText("Help & FAQ");
+  });
+});
+
+test.describe("Help Page", () => {
+  test("loads and displays heading", async ({ page }) => {
+    await page.goto("/help");
+    await expect(page.locator("h1")).toContainText("Help & FAQ");
+  });
+
+  test("shows how to use section", async ({ page }) => {
+    await page.goto("/help");
+    await expect(page.locator("text=How to use")).toBeVisible();
+  });
+
+  test("shows supported inputs section", async ({ page }) => {
+    await page.goto("/help");
+    await expect(page.locator("text=Supported inputs")).toBeVisible();
+  });
+
+  test("shows cascade explanation", async ({ page }) => {
+    await page.goto("/help");
+    await expect(
+      page.getByRole("heading", { name: "How the cascade works" })
+    ).toBeVisible();
+    await expect(page.locator("h3", { hasText: "For URLs" })).toBeVisible();
+    await expect(page.locator("h3", { hasText: "For queries" })).toBeVisible();
+  });
+
+  test("shows troubleshooting section", async ({ page }) => {
+    await page.goto("/help");
+    await expect(page.getByRole("heading", { name: "Troubleshooting" })).toBeVisible();
+    await expect(page.locator("text=Failed to fetch")).toBeVisible();
+  });
+
+  test("shows FAQ section", async ({ page }) => {
+    await page.goto("/help");
+    await expect(
+      page.getByRole("heading", { name: "FAQ", exact: true })
+    ).toBeVisible();
+    await expect(
+      page.locator("text=What is Web Doc Resolver?")
+    ).toBeVisible();
+    await expect(page.locator("text=Do I need an API key?")).toBeVisible();
+  });
+
+  test("has back link to home", async ({ page }) => {
+    await page.goto("/help");
+    const backLink = page.locator('a[href="/"]').first();
+    await expect(backLink).toBeVisible();
+    await backLink.click();
+    await expect(page).toHaveURL("/");
+  });
+
+  test("help page CSS loads correctly", async ({ page }) => {
+    await page.goto("/help");
+    await page.waitForLoadState("networkidle");
+    const body = page.locator("body");
+    const fontFamily = await body.evaluate(
+      (el) => getComputedStyle(el).fontFamily
+    );
+    expect(fontFamily).toContain("Inter");
   });
 });

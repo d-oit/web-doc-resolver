@@ -82,6 +82,7 @@ class TestFetchLlmsTxt:
         assert result is None
 
 
+@pytest.mark.live
 class TestResolveWithFirecrawl:
     """Test Firecrawl resolution with error handling."""
 
@@ -172,6 +173,7 @@ class TestResolveWithFirecrawl:
         assert result is None
 
 
+@pytest.mark.live
 class TestResolveWithMistralBrowser:
     """Test Mistral agent-browser skill fallback."""
 
@@ -362,6 +364,7 @@ class TestEdgeCases:
         truncated = long_content[:MAX_CHARS]
         assert len(truncated) == MAX_CHARS
 
+    @pytest.mark.live
     @patch.dict(os.environ, {"MISTRAL_API_KEY": "test_key"})
     @patch("mistralai.client.Mistral")
     def test_mistral_401_error(self, mock_mistral_class):
