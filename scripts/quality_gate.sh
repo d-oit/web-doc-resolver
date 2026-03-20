@@ -35,4 +35,12 @@ cargo fmt --check
 echo "Running cargo clippy..."
 cargo clippy -- -D warnings
 
+# Web app checks
+echo "Running web app lint..."
+cd "$REPO_ROOT/web"
+npm run lint
+
+echo "Running web app typecheck..."
+npm run typecheck
+
 echo "=== All checks passed ==="
