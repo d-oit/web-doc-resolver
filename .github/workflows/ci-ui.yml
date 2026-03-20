@@ -22,7 +22,7 @@ jobs:
       - uses: pnpm/action-setup@v4
         with: { version: 9 }
       - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: pnpm, cache-dependency-path: cli/ui/pnpm-lock.yaml }
+        with: { node-version: 20, cache: pnpm }
       - run: pnpm install
       - run: pnpm lint
 
@@ -35,7 +35,7 @@ jobs:
       - uses: pnpm/action-setup@v4
         with: { version: 9 }
       - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: pnpm, cache-dependency-path: cli/ui/pnpm-lock.yaml }
+        with: { node-version: 20, cache: pnpm }
       - run: pnpm install
       - run: pnpm typecheck
 
@@ -48,7 +48,7 @@ jobs:
       - uses: pnpm/action-setup@v4
         with: { version: 9 }
       - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: pnpm, cache-dependency-path: cli/ui/pnpm-lock.yaml }
+        with: { node-version: 20, cache: pnpm }
       - run: pnpm install
       - run: pnpm test
 
@@ -62,7 +62,7 @@ jobs:
       - uses: pnpm/action-setup@v4
         with: { version: 9 }
       - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: pnpm, cache-dependency-path: cli/ui/pnpm-lock.yaml }
+        with: { node-version: 20, cache: pnpm }
       - run: pnpm install
       - run: pnpm build
       - uses: actions/upload-artifact@v4
@@ -78,7 +78,7 @@ jobs:
       - uses: pnpm/action-setup@v4
         with: { version: 9 }
       - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: pnpm, cache-dependency-path: cli/ui/pnpm-lock.yaml }
+        with: { node-version: 20, cache: pnpm }
       - run: pnpm install
       - run: pnpm exec playwright install --with-deps
       - run: pnpm test:e2e
@@ -98,7 +98,7 @@ jobs:
       - uses: pnpm/action-setup@v4
         with: { version: 9 }
       - uses: actions/setup-node@v4
-        with: { node-version: 20, cache: pnpm, cache-dependency-path: cli/ui/pnpm-lock.yaml }
+        with: { node-version: 20, cache: pnpm }
       - run: pnpm install
       - uses: chromaui/action@v11
         with:
