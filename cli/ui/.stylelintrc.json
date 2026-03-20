@@ -7,6 +7,10 @@
     "no-descending-specificity": null,
     "no-empty-source": null,
     "selector-class-pattern": null,
-    "custom-property-pattern": null
+    "custom-property-pattern": null,
+    "lightness-notation": null,
+    "hue-degree-notation": null,
+    "color-function-notation": null,
+    "alpha-value-notation": null
   }
 }
