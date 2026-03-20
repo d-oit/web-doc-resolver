@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*.*.*"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -61,12 +62,16 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             binary: wdr
+            asset_name: wdr-linux-x86_64
           - os: macos-latest
             target: aarch64-apple-darwin
             binary: wdr
+            asset_name: wdr-macos-aarch64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             binary: wdr.exe
+            asset_name: wdr-windows-x86_64.exe
+
     steps:
       - uses: actions/checkout@v4
 
@@ -79,34 +84,17 @@ jobs:
       - name: Build release
         run: cd cli && cargo build --release
 
+      - name: Stage asset
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp "cli/target/release/${{ matrix.binary }}" "dist/${{ matrix.asset_name }}"
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: wdr-${{ matrix.target }}
-          path: cli/target/release/${{ matrix.binary }}
-
-  pypi-publish:
-    name: Publish to PyPI
-    runs-on: ubuntu-latest
-    needs: [python-test]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install build tools
-        run: pip install build
-
-      - name: Build package
-        run: python -m build
-
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          password: ${{ secrets.PYPI_API_TOKEN }}
+          name: ${{ matrix.asset_name }}
+          path: dist/${{ matrix.asset_name }}
 
   release:
     name: Create GitHub Release
@@ -118,48 +106,26 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: 1.85
-
-      - name: Build CLI
-        run: cd cli && cargo build --release
-
       - name: Extract version from tag
         id: version
-        run: echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+        run: echo "VERSION=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
 
-      - name: Download all artifacts
+      - name: Download release assets
         uses: actions/download-artifact@v4
         with:
           path: dist/
           merge-multiple: true
 
-      - name: Rename binaries
-        run: |
-          VERSION=${{ steps.version.outputs.VERSION }}
-          cd dist
-          [ -f x86_64-unknown-linux-gnu/wdr ] && cp x86_64-unknown-linux-gnu/wdr wdr-linux-x86_64
-          [ -f aarch64-apple-darwin/wdr ] && cp aarch64-apple-darwin/wdr wdr-macos-aarch64
-          [ -f x86_64-pc-windows-msvc/wdr.exe ] && cp x86_64-pc-windows-msvc/wdr.exe wdr-windows-x86_64.exe
+      - name: List assets
+        run: ls -la dist
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.VERSION }}
-          name: "Release ${{ steps.version.outputs.VERSION }}"
+          name: Release ${{ steps.version.outputs.VERSION }}
           generate_release_notes: true
           files: |
-            cli/target/release/wdr
             dist/wdr-linux-x86_64
             dist/wdr-macos-aarch64
             dist/wdr-windows-x86_64.exe
@@ -167,17 +133,9 @@ jobs:
             ## web-doc-resolver ${{ steps.version.outputs.VERSION }}
 
             ### Install
-
             ```bash
-            # PyPI
-            pip install web-doc-resolver
-            pipx install web-doc-resolver
-
-            # Prebuilt binary
-            curl -L https://github.com/d-oit/web-doc-resolver/releases/download/${{ steps.version.outputs.VERSION }}/wdr-linux-x86_64 -o wdr && chmod +x wdr
-
-            # Agent skill
-            claude skills add github:d-oit/web-doc-resolver@${{ steps.version.outputs.VERSION }}
+            curl -L https://github.com/d-oit/web-doc-resolver/releases/download/${{ steps.version.outputs.VERSION }}/wdr-linux-x86_64 -o wdr
+            chmod +x wdr
             ```
 
             ### Binaries
