@@ -3,7 +3,6 @@ name: Deploy UI
 on:
   push:
     branches: [main]
-    paths: ['cli/ui/**']
   workflow_dispatch:
 
 permissions:

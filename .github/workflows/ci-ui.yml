@@ -3,10 +3,8 @@ name: CI UI
 on:
   push:
     branches: [main]
-    paths: ['cli/ui/**']
   pull_request:
     branches: [main]
-    paths: ['cli/ui/**']
   workflow_dispatch:
 
 permissions:
