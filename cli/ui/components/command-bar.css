@@ -1,0 +1,183 @@
+:root {
+  --wdr-cmdbar-font:          var(--wdr-font-mono);
+  --wdr-cmdbar-font-size:     var(--wdr-text-sm);
+  --wdr-cmdbar-line-height:   var(--wdr-leading-data);
+  --wdr-cmdbar-radius:        var(--wdr-radius-lg);
+  --wdr-cmdbar-transition:    var(--wdr-transition-colors), var(--wdr-transition-shadow);
+  --wdr-cmdbar-bg:            var(--wdr-surface-bg);
+  --wdr-cmdbar-bg-elevated:   var(--wdr-surface-bg-elevated);
+  --wdr-cmdbar-border:        var(--wdr-border-default);
+  --wdr-cmdbar-border-focus:  var(--wdr-border-focus);
+  --wdr-cmdbar-border-error:  var(--wdr-border-error);
+  --wdr-cmdbar-text:          var(--wdr-text-primary);
+  --wdr-cmdbar-placeholder:   var(--wdr-text-tertiary);
+  --wdr-cmdbar-caret:         var(--wdr-interactive-bg);
+  --wdr-cmdbar-hint-font:     var(--wdr-font-sans);
+  --wdr-cmdbar-hint-size:     var(--wdr-text-caption);
+  --wdr-cmdbar-hint-color:    var(--wdr-text-tertiary);
+  --wdr-cmdbar-hint-color-key: var(--wdr-text-secondary);
+  --wdr-cmdbar-submit-bg:     var(--wdr-interactive-bg);
+  --wdr-cmdbar-submit-bg-hover: var(--wdr-interactive-bg-hover);
+  --wdr-cmdbar-submit-text:   var(--wdr-interactive-text);
+  --wdr-cmdbar-type-url:      var(--wdr-signal-success);
+  --wdr-cmdbar-type-query:    var(--wdr-interactive-bg);
+  --wdr-cmdbar-error-color:   var(--wdr-signal-error);
+  --wdr-cmdbar-shadow:        var(--wdr-shadow-md);
+  --wdr-cmdbar-gap:           var(--wdr-space-2);
+  --wdr-cmdbar-px:            var(--wdr-space-3);
+  --wdr-cmdbar-py:            var(--wdr-space-2);
+  --wdr-cmdbar-min-height:    2.75rem;
+}
+
+.wdr-cmdbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--wdr-cmdbar-gap);
+  background: var(--wdr-cmdbar-bg);
+  border: 1px solid var(--wdr-cmdbar-border);
+  border-radius: var(--wdr-cmdbar-radius);
+  padding: var(--wdr-cmdbar-py) var(--wdr-cmdbar-px);
+  min-height: var(--wdr-cmdbar-min-height);
+  transition: var(--wdr-cmdbar-transition);
+  box-shadow: var(--wdr-cmdbar-shadow);
+}
+
+.wdr-cmdbar:focus-within {
+  border-color: var(--wdr-cmdbar-border-focus);
+  background: var(--wdr-cmdbar-bg-elevated);
+  box-shadow: var(--wdr-cmdbar-shadow), 0 0 0 3px oklch(0.57 0.10 230 / 0.15);
+}
+
+.wdr-cmdbar:focus-visible {
+  outline: 2px solid var(--wdr-border-focus);
+  outline-offset: 2px;
+}
+
+.wdr-cmdbar__input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--wdr-cmdbar-font);
+  font-size: var(--wdr-cmdbar-font-size);
+  line-height: var(--wdr-cmdbar-line-height);
+  color: var(--wdr-cmdbar-text);
+  background: transparent;
+  border: none;
+  caret-color: var(--wdr-cmdbar-caret);
+  outline: none;
+  padding: 0;
+}
+
+.wdr-cmdbar__input::placeholder {
+  color: var(--wdr-cmdbar-placeholder);
+  opacity: 1;
+}
+
+.wdr-cmdbar__type-indicator {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--wdr-radius-full);
+  background: var(--wdr-cmdbar-type-query);
+  flex-shrink: 0;
+  transition: var(--wdr-transition-colors);
+}
+
+.wdr-cmdbar--url .wdr-cmdbar__type-indicator {
+  background: var(--wdr-cmdbar-type-url);
+}
+
+.wdr-cmdbar__submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.75rem;
+  padding: 0 var(--wdr-space-2);
+  font-family: var(--wdr-cmdbar-hint-font);
+  font-size: var(--wdr-cmdbar-hint-size);
+  font-weight: var(--wdr-weight-medium);
+  color: var(--wdr-cmdbar-submit-text);
+  background: var(--wdr-cmdbar-submit-bg);
+  border: none;
+  border-radius: var(--wdr-radius-md);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  transition: var(--wdr-transition-colors);
+  flex-shrink: 0;
+}
+
+.wdr-cmdbar__submit:hover {
+  background: var(--wdr-cmdbar-submit-bg-hover);
+}
+
+.wdr-cmdbar__submit:focus-visible {
+  outline: 2px solid var(--wdr-border-focus);
+  outline-offset: 2px;
+}
+
+.wdr-cmdbar__submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.wdr-cmdbar__hint {
+  display: flex;
+  align-items: center;
+  gap: var(--wdr-space-2);
+  font-family: var(--wdr-cmdbar-hint-font);
+  font-size: var(--wdr-cmdbar-hint-size);
+  color: var(--wdr-cmdbar-hint-color);
+  padding: var(--wdr-space-1) var(--wdr-cmdbar-px) 0;
+}
+
+.wdr-cmdbar__hint kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.125rem;
+  padding: 0 var(--wdr-space-1);
+  font-family: var(--wdr-cmdbar-hint-font);
+  font-size: 0.625rem;
+  color: var(--wdr-cmdbar-hint-color-key);
+  background: var(--wdr-surface-bg-sunken);
+  border: 1px solid var(--wdr-border-default);
+  border-radius: var(--wdr-radius-md);
+  line-height: 1;
+}
+
+.wdr-cmdbar--error {
+  border-color: var(--wdr-cmdbar-border-error);
+}
+
+.wdr-cmdbar--error:focus-within {
+  box-shadow: var(--wdr-cmdbar-shadow), 0 0 0 3px oklch(0.60 0.20 25 / 0.15);
+}
+
+.wdr-cmdbar__error {
+  display: flex;
+  align-items: center;
+  gap: var(--wdr-space-1);
+  font-family: var(--wdr-cmdbar-hint-font);
+  font-size: var(--wdr-cmdbar-hint-size);
+  color: var(--wdr-cmdbar-error-color);
+  padding: var(--wdr-space-1) var(--wdr-cmdbar-px) 0;
+}
+
+.wdr-cmdbar--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.wdr-cmdbar--disabled .wdr-cmdbar__input {
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wdr-cmdbar,
+  .wdr-cmdbar__type-indicator,
+  .wdr-cmdbar__submit {
+    transition: none;
+    animation: none;
+  }
+}
