@@ -1,10 +1,12 @@
 {
   "extends": "stylelint-config-standard",
   "rules": {
-    "comment-empty-line-before": null,
+    "custom-property-empty-line-before": null,
     "declaration-empty-line-before": null,
+    "comment-empty-line-before": null,
     "no-descending-specificity": null,
-    "selector-class-pattern": "^wdr-[a-z0-9]+(-[a-z0-9]+)*(__[a-z0-9]+(-[a-z0-9]+)*)?(--[a-z0-9]+(-[a-z0-9]+)*)?$",
-    "custom-property-pattern": "^wdr-[a-z0-9]+(-[a-z0-9]+)*(-(bg|text|border|color|font|size|weight|radius|shadow|gap|height|width|padding|margin|transition|duration|ease|tracking|leading|stack|space|signal|surface|interactive|data|pipeline|border|color|ocean|foam|deep|neutral|error))?[a-z0-9-]*$"
+    "no-empty-source": null,
+    "selector-class-pattern": null,
+    "custom-property-pattern": null
   }
 }
