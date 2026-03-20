@@ -8,7 +8,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : 4,
   reporter: "html",
   use: {
-    baseURL: process.env.BASE_URL || "https://web-eight-ivory-29.vercel.app",
+    baseURL: process.env.BASE_URL || "https://web-eight-ivory-29.vercel.app/",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
