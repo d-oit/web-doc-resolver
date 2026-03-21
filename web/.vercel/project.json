@@ -1,9 +1,9 @@
 {
-  "projectId": "prj_jzHZ0Rc3ilkcmjk7YlHA2NbSJ0lS",
+  "projectId": "prj_yxiaPyyycFIwdfWgSOWzX4NSPYld",
   "orgId": "team_Du3VYSeMypiaiAzRw6r38bOP",
-  "projectName": "do-web-doc-resolover",
+  "projectName": "web",
   "settings": {
-    "createdAt": 1774029475517,
+    "createdAt": 1774109532798,
     "framework": "nextjs",
     "devCommand": null,
     "installCommand": null,
