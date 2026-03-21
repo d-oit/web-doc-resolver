@@ -2,16 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-
-interface ApiKeys {
-  serper_api_key?: string;
-  tavily_api_key?: string;
-  exa_api_key?: string;
-  firecrawl_api_key?: string;
-  mistral_api_key?: string;
-}
-
-const STORAGE_KEY = "web-resolver-api-keys";
+import { loadApiKeys, saveApiKeys, ApiKeys } from "@/lib/keys";
 
 const KEY_FIELDS = [
   {
@@ -19,60 +10,81 @@ const KEY_FIELDS = [
     label: "Serper (Google Search)",
     placeholder: "Free 2500 credits at serper.dev",
     helpText: "Google search results via serper.dev",
+    provider: "serper",
   },
   {
     key: "tavily_api_key" as keyof ApiKeys,
     label: "Tavily",
     placeholder: "Get key at tavily.com",
     helpText: "Comprehensive search with raw page content",
+    provider: "tavily",
   },
   {
     key: "exa_api_key" as keyof ApiKeys,
     label: "Exa",
     placeholder: "Get key at exa.ai",
     helpText: "Neural search with higher rate limits",
+    provider: "exa",
   },
   {
     key: "firecrawl_api_key" as keyof ApiKeys,
     label: "Firecrawl",
     placeholder: "Get key at firecrawl.dev",
     helpText: "Deep URL extraction with JavaScript rendering",
+    provider: "firecrawl",
   },
   {
     key: "mistral_api_key" as keyof ApiKeys,
     label: "Mistral",
     placeholder: "Get key at mistral.ai",
     helpText: "AI-powered web search and URL browsing",
+    provider: "mistral",
   },
 ];
 
-function loadApiKeys(): ApiKeys {
-  if (typeof window === "undefined") return {};
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : {};
-  } catch {
-    return {};
-  }
-}
+type KeyStatus = Record<string, boolean>;
 
-function saveApiKeys(keys: ApiKeys): void {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(keys));
-  } catch {
-    // storage full or blocked
+function SourceBadge({
+  localHasKey,
+  serverHasKey,
+}: {
+  localHasKey: boolean;
+  serverHasKey: boolean;
+}) {
+  if (localHasKey) {
+    return (
+      <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+        🔵 Local key
+      </span>
+    );
   }
+  if (serverHasKey) {
+    return (
+      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
+        🟢 Server key (Vercel)
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+      ⚪ Not configured
+    </span>
+  );
 }
 
 export default function SettingsPage() {
   const [apiKeys, setApiKeys] = useState<ApiKeys>({});
+  const [keyStatus, setKeyStatus] = useState<KeyStatus>({});
   const [saved, setSaved] = useState(false);
   const [testing, setTesting] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<Record<string, "ok" | "fail" | null>>({});
 
   useEffect(() => {
     setApiKeys(loadApiKeys());
+    fetch("/api/key-status")
+      .then((res) => res.json())
+      .then(setKeyStatus)
+      .catch(() => {});
   }, []);
 
   const handleKeyChange = (key: keyof ApiKeys, value: string) => {
@@ -167,7 +179,8 @@ export default function SettingsPage() {
         <div className="rounded-lg border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-900 divide-y divide-neutral-200 dark:divide-neutral-800">
           {KEY_FIELDS.map((field) => {
             const value = apiKeys[field.key] || "";
-            const isSet = !!value;
+            const localHasKey = !!value;
+            const serverHasKey = !!keyStatus[field.provider];
             const testResult = testResults[field.key];
 
             return (
@@ -177,11 +190,7 @@ export default function SettingsPage() {
                     <label className="text-sm font-medium text-neutral-900 dark:text-neutral-100">
                       {field.label}
                     </label>
-                    {isSet && (
-                      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                        Set
-                      </span>
-                    )}
+                    <SourceBadge localHasKey={localHasKey} serverHasKey={serverHasKey} />
                     {testResult === "ok" && (
                       <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
                         Verified
@@ -194,7 +203,7 @@ export default function SettingsPage() {
                     )}
                   </div>
                   <div className="flex gap-1">
-                    {isSet && (
+                    {localHasKey && (
                       <>
                         <button
                           onClick={() => testKey(field)}
@@ -216,6 +225,11 @@ export default function SettingsPage() {
                 <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-2">
                   {field.helpText}
                 </p>
+                {!localHasKey && serverHasKey && (
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mb-2">
+                    A server-side key is configured. Enter your own to override it.
+                  </p>
+                )}
                 <input
                   type="password"
                   placeholder={field.placeholder}

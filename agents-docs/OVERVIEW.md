@@ -26,8 +26,14 @@ A compiled binary (`wdr`) that:
 ### 3. Web UI (`web/`)
 
 Next.js web interface that:
-- Provides browser-based access
-- Supports file uploads and drag-drop
+- Provides browser-based access with provider pill selection
+- Vercel env var → localStorage fallback for API keys
+- Key status API endpoint (booleans only, no key exposure)
+- Shared key utility (`web/lib/keys.ts`) with `resolveKeySource()`
+- Markdown preview toggle on results
+- ⌘K keyboard shortcut to focus input
+- Lightweight session history (last 10 queries)
+- Dedicated settings page at `/settings` with source badges
 - Deploys to Vercel
 
 ## Provider Cascade
@@ -72,6 +78,12 @@ do-web-doc-resolover/
 │   └── src/
 ├── web/                     # Next.js web UI
 │   ├── app/
+│   │   ├── page.tsx         # Homepage (pills, preview, ⌘K, history)
+│   │   ├── settings/page.tsx # API key management with source badges
+│   │   └── api/
+│   │       ├── resolve/     # Main resolver endpoint
+│   │       └── key-status/  # Boolean key status endpoint
+│   ├── lib/keys.ts          # Shared key utility
 │   └── tests/e2e/
 ├── tests/                   # Python test suite
 ├── .agents/skills/          # Skill definitions

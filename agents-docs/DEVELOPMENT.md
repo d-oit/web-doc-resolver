@@ -149,6 +149,8 @@ cd web && npx playwright test --project=desktop
 - Tailwind CSS v4 (CSS-first config)
 - TypeScript strict mode
 - Playwright for E2E tests
+- Shared key utility in `web/lib/keys.ts` (imported by page.tsx and settings/page.tsx)
+- `react-markdown` for result preview toggle
 
 ### Commits
 
