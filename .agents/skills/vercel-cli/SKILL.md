@@ -64,3 +64,26 @@ Use this to route to the correct reference file:
 - **Using `vercel deploy` after `vercel build` without `--prebuilt`**: The build output is ignored.
 - **Hardcoding tokens in flags**: Use `VERCEL_TOKEN` env var instead of `--token`.
 - **Disabling deployment protection**: Use `vercel curl` instead to access preview deploys.
+
+## CI/CD Integration
+
+For this project, Vercel CLI is for **local development only**. Deployment is handled automatically by Vercel's Git integration (push to `main` → auto-deploy).
+
+### Local Testing Workflow
+
+```bash
+cd web
+vercel link          # One-time: link to project
+vercel pull --yes    # Pull env vars locally
+vercel dev           # Local dev server
+vercel build --prod  # Verify production build
+```
+
+### GitHub Actions
+
+CI runs test/lint/build verification only — **no deploy jobs**. Vercel handles deployment automatically via Git integration.
+
+If using Vercel CLI in GitHub Actions (e.g., for E2E tests), ensure:
+- Install CLI: `npm i -g vercel`
+- Pass `--token` flag to all Vercel CLI commands
+- Use `include-hidden-files: true` on `upload-artifact` (`.vercel/` is hidden)

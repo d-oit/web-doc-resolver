@@ -138,16 +138,19 @@ Resolve a URL or query to markdown.
 
 ## Deployment
 
-Deployed via [Vercel](https://vercel.com):
+Deployed via [Vercel](https://vercel.com) Git integration — push to `main` and Vercel auto-builds and deploys.
+
+**Live URL**: https://web-eight-ivory-29.vercel.app
+
+### Local Testing (Vercel CLI)
 
 ```bash
 cd web
-vercel pull --yes
-vercel build --prod
-vercel deploy --prebuilt --prod
+vercel link          # One-time: link to project
+vercel pull --yes    # Pull env vars locally
+vercel dev           # Local dev server
+vercel build --prod  # Verify production build
 ```
-
-**Live URL**: https://web-eight-ivory-29.vercel.app
 
 ### Vercel Configuration
 

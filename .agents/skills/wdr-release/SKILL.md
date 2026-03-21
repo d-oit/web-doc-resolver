@@ -247,6 +247,8 @@ fi
 
 ### CI/CD Pipeline
 
+The release workflow runs tests and builds binaries. Vercel deployment is handled automatically via Git integration (push to `main` → auto-deploy).
+
 ```yaml
 # .github/workflows/release.yml
 name: Release
@@ -256,18 +258,35 @@ on:
       - 'v*'
 
 jobs:
-  release:
+  python-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Run tests
-        run: ./scripts/quality_gate.sh
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+      - uses: actions/checkout@v6
+      - run: pip install -r requirements.txt
+      - run: python -m pytest tests/ -v -m "not live"
+
+  rust-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cd cli && cargo test
+      - run: cd cli && cargo clippy -- -D warnings
+      - run: cd cli && cargo fmt --check
+
+  build-binaries:
+    needs: [python-test, rust-test]
+    # ... matrix build for Linux, macOS, Windows
+
+  release:
+    needs: [build-binaries]
+    steps:
+      - uses: softprops/action-gh-release@v2
         with:
-          files: assets/screenshots/release-*/\*.png
           generate_release_notes: true
 ```
+
+**Note**: Web UI deployment is handled by Vercel's Git integration — no deploy job in CI.
 
 ## Best Practices
 

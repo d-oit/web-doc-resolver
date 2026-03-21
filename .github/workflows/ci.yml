@@ -253,6 +253,28 @@ jobs:
         env:
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
 
+  web-build:
+    name: Web UI Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: web
+
+      - name: Build
+        run: npm run build
+        working-directory: web
+
+      - name: Lint
+        run: npm run lint
+        working-directory: web
+
   tavily-test:
     name: Tavily Integration Test
     runs-on: ubuntu-latest

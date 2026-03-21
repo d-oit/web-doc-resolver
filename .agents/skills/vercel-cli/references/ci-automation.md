@@ -24,15 +24,16 @@ jobs:
     steps:
       - run: vercel pull --yes --environment=production
       - run: vercel build --prod --standalone
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: vercel-build
           path: .vercel/output
+          include-hidden-files: true  # Required for .vercel/ directory
 
   deploy:
     needs: build
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: vercel-build
           path: .vercel/output
@@ -40,6 +41,8 @@ jobs:
 ```
 
 Without `--standalone`, the deploy job will fail because artifacts reference files outside `.vercel/output/`.
+
+**Important**: Use `include-hidden-files: true` on `upload-artifact` — the `.vercel/` directory is hidden and won't be uploaded by default.
 
 ## Capturing the Deploy URL
 

@@ -64,7 +64,7 @@ cd web && npx playwright test --project=desktop
 - Tailwind CSS v4 (CSS-first config in `globals.css`, **requires `postcss.config.mjs`**)
 - TypeScript strict mode
 - Playwright for E2E tests (`web/tests/e2e/`)
-- Deploy via Vercel CLI: `cd web && vercel pull --yes && vercel build --prod && vercel deploy --prebuilt --prod`
+- Deployment via Vercel Git integration (push to `main` → auto-deploy)
 - `NEXT_PUBLIC_RESOLVER_URL` env var controls the backend endpoint (defaults to `http://localhost:8000`)
 
 ### Commits
@@ -206,3 +206,44 @@ Releases follow [Semantic Versioning](https://semver.org/) with conventional com
 ```
 
 See [`wdr-release` skill](.agents/skills/wdr-release/SKILL.md) for full release workflow.
+
+## Deployment (Vercel)
+
+Deployment is automatic via Vercel Git integration — push to `main` and Vercel builds and deploys.
+
+| Setting | Value |
+|---------|-------|
+| **Production URL** | `https://web-eight-ivory-29.vercel.app/` |
+| **Project ID** | `prj_jzHZ0Rc3ilkcmjk7YlHA2NbSJ0lS` |
+| **Framework** | Next.js |
+| **Deploy trigger** | Push to `main` branch |
+
+### Local Testing (Vercel CLI)
+
+Vercel CLI is for local development only — **not** used in CI/CD.
+
+```bash
+cd web
+vercel link          # One-time: link to project
+vercel pull --yes    # Pull env vars locally
+vercel dev           # Local dev server
+vercel build --prod  # Verify production build
+```
+
+### GitHub Actions
+
+CI runs test/lint/build verification only — no deploy jobs.
+Vercel handles deployment automatically via Git integration.
+
+```bash
+# CI checks (ci.yml)
+- Skill symlink validation
+- Python tests + lint
+- Rust tests + clippy + fmt
+- Web build + lint
+
+# Release checks (release.yml)
+- Python + Rust tests
+- Build binaries (Linux, macOS, Windows)
+- Create GitHub Release
+```

@@ -6,27 +6,29 @@ This guide covers deployment options for the web-doc-resolver project.
 
 ### 1. Vercel (Web UI)
 
-The Next.js web UI is designed for Vercel deployment.
+The Next.js web UI is deployed via Vercel Git integration — push to `main` and Vercel auto-builds and deploys.
 
-#### Prerequisites
+| Setting | Value |
+|---------|-------|
+| **Production URL** | `https://web-eight-ivory-29.vercel.app/` |
+| **Project ID** | `prj_jzHZ0Rc3ilkcmjk7YlHA2NbSJ0lS` |
+| **Framework** | Next.js |
+| **Deploy trigger** | Push to `main` branch |
 
-- Vercel account
-- Vercel CLI installed
+#### Local Testing (Vercel CLI)
 
-#### Deploy
+Vercel CLI is for local development only — **not** used in CI/CD.
 
 ```bash
 cd web
 
-# Login to Vercel
-vercel login
+# One-time setup
+vercel link          # Link to existing project
+vercel pull --yes    # Pull env vars locally
 
-# Pull environment
-vercel pull --yes
-
-# Build and deploy
-vercel build --prod
-vercel deploy --prebuilt --prod
+# Local development
+vercel dev           # Local dev server
+vercel build --prod  # Verify production build
 ```
 
 #### Environment Variables
