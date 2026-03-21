@@ -53,21 +53,24 @@ function SourceBadge({
 }) {
   if (localHasKey) {
     return (
-      <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-        🔵 Local key
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+        <span className="h-2 w-2 rounded-full bg-blue-500" />
+        Local key
       </span>
     );
   }
   if (serverHasKey) {
     return (
-      <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
-        🟢 Server key (Vercel)
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400">
+        <span className="h-2 w-2 rounded-full bg-green-500" />
+        Server key
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
-      ⚪ Not configured
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-neutral-100 px-2 py-0.5 text-xs font-medium text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+      <span className="h-2 w-2 rounded-full bg-neutral-400" />
+      Not configured
     </span>
   );
 }

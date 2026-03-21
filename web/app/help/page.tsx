@@ -9,7 +9,7 @@ const faqs = [
   },
   {
     q: "Do I need an API key?",
-    a: "No. The default cascade uses free providers (llms.txt, DuckDuckGo, Jina Reader, direct fetch). Optional providers like Exa, Tavily, Firecrawl, and Mistral are unlocked with API keys.",
+    a: "No. The default cascade uses free providers (llms.txt, DuckDuckGo, Jina Reader, direct fetch). Optional providers like Exa, Tavily, Firecrawl, and Mistral are available with API keys.",
   },
   {
     q: "What input formats are supported?",

@@ -197,8 +197,8 @@ export default function Home() {
                   >
                     {label}
                     {free && <span className="ml-1 opacity-60">- free</span>}
-                    {source === "server" && <span className="ml-1">🟢</span>}
-                    {source === "local" && <span className="ml-1">🔵</span>}
+                    {source === "server" && <span className="ml-1 h-2 w-2 rounded-full bg-green-500 inline-block" />}
+                    {source === "local" && <span className="ml-1 h-2 w-2 rounded-full bg-blue-500 inline-block" />}
                   </button>
                 );
               })}
