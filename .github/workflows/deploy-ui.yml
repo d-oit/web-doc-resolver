@@ -52,6 +52,7 @@ jobs:
           name: vercel-build
           path: web/.vercel/output
           retention-days: 1
+          include-hidden-files: true
 
     outputs:
       repo: ${{ steps.repo.outputs.name }}
