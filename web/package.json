@@ -17,6 +17,7 @@
     "test:e2e:prod": "BASE_URL=https://web-eight-ivory-29.vercel.app playwright test --project=desktop"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "next": "^15.0.0",
     "react": "^19.0.0",
