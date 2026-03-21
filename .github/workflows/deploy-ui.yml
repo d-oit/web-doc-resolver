@@ -40,11 +40,11 @@ jobs:
         run: npm i -g vercel
 
       - name: Pull Vercel environment
-        run: vercel pull --yes --environment=production
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
         working-directory: web
 
       - name: Build for Vercel
-        run: vercel build --prod --standalone
+        run: vercel build --prod --standalone --token="$VERCEL_TOKEN"
         working-directory: web
 
       - uses: actions/upload-artifact@v7
@@ -79,7 +79,7 @@ jobs:
       - name: Deploy to Vercel
         id: deploy
         run: |
-          URL=$(vercel deploy --prebuilt --prod --yes)
+          URL=$(vercel deploy --prebuilt --prod --yes --token="$VERCEL_TOKEN")
           echo "url=$URL" >> "$GITHUB_OUTPUT"
         working-directory: web
 
