@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""Validate that skill symlinks in .blackbox/skills/ and .claude/skills/ point to .agents/skills/.
-
-Note: .opencode/skills/ uses regular directories (not symlinks) and is not validated here.
-"""
+"""Validate that skill symlinks in .blackbox/skills/, .claude/skills/, .opencode/skills/ point to .agents/skills/."""
 
 import sys
 from pathlib import Path
@@ -78,8 +75,8 @@ def validate_skill_symlinks():
     all_valid = True
     total_checked = 0
 
-    # Only validate symlinks in .blackbox and .claude (not .opencode which uses regular dirs)
-    symlink_dirs = [".blackbox", ".claude"]
+    # Validate symlinks in all three locations
+    symlink_dirs = [".blackbox", ".claude", ".opencode"]
 
     for canonical_skill in skill_dirs:
         skill_name = canonical_skill.name
@@ -90,7 +87,7 @@ def validate_skill_symlinks():
             print(f"⚠️  {skill_name}: No SKILL.md in canonical directory")
             continue
 
-        # Check symlinks in .blackbox and .claude locations only
+        # Check symlinks in all three locations
         for symlink_dir_name in symlink_dirs:
             skill_symlink = root_dir / symlink_dir_name / "skills" / skill_name
             is_valid = validate_single_symlink(

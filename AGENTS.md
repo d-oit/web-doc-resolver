@@ -76,7 +76,6 @@ cd web && npx playwright test --project=desktop
 ```
 do-web-doc-resolover/
 ├── AGENTS.md              # This file (agent instructions, <150 lines)
-├── SKILL.md               # agentskills.io skill definition (symlink)
 ├── README.md              # Human-readable docs
 ├── scripts/
 │   ├── resolve.py         # Main Python resolver (<500 LOC)
@@ -142,8 +141,18 @@ See [`.agents/skills/web-doc-resolver/references/CONFIG.md`](.agents/skills/web-
 
 ## Skill symlink validation
 
-All skill symlinks (`.blackbox/skills/`, `.claude/skills/`, `.opencode/skills/`) must point to the canonical source in `.agents/skills/`.
+All skills are defined in `.agents/skills/` (canonical source).
+Symlinks in `.blackbox/skills/`, `.claude/skills/`, and `.opencode/skills/` must point to `.agents/skills/`.
 The root `SKILL.md` symlinks to `.agents/skills/web-doc-resolver/SKILL.md`.
+
+```
+.agents/skills/           # Canonical skill definitions (directories)
+.blackbox/skills/         # Symlinks → ../../.agents/skills/<name>
+.claude/skills/           # Symlinks → ../../.agents/skills/<name>
+.opencode/skills/         # Symlinks → ../../.agents/skills/<name>
+SKILL.md                  # Symlink → .agents/skills/web-doc-resolver/SKILL.md
+```
+
 Validated on every commit (pre-commit hook) and in CI (`validate-symlink` job).
 Manual check: `python scripts/validate_skill_symlink.py`
 
