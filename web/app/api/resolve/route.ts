@@ -42,7 +42,7 @@ async function extractViaJina(url: string): Promise<string | null> {
     });
     if (!res.ok) return null;
     const text = await res.text();
-    return text.length > 200 ? text.slice(0, MAX_CHARS) : null;
+    return text.length > 50 ? text.slice(0, MAX_CHARS) : null;
   } catch {
     return null;
   }
@@ -66,7 +66,7 @@ async function extractViaDirectFetch(url: string): Promise<string | null> {
       .replace(/<[^>]+>/g, " ")
       .replace(/\s+/g, " ")
       .trim();
-    return text.length > 200 ? text.slice(0, MAX_CHARS) : null;
+    return text.length > 50 ? text.slice(0, MAX_CHARS) : null;
   } catch {
     return null;
   }
