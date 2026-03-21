@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
 import { loadApiKeys, ApiKeys, resolveKeySource, KeySource } from "@/lib/keys";
-import ReactMarkdown from "react-markdown";
 
-const ALL_PROVIDERS = [
+const PROVIDERS = [
+  { id: "jina", label: "Jina", free: true },
   { id: "exa_mcp", label: "Exa MCP", free: true },
   { id: "duckduckgo", label: "DuckDuckGo", free: true },
   { id: "serper", label: "Serper", free: false },
@@ -13,20 +12,20 @@ const ALL_PROVIDERS = [
   { id: "firecrawl", label: "Firecrawl", free: false },
 ];
 
+const DEMO_URL = "https://github.com/d-oit/web-doc-resolver";
+
 export default function Home() {
   const [query, setQuery] = useState("");
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [showSettings, setShowSettings] = useState(false);
   const [apiKeys, setApiKeys] = useState<ApiKeys>({});
-  const [copied, setCopied] = useState(false);
-  const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
-  const [deepResearch, setDeepResearch] = useState(false);
   const [keySource, setKeySource] = useState<Record<string, KeySource>>({});
-  const [previewMode, setPreviewMode] = useState(false);
-  const [history, setHistory] = useState<Array<{ query: string; markdown: string; timestamp: number; providers: string[] }>>([]);
-  const [showHistory, setShowHistory] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [providerStatus, setProviderStatus] = useState<string | null>(null);
+  const [resolveTime, setResolveTime] = useState<number | null>(null);
+  const [sourceProvider, setSourceProvider] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -34,31 +33,20 @@ export default function Home() {
     setApiKeys(keys);
     fetch("/api/key-status")
       .then((r) => r.json())
-      .then((status) => setKeySource(resolveKeySource(keys, status)));
-    try {
-      const stored = sessionStorage.getItem("wdr-history");
-      if (stored) setHistory(JSON.parse(stored));
-    } catch {}
+      .then((status) => setKeySource(resolveKeySource(keys, status)))
+      .catch(() => {});
+    setLoaded(true);
+    inputRef.current?.focus();
   }, []);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        inputRef.current?.focus();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim()) return;
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!query.trim() || loading) return;
 
     setLoading(true);
     setError("");
-    setResult("");
+    setProviderStatus("Fetching...");
+    const startTime = Date.now();
 
     try {
       const res = await fetch("/api/resolve", {
@@ -67,38 +55,28 @@ export default function Home() {
         body: JSON.stringify({
           query: query.trim(),
           ...apiKeys,
-          providers: selectedProviders,
-          deepResearch,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || `Resolver returned ${res.status}`);
+        const provider = data.provider || "Unknown";
+        setError(`${provider}: ${data.error || res.status}`);
+        setProviderStatus(null);
+        return;
       }
 
-      setResult(data.markdown || data.result || JSON.stringify(data, null, 2));
-
-      const newEntry = { query: query.trim(), markdown: data.markdown || data.result || "", timestamp: Date.now(), providers: selectedProviders };
-      const newHistory = [...history, newEntry].slice(-10);
-      setHistory(newHistory);
-      try { sessionStorage.setItem("wdr-history", JSON.stringify(newHistory)); } catch {}
+      setResult(data.markdown || data.result || "");
+      setSourceProvider(data.provider || "Unknown");
+      setResolveTime(Date.now() - startTime);
+      setProviderStatus(null);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to resolve query"
-      );
+      setError(err instanceof Error ? err.message : "Request failed");
+      setProviderStatus(null);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleProviderToggle = (provider: string) => {
-    setSelectedProviders(prev =>
-      prev.includes(provider)
-        ? prev.filter(p => p !== provider)
-        : [...prev, provider]
-    );
   };
 
   const handleCopy = async () => {
@@ -106,240 +84,173 @@ export default function Home() {
     try {
       await navigator.clipboard.writeText(result);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), 1000);
     } catch {
-      const textArea = document.createElement('textarea');
-      textArea.value = result;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
+      const ta = document.createElement("textarea");
+      ta.value = result;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), 1000);
     }
   };
 
-  const clearResult = () => {
-    setResult("");
-    setError("");
-  };
-
-  const handleRestoreHistory = (entry: typeof history[0]) => {
-    setQuery(entry.query);
-    setResult(entry.markdown);
-    setError("");
-    setShowHistory(false);
+  const handleKeyChange = (key: keyof ApiKeys, value: string) => {
+    const updated = { ...apiKeys, [key]: value || undefined };
+    setApiKeys(updated);
+    try {
+      localStorage.setItem("web-resolver-api-keys", JSON.stringify(updated));
+    } catch {}
   };
 
   const charCount = result.length;
-  const wordCount = result.trim() ? result.trim().split(/\s+/).length : 0;
+  const isUrl = query.trim().startsWith("http");
+
+  if (!loaded) return null;
 
   return (
-    <main className="flex min-h-screen flex-col items-center p-4 sm:p-8 lg:p-16">
-      <nav className="w-full max-w-2xl lg:max-w-3xl xl:max-w-4xl flex items-center justify-between mb-6 sm:mb-8">
-        <Link href="/" className="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors" title="Home">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-            <path d="M11.47 3.84a.75.75 0 011.06 0l8.69 8.69a.75.75 0 101.06-1.06l-8.689-8.69a2.25 2.25 0 00-3.182 0l-8.69 8.69a.75.75 0 001.061 1.06l8.69-8.69z" />
-            <path d="M12 5.432l8.159 8.159c.03.03.06.058.091.086v6.198c0 1.035-.84 1.875-1.875 1.875H15.75a.75.75 0 01-.75-.75v-4.5a.75.75 0 00-.75-.75h-3a.75.75 0 00-.75.75V21a.75.75 0 01-.75.75H5.625a1.875 1.875 0 01-1.875-1.875v-6.198a2.29 2.29 0 00.091-.086L12 5.43z" />
-          </svg>
-        </Link>
-        <div className="flex gap-2 sm:gap-4 items-center">
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="text-sm text-neutral-500 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100"
-            title="Provider Selection"
-          >
-            Providers
-          </button>
-          <Link
-            href="/settings"
-            className="text-sm text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
-          >
-            Settings
-          </Link>
-          <Link
-            href="/help"
-            className="text-sm text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
-          >
-            Help
-          </Link>
-        </div>
-      </nav>
-
-      <div className="w-full max-w-2xl lg:max-w-3xl xl:max-w-4xl">
-        <div className="text-center mb-8 sm:mb-12">
-          <h1 className="text-2xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight">
-            d.o. Web Doc Resolver
-          </h1>
-          <p className="mt-3 sm:mt-4 text-base sm:text-lg text-neutral-600 dark:text-neutral-400">
-            Resolve queries and URLs into compact, LLM-ready markdown
-          </p>
+    <main className="min-h-screen bg-[#0c0c0c] text-[#e8e6e3] font-mono flex">
+      {/* Left Sidebar - Configuration */}
+      <aside className="w-[280px] min-w-[280px] border-r-2 border-[#333] p-4 flex flex-col gap-6">
+        <div className="text-[11px] uppercase tracking-[0.1em] text-[#666]">
+          Configuration
         </div>
 
-        {showSettings && (
-          <div className="mb-6">
-            <div className="flex flex-wrap gap-2 mb-4">
-              {ALL_PROVIDERS.map(({ id, label, free }) => {
-                const source = keySource[id];
-                const available = free || source === "local" || source === "server";
-                const active = selectedProviders.includes(id);
-                return (
-                  <button
-                    key={id}
-                    disabled={!available}
-                    onClick={() => available && handleProviderToggle(id)}
-                    title={!available ? "Add key in Settings" : source === "server" ? "Using server key" : undefined}
-                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                      active ? "bg-blue-600 text-white border-blue-600"
-                      : available ? "bg-white text-neutral-700 border-neutral-300 hover:bg-neutral-50 dark:bg-neutral-800 dark:text-neutral-300 dark:border-neutral-600 dark:hover:bg-neutral-700"
-                      : "bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed dark:bg-neutral-800 dark:text-neutral-600 dark:border-neutral-700"
-                    }`}
-                  >
-                    {label}
-                    {free && <span className="ml-1 opacity-60">- free</span>}
-                    {source === "server" && <span className="ml-1 h-2 w-2 rounded-full bg-green-500 inline-block" />}
-                    {source === "local" && <span className="ml-1 h-2 w-2 rounded-full bg-blue-500 inline-block" />}
-                  </button>
-                );
-              })}
-            </div>
-            <label className="flex items-center gap-2 text-sm mb-4 dark:text-neutral-300">
-              <input type="checkbox" checked={deepResearch} onChange={(e) => setDeepResearch(e.target.checked)} className="rounded border-neutral-300 text-blue-600 focus:ring-blue-500 dark:border-neutral-600 dark:bg-neutral-800" />
-              Deep Research — run selected providers in parallel
-            </label>
+        {/* API Keys */}
+        <div className="flex flex-col gap-3">
+          <div className="text-[11px] uppercase tracking-[0.1em] text-[#666]">
+            API Keys
           </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Enter a URL or query... (⌘K)"
-            className="flex-1 rounded-lg border border-neutral-300 bg-white px-4 py-3 text-neutral-900 placeholder:text-neutral-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder:text-neutral-500"
-          />
-          <button
-            type="submit"
-            disabled={loading || !query.trim()}
-            className="rounded-lg bg-blue-600 px-6 py-3 font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed sm:min-w-[120px]"
-          >
-            {loading ? "Resolving..." : "Resolve"}
-          </button>
-        </form>
-
-        {history.length > 0 && (
-          <div className="mt-4">
-            <button
-              onClick={() => setShowHistory(!showHistory)}
-              className="text-xs text-neutral-500 hover:text-neutral-700 dark:text-neutral-400 dark:hover:text-neutral-200"
-            >
-              {showHistory ? "▾ Hide" : "▸ Recent"} ({history.length})
-            </button>
-            {showHistory && (
-              <div className="mt-2 rounded-lg border border-neutral-200 dark:border-neutral-800 divide-y divide-neutral-200 dark:divide-neutral-800">
-                {history.slice().reverse().map((entry, idx) => (
-                  <button
-                    key={entry.timestamp}
-                    onClick={() => handleRestoreHistory(entry)}
-                    className="w-full text-left px-3 py-2 hover:bg-neutral-50 dark:hover:bg-neutral-800 transition-colors"
-                  >
-                    <span className="text-sm text-neutral-700 dark:text-neutral-300 truncate block">
-                      {entry.query.length > 60 ? entry.query.slice(0, 60) + "…" : entry.query}
-                    </span>
-                    <span className="text-xs text-neutral-400">
-                      {new Date(entry.timestamp).toLocaleTimeString()}
-                    </span>
-                  </button>
-                ))}
+          <p className="text-[11px] text-[#888] leading-relaxed">
+            Stored locally. Requests execute client-side.
+          </p>
+          {PROVIDERS.filter((p) => !p.free).map((provider) => {
+            const key = `${provider.id}_api_key` as keyof ApiKeys;
+            const value = apiKeys[key] || "";
+            return (
+              <div key={provider.id} className="flex flex-col gap-1">
+                <label className="text-[11px] text-[#888]">{provider.label}</label>
+                <input
+                  type="password"
+                  value={value}
+                  onChange={(e) => handleKeyChange(key, e.target.value)}
+                  placeholder={`sk-...`}
+                  className="bg-[#141414] border-2 border-[#333] px-2 py-1.5 text-[13px] text-[#e8e6e3] placeholder:text-[#444] focus:border-[#00ff41] focus:outline-none"
+                />
               </div>
+            );
+          })}
+        </div>
+
+        {/* Provider Chain */}
+        <div className="flex flex-col gap-3">
+          <div className="text-[11px] uppercase tracking-[0.1em] text-[#666]">
+            Provider Chain
+          </div>
+          <div className="flex flex-col gap-1">
+            {PROVIDERS.map((provider) => {
+              const source = keySource[provider.id];
+              const available = provider.free || source === "local" || source === "server";
+              return (
+                <div
+                  key={provider.id}
+                  className={`flex items-center gap-2 text-[12px] ${
+                    available ? "text-[#888]" : "text-[#444]"
+                  }`}
+                >
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      available ? "bg-[#00ff41]" : "bg-[#333]"
+                    }`}
+                  />
+                  {provider.label}
+                  {provider.free && (
+                    <span className="text-[10px] text-[#555] ml-auto">free</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </aside>
+
+      {/* Center - Input/Output */}
+      <div className="flex-1 flex flex-col">
+        {/* Input */}
+        <div className="border-b-2 border-[#333] p-4">
+          <div className="flex items-center gap-4">
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+              placeholder="URL or search query..."
+              className="flex-1 bg-transparent text-[24px] text-[#e8e6e3] placeholder:text-[#444] focus:outline-none tracking-tight"
+            />
+            {query.trim() && (
+              <button
+                onClick={() => handleSubmit()}
+                disabled={loading}
+                className="bg-[#00ff41] text-[#0c0c0c] px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50"
+              >
+                {loading ? "Fetching..." : "Fetch"}
+              </button>
             )}
           </div>
-        )}
+          {query.trim() && (
+            <div className="text-[11px] text-[#555] mt-2 uppercase tracking-wider">
+              {isUrl ? "Resolving as URL" : "Searching"}
+            </div>
+          )}
+          {providerStatus && (
+            <div className="text-[11px] text-[#00ff41] mt-2 animate-pulse">
+              {providerStatus}
+            </div>
+          )}
+        </div>
 
+        {/* Error */}
         {error && (
-          <div className="mt-6 rounded-lg border border-red-300 bg-red-50 p-4 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
+          <div className="p-4 border-b-2 border-[#333] text-[#ff4444] text-[13px]">
             {error}
           </div>
         )}
 
-        {result && (
-          <div className="mt-6">
-            <div className="rounded-lg border border-neutral-200 bg-neutral-50 dark:border-neutral-800 dark:bg-neutral-900 overflow-hidden">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-3 sm:px-4 py-2 border-b border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-800/50">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <span className="text-xs font-medium text-neutral-600 dark:text-neutral-400">Result</span>
-                  <span className="text-xs text-neutral-500 dark:text-neutral-500">
-                    {charCount.toLocaleString()} chars · {wordCount.toLocaleString()} words
+        {/* Output */}
+        <div className="flex-1 flex flex-col">
+          {result ? (
+            <>
+              {/* Metadata bar */}
+              <div className="flex items-center justify-between px-4 py-2 border-b-2 border-[#333] text-[11px] text-[#666]">
+                <div className="flex items-center gap-4">
+                  <span>
+                    Source: <span className="text-[#00ff41]">{sourceProvider}</span>
                   </span>
+                  {resolveTime && <span>{resolveTime}ms</span>}
+                  <span>{charCount.toLocaleString()} chars</span>
                 </div>
-                <div className="flex items-center gap-1 self-end sm:self-auto">
-                  <button
-                    onClick={() => setPreviewMode(!previewMode)}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
-                    title={previewMode ? "Show raw text" : "Preview markdown"}
-                  >
-                    {previewMode ? "Raw" : "Preview"}
-                  </button>
-                  <button
-                    onClick={handleCopy}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-                    title="Copy to clipboard"
-                  >
-                    {copied ? (
-                      <>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-                          <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
-                        </svg>
-                        Copied!
-                      </>
-                    ) : (
-                      <>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-                          <path fillRule="evenodd" d="M15.988 3.012A2.25 2.25 0 0118 5.25v6.5A2.25 2.25 0 0115.75 14H13.5v-1.5h2.25a.75.75 0 00.75-.75v-6.5a.75.75 0 00-.75-.75H9.25a.75.75 0 00-.75.75v2.25H7V5.25a2.25 2.25 0 012.25-2.25h6.738zM4.25 8A2.25 2.25 0 002 10.25v6.5A2.25 2.25 0 004.25 19h6.5A2.25 2.25 0 0013 16.75v-6.5A2.25 2.25 0 0010.75 8h-6.5zm-.75 2.25a.75.75 0 01.75-.75h6.5a.75.75 0 01.75.75v6.5a.75.75 0 01-.75.75h-6.5a.75.75 0 01-.75-.75v-6.5z" clipRule="evenodd" />
-                        </svg>
-                        Copy
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={clearResult}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700 transition-colors"
-                    title="Clear result"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-                      <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                    </svg>
-                    Clear
-                  </button>
-                </div>
+                <button
+                  onClick={handleCopy}
+                  className="hover:text-[#e8e6e3] transition-colors"
+                >
+                  {copied ? "Copied" : "Copy"}
+                </button>
               </div>
-              <div className="p-4 max-h-[60vh] overflow-auto">
-                {previewMode ? (
-                  <div className="prose dark:prose-invert max-w-none p-4 text-sm prose-pre:bg-neutral-100 dark:prose-pre:bg-neutral-800 prose-pre:text-sm prose-code:text-sm">
-                    <ReactMarkdown>{result}</ReactMarkdown>
-                  </div>
-                ) : (
-                  <pre className="whitespace-pre-wrap font-mono text-sm text-neutral-800 dark:text-neutral-200">
-                    {result}
-                  </pre>
-                )}
-              </div>
+              {/* Output textarea */}
+              <textarea
+                readOnly
+                value={result}
+                className="flex-1 bg-[#141414] p-4 text-[13px] text-[#e8e6e3] font-mono resize-none focus:outline-none whitespace-pre-wrap overflow-auto"
+              />
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-[#444] text-[13px]">
+              Paste a URL or enter a search query
             </div>
-          </div>
-        )}
-
-        <div className="mt-8 sm:mt-12 text-center text-xs sm:text-sm text-neutral-500 dark:text-neutral-400">
-          <p className="leading-relaxed">
-            Try a URL like{" "}
-            <code className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs sm:text-sm dark:bg-neutral-800">
-              https://docs.python.org
-            </code>{" "}
-            or a query like{" "}
-            <code className="rounded bg-neutral-100 px-1.5 py-0.5 text-xs sm:text-sm dark:bg-neutral-800">
-              python async best practices
-            </code>
-          </p>
+          )}
         </div>
       </div>
     </main>
