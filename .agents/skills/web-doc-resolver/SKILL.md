@@ -177,6 +177,34 @@ export WEB_RESOLVER_TIMEOUT=30
 }
 ```
 
+## Skill Structure
+
+```
+.agents/skills/web-doc-resolver/
+├── SKILL.md              # This file
+├── requirements.txt      # Python dependencies
+└── references/           # Detailed documentation
+    ├── CASCADE.md        # Full cascade decision tree
+    ├── CLI.md            # CLI usage (Python + Rust)
+    ├── CONFIG.md         # Configuration reference
+    ├── PROVIDERS.md      # Provider details
+    ├── RUST_CLI.md       # Rust CLI architecture
+    └── TESTING.md        # Test structure and markers
+```
+
+**Note**: Python scripts are located in the main `scripts/` directory at the project root.
+
+## References
+
+| Topic | File |
+|-------|------|
+| Full cascade logic | `references/CASCADE.md` |
+| CLI usage (Python + Rust) | `references/CLI.md` |
+| Configuration & env vars | `references/CONFIG.md` |
+| All providers & rate limits | `references/PROVIDERS.md` |
+| Rust CLI architecture | `references/RUST_CLI.md` |
+| Test structure & markers | `references/TESTING.md` |
+
 ## Related Skills
 
 - `wdr-cli`: Rust compiled CLI for faster performance
