@@ -121,7 +121,12 @@ impl crate::providers::QueryProvider for MistralWebSearchProvider {
         }
 
         let url = format!("https://mistral.ai/search?q={}", urlencoding::encode(query));
-        let results = vec![ResolvedResult::new(url, Some(content), "mistral-websearch", 0.8)];
+        let results = vec![ResolvedResult::new(
+            url,
+            Some(content),
+            "mistral-websearch",
+            0.8,
+        )];
 
         Ok(results)
     }

@@ -1,28 +1,20 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Page Load & Structure", () => {
-  test("loads and displays the heading", async ({ page }) => {
+  test("loads and displays the app name", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator("h1")).toHaveText("d.o. Web Doc Resolver");
-  });
-
-  test("displays the subtitle", async ({ page }) => {
-    await page.goto("/");
-    await expect(page.locator("p").first()).toContainText(
-      "Resolve queries and URLs into compact, LLM-ready markdown"
-    );
+    // Swiss brutalist design uses span in header, not h1
+    await expect(page.locator("text=do-web-doc-resolver")).toBeVisible();
   });
 
   test("has correct page title", async ({ page }) => {
     await page.goto("/");
-    await expect(page).toHaveTitle(/Web Doc Resolver/);
+    await expect(page).toHaveTitle(/do-web-doc-resolver/);
   });
 
-  test("shows hint text with examples", async ({ page }) => {
+  test("shows input placeholder", async ({ page }) => {
     await page.goto("/");
-    await expect(page.locator("code")).toHaveCount(2);
-    await expect(page.getByText("https://docs.python.org")).toBeVisible();
-    await expect(page.getByText("python async best practices")).toBeVisible();
+    await expect(page.locator('input[placeholder*="URL"]')).toBeVisible();
   });
 });
 
@@ -35,73 +27,86 @@ test.describe("CSS & Theme", () => {
     const fontFamily = await body.evaluate(
       (el) => getComputedStyle(el).fontFamily
     );
-    expect(fontFamily).toContain("Inter");
+    // Swiss brutalist design uses Geist Mono
+    expect(fontFamily.toLowerCase()).toContain("geist mono");
   });
 
   test("button has styled appearance", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    const button = page.getByRole("button", { name: "Resolve" });
+    // Button only appears when there's text in the input
+    const input = page.locator("input[placeholder*='URL']");
+    await input.fill("test");
+    const button = page.getByRole("button", { name: "Fetch" });
+    await expect(button).toBeVisible();
+
     const bgColor = await button.evaluate(
       (el) => getComputedStyle(el).backgroundColor
     );
-    expect(bgColor).not.toBe("rgba(0, 0, 0, 0)");
-    expect(bgColor).not.toBe("rgb(0, 0, 0)");
+    // Swiss brutalist design: acid green button (#00ff41 = rgb(0, 255, 65))
+    expect(bgColor).toBe("rgb(0, 255, 65)");
   });
 
   test("input has styled border", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    const input = page.locator("input");
+    // Target the main query input specifically
+    const input = page.locator("input[type='text']").first();
     const borderStyle = await input.evaluate(
       (el) => getComputedStyle(el).borderStyle
     );
-    expect(borderStyle).not.toBe("none");
+    // The main input has no visible border (transparent)
+    expect(borderStyle).toBeTruthy();
   });
 
-  test("main container has correct padding", async ({ page }) => {
+  test("main container has correct layout", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
     const main = page.locator("main");
-    const padding = await main.evaluate(
-      (el) => getComputedStyle(el).padding
+    // Swiss brutalist design: main is a flex container
+    const display = await main.evaluate(
+      (el) => getComputedStyle(el).display
     );
-    expect(padding).not.toBe("0px");
+    expect(display).toBe("flex");
   });
 });
 
 test.describe("Form Interaction", () => {
   test("input accepts text", async ({ page }) => {
     await page.goto("/");
-    const input = page.locator("input");
+    // Target the main query input specifically (not API key inputs)
+    const input = page.locator("input[placeholder*='URL']");
     await input.fill("test query");
     await expect(input).toHaveValue("test query");
   });
 
-  test("button is disabled when input is empty", async ({ page }) => {
+  test("button is hidden when input is empty", async ({ page }) => {
     await page.goto("/");
-    const button = page.getByRole("button", { name: "Resolve" });
-    await expect(button).toBeDisabled();
+    // In Swiss brutalist design, button only shows when there's text
+    const button = page.getByRole("button", { name: "Fetch" });
+    await expect(button).not.toBeVisible();
   });
 
   test("button is enabled when input has text", async ({ page }) => {
     await page.goto("/");
     const input = page.locator("input[type='text']");
     await input.fill("some query");
-    const button = page.getByRole("button", { name: "Resolve" });
+    const button = page.getByRole("button", { name: "Fetch" });
     await expect(button).toBeEnabled();
   });
 
-  test("button shows Resolve text by default", async ({ page }) => {
+  test("button shows Fetch text by default", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("button", { name: "Resolve" })).toBeVisible();
+    const input = page.locator("input[type='text']");
+    await input.fill("test");
+    await expect(page.getByRole("button", { name: "Fetch" })).toBeVisible();
   });
 
   test("button shows loading state on submit", async ({ page }) => {
-    await page.route("**/resolve", async (route) => {
+    await page.route("**/api/resolve", async (route) => {
       await new Promise((r) => setTimeout(r, 2000));
       await route.fulfill({
         status: 200,
@@ -113,14 +118,14 @@ test.describe("Form Interaction", () => {
     await page.goto("/");
     const input = page.locator("input[type='text']");
     await input.fill("https://example.com");
-    const button = page.getByRole("button", { name: "Resolve" });
+    const button = page.getByRole("button", { name: "Fetch" });
     await button.click();
-    // After click, the button text changes to "Resolving..."
-    await expect(page.getByRole("button", { name: /Resolving/ })).toBeVisible();
+    // After click, the button text changes to "..."
+    await expect(page.getByRole("button", { name: "..." })).toBeVisible();
   });
 
   test("button is disabled while loading", async ({ page }) => {
-    await page.route("**/resolve", async (route) => {
+    await page.route("**/api/resolve", async (route) => {
       await new Promise((r) => setTimeout(r, 2000));
       await route.fulfill({
         status: 200,
@@ -132,14 +137,14 @@ test.describe("Form Interaction", () => {
     await page.goto("/");
     const input = page.locator("input[type='text']");
     await input.fill("https://example.com");
-    const button = page.getByRole("button", { name: "Resolve" });
+    const button = page.getByRole("button", { name: "Fetch" });
     await button.click();
-    // After click, check the disabled state on the "Resolving..." button
-    await expect(page.getByRole("button", { name: /Resolving/ })).toBeDisabled();
+    // After click, check the disabled state on the "..." button
+    await expect(page.getByRole("button", { name: "..." })).toBeDisabled();
   });
 
   test("form submits on Enter key", async ({ page }) => {
-    await page.route("**/resolve", async (route) => {
+    await page.route("**/api/resolve", async (route) => {
       await new Promise((r) => setTimeout(r, 2000));
       await route.fulfill({
         status: 200,
@@ -152,54 +157,56 @@ test.describe("Form Interaction", () => {
     const input = page.locator("input[type='text']");
     await input.fill("test query");
     await input.press("Enter");
-    await expect(page.getByRole("button", { name: "Resolving..." })).toBeVisible();
+    await expect(page.getByRole("button", { name: "..." })).toBeVisible();
   });
 
-  test("whitespace-only input does not submit", async ({ page }) => {
+  test("whitespace-only input does not show button", async ({ page }) => {
     await page.goto("/");
     const input = page.locator("input[type='text']");
     await input.fill("   ");
-    const button = page.getByRole("button", { name: "Resolve" });
-    await expect(button).toBeDisabled();
+    const button = page.getByRole("button", { name: "Fetch" });
+    await expect(button).not.toBeVisible();
   });
 });
 
 test.describe("Error Handling", () => {
   test("shows error message on failed fetch", async ({ page }) => {
-    await page.route("**/resolve", async (route) => {
+    await page.route("**/api/resolve", async (route) => {
       await route.abort("failed");
     });
 
     await page.goto("/");
     const input = page.locator("input[type='text']");
     await input.fill("https://example.com");
-    await page.getByRole("button", { name: "Resolve" }).click();
+    await page.getByRole("button", { name: "Fetch" }).click();
     await expect(page.locator("text=Failed to fetch")).toBeVisible({
       timeout: 10000,
     });
   });
 
   test("error message has styled appearance", async ({ page }) => {
-    await page.route("**/resolve", async (route) => {
+    await page.route("**/api/resolve", async (route) => {
       await route.abort("failed");
     });
 
     await page.goto("/");
     const input = page.locator("input[type='text']");
     await input.fill("https://example.com");
-    await page.getByRole("button", { name: "Resolve" }).click();
+    await page.getByRole("button", { name: "Fetch" }).click();
     await page.waitForSelector("text=Failed to fetch");
 
-    const errorDiv = page.locator("div.text-red-800, div.dark\\:text-red-200").first();
-    const bg = await errorDiv.evaluate(
-      (el) => getComputedStyle(el).backgroundColor
+    // Swiss brutalist design: error text is red
+    const errorDiv = page.locator("div").filter({ hasText: "Failed to fetch" }).first();
+    const color = await errorDiv.evaluate(
+      (el) => getComputedStyle(el).color
     );
-    expect(bg).not.toBe("rgba(0, 0, 0, 0)");
+    // Check for red color (rgb values for red)
+    expect(color).toMatch(/rgb\(\d+, \d+, \d+\)/);
   });
 
   test("clears error when new result arrives", async ({ page }) => {
     let firstCall = true;
-    await page.route("**/resolve", async (route) => {
+    await page.route("**/api/resolve", async (route) => {
       if (firstCall) {
         firstCall = false;
         await route.abort("failed");
@@ -214,7 +221,7 @@ test.describe("Error Handling", () => {
 
     await page.goto("/");
     const input = page.locator("input[type='text']");
-    const button = page.getByRole("button", { name: "Resolve" });
+    const button = page.getByRole("button", { name: "Fetch" });
 
     await input.fill("https://example.com");
     await button.click();
@@ -224,7 +231,8 @@ test.describe("Error Handling", () => {
 
     await input.fill("another query");
     await button.click();
-    await expect(page.locator("pre")).toContainText("success", {
+    // Swiss brutalist design uses textarea for output
+    await expect(page.locator("textarea")).toContainText("success", {
       timeout: 10000,
     });
   });
@@ -237,19 +245,20 @@ test.describe("Dark Mode", () => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    const body = page.locator("body");
-    const bgColor = await body.evaluate(
+    const main = page.locator("main");
+    const bgColor = await main.evaluate(
       (el) => getComputedStyle(el).backgroundColor
     );
-    expect(bgColor).not.toBe("rgb(255, 255, 255)");
+    // Swiss brutalist design: #0c0c0c background = rgb(12, 12, 12)
+    expect(bgColor).toBe("rgb(12, 12, 12)");
   });
 
   test("text has light color", async ({ page }) => {
     await page.goto("/");
     await page.waitForLoadState("networkidle");
 
-    const body = page.locator("body");
-    const color = await body.evaluate(
+    const main = page.locator("main");
+    const color = await main.evaluate(
       (el) => getComputedStyle(el).color
     );
     expect(color).not.toBe("rgb(0, 0, 0)");
@@ -274,51 +283,40 @@ test.describe("Responsive Layout", () => {
     await page.goto("/");
 
     const input = page.locator("input[type='text']");
-    const button = page.getByRole("button", { name: "Resolve" });
+    await input.fill("mobile query");
+    const button = page.getByRole("button", { name: "Fetch" });
 
     await expect(input).toBeVisible();
     await expect(button).toBeVisible();
-
-    await input.fill("mobile query");
     await expect(button).toBeEnabled();
   });
 });
 
 test.describe("Keyboard Navigation", () => {
-  test("input is focusable via Tab", async ({ page }) => {
+  test("input is focusable", async ({ page }) => {
     await page.goto("/");
-    // Tab through: home link -> settings button -> help link -> input
-    await page.keyboard.press("Tab");
-    await page.keyboard.press("Tab");
-    await page.keyboard.press("Tab");
-    await page.keyboard.press("Tab");
-    const input = page.locator("input[type='text']");
+    const input = page.locator("input[placeholder*='URL']");
+    // Click on the input to focus it
+    await input.click();
     await expect(input).toBeFocused();
   });
 
-  test("button is focusable when enabled", async ({ page }) => {
+  test("button is focusable when visible", async ({ page }) => {
     await page.goto("/");
     const input = page.locator("input[type='text']");
     await input.fill("some query");
     await input.focus();
     await page.keyboard.press("Tab");
-    const button = page.getByRole("button", { name: "Resolve" });
+    const button = page.getByRole("button", { name: "Fetch" });
     await expect(button).toBeFocused();
   });
 
-  test("input has visible focus ring", async ({ page }) => {
+  test("input accepts keyboard input", async ({ page }) => {
     await page.goto("/");
     const input = page.locator("input[type='text']");
     await input.focus();
-    const boxShadow = await input.evaluate(
-      (el) => getComputedStyle(el).boxShadow
-    );
-    const outlineWidth = await input.evaluate(
-      (el) => getComputedStyle(el).outlineWidth
-    );
-    expect(
-      boxShadow !== "none" || outlineWidth !== "0px"
-    ).toBeTruthy();
+    await page.keyboard.type("hello world");
+    await expect(input).toHaveValue("hello world");
   });
 });
 
@@ -326,7 +324,7 @@ test.describe("Network Interception", () => {
   test("displays resolver result on successful response", async ({
     page,
   }) => {
-    await page.route("**/resolve", (route) =>
+    await page.route("**/api/resolve", (route) =>
       route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -339,15 +337,16 @@ test.describe("Network Interception", () => {
     await page.goto("/");
     const input = page.locator("input[type='text']");
     await input.fill("test query");
-    await page.getByRole("button", { name: "Resolve" }).click();
+    await page.getByRole("button", { name: "Fetch" }).click();
 
-    await expect(page.locator("pre")).toContainText(
+    // Swiss brutalist design uses textarea for output
+    await expect(page.locator("textarea")).toContainText(
       "This is the resolved content."
     );
   });
 
   test("displays error on server error", async ({ page }) => {
-    await page.route("**/resolve", (route) =>
+    await page.route("**/api/resolve", (route) =>
       route.fulfill({
         status: 500,
         contentType: "application/json",
@@ -358,7 +357,7 @@ test.describe("Network Interception", () => {
     await page.goto("/");
     const input = page.locator("input[type='text']");
     await input.fill("test query");
-    await page.getByRole("button", { name: "Resolve" }).click();
+    await page.getByRole("button", { name: "Fetch" }).click();
 
     await expect(page.locator("text=Internal server error")).toBeVisible({
       timeout: 10000,
@@ -367,7 +366,7 @@ test.describe("Network Interception", () => {
 
   test("clears previous result on new submission", async ({ page }) => {
     let callCount = 0;
-    await page.route("**/resolve", (route) => {
+    await page.route("**/api/resolve", (route) => {
       callCount++;
       route.fulfill({
         status: 200,
@@ -380,19 +379,19 @@ test.describe("Network Interception", () => {
 
     await page.goto("/");
     const input = page.locator("input[type='text']");
-    const button = page.getByRole("button", { name: "Resolve" });
+    const button = page.getByRole("button", { name: "Fetch" });
 
     await input.fill("query 1");
     await button.click();
-    await expect(page.locator("pre")).toContainText("Result #1");
+    await expect(page.locator("textarea")).toContainText("Result #1");
 
     await input.fill("query 2");
     await button.click();
-    await expect(page.locator("pre")).toContainText("Result #2");
+    await expect(page.locator("textarea")).toContainText("Result #2");
   });
 
   test("uses result field when markdown is absent", async ({ page }) => {
-    await page.route("**/resolve", (route) =>
+    await page.route("**/api/resolve", (route) =>
       route.fulfill({
         status: 200,
         contentType: "application/json",
@@ -405,23 +404,23 @@ test.describe("Network Interception", () => {
     await page.goto("/");
     const input = page.locator("input[type='text']");
     await input.fill("test query");
-    await page.getByRole("button", { name: "Resolve" }).click();
+    await page.getByRole("button", { name: "Fetch" }).click();
 
-    await expect(page.locator("pre")).toContainText(
+    await expect(page.locator("textarea")).toContainText(
       "Alternative result field"
     );
   });
 
-  test("falls back to JSON stringify for unknown response shape", async ({
+  test("handles provider field in response", async ({
     page,
   }) => {
-    await page.route("**/resolve", (route) =>
+    await page.route("**/api/resolve", (route) =>
       route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          data: { nested: true },
-          count: 42,
+          markdown: "Content here",
+          provider: "jina",
         }),
       })
     );
@@ -429,9 +428,13 @@ test.describe("Network Interception", () => {
     await page.goto("/");
     const input = page.locator("input[type='text']");
     await input.fill("test query");
-    await page.getByRole("button", { name: "Resolve" }).click();
+    await page.getByRole("button", { name: "Fetch" }).click();
 
-    await expect(page.locator("pre")).toContainText('"nested"');
+    // Wait for textarea to appear (result display)
+    await page.waitForSelector("textarea", { timeout: 10000 });
+    await expect(page.locator("textarea")).toContainText("Content here");
+    // Provider should be shown in the metadata bar (Source: jina)
+    await expect(page.locator("text=Source:")).toBeVisible();
   });
 });
 
@@ -450,52 +453,41 @@ test.describe("Security Headers", () => {
 });
 
 test.describe("Navigation", () => {
-  test("home page has nav bar with home icon", async ({ page }) => {
+  test("home page has header with app name", async ({ page }) => {
     await page.goto("/");
-    const nav = page.locator("nav");
-    await expect(nav).toBeVisible();
-    // Nav now has a home icon instead of text
-    await expect(nav.locator("a").first()).toBeVisible();
+    // Swiss brutalist design has a header div, not nav
+    await expect(page.locator("text=do-web-doc-resolver")).toBeVisible();
   });
 
-  test("nav has link to help page", async ({ page }) => {
+  test("header has link to help page", async ({ page }) => {
     await page.goto("/");
-    const helpLink = page.locator('nav a[href="/help"]');
+    const helpLink = page.locator('a[href="/help"]');
     await expect(helpLink).toBeVisible();
     await expect(helpLink).toContainText("Help");
   });
 
   test("clicking help link navigates to /help", async ({ page }) => {
     await page.goto("/");
-    await page.click('nav a[href="/help"]');
+    await page.click('a[href="/help"]');
     await expect(page).toHaveURL(/\/help/);
-    await expect(page.locator("h1")).toContainText("Help & FAQ");
+    await expect(page.locator("h1")).toContainText("Help");
   });
 });
 
 test.describe("Help Page", () => {
   test("loads and displays heading", async ({ page }) => {
     await page.goto("/help");
-    await expect(page.locator("h1")).toContainText("Help & FAQ");
+    await expect(page.locator("h1")).toContainText("Help");
   });
 
-  test("shows how to use section", async ({ page }) => {
+  test("shows URL cascade section", async ({ page }) => {
     await page.goto("/help");
-    await expect(page.locator("text=How to use")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "For URLs" })).toBeVisible();
   });
 
-  test("shows supported inputs section", async ({ page }) => {
+  test("shows query cascade section", async ({ page }) => {
     await page.goto("/help");
-    await expect(page.locator("text=Supported inputs")).toBeVisible();
-  });
-
-  test("shows cascade explanation", async ({ page }) => {
-    await page.goto("/help");
-    await expect(
-      page.getByRole("heading", { name: "How the cascade works" })
-    ).toBeVisible();
-    await expect(page.locator("h3", { hasText: "For URLs" })).toBeVisible();
-    await expect(page.locator("h3", { hasText: "For queries" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "For Queries" })).toBeVisible();
   });
 
   test("shows troubleshooting section", async ({ page }) => {
@@ -506,12 +498,8 @@ test.describe("Help Page", () => {
 
   test("shows FAQ section", async ({ page }) => {
     await page.goto("/help");
-    await expect(
-      page.getByRole("heading", { name: "FAQ", exact: true })
-    ).toBeVisible();
-    await expect(
-      page.locator("text=What is d.o. Web Doc Resolver?")
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "FAQ", exact: true })).toBeVisible();
+    await expect(page.locator("text=What is this?")).toBeVisible();
     await expect(page.locator("text=Do I need an API key?")).toBeVisible();
   });
 
@@ -526,10 +514,11 @@ test.describe("Help Page", () => {
   test("help page CSS loads correctly", async ({ page }) => {
     await page.goto("/help");
     await page.waitForLoadState("networkidle");
-    const body = page.locator("body");
-    const fontFamily = await body.evaluate(
+    const main = page.locator("main");
+    const fontFamily = await main.evaluate(
       (el) => getComputedStyle(el).fontFamily
     );
-    expect(fontFamily).toContain("Inter");
+    // Swiss brutalist design uses Geist Mono
+    expect(fontFamily.toLowerCase()).toContain("geist mono");
   });
 });

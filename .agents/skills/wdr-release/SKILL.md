@@ -6,8 +6,8 @@ compatibility: Git, GitHub CLI (gh), Node.js, Cargo
 allowed-tools: Bash(git:*) Bash(gh:*) Read Write
 metadata:
   author: d-oit
-  version: "0.1.0"
-  source: https://github.com/d-oit/do-web-doc-resolover
+  version: "0.2.0"
+  source: https://github.com/d-oit/do-web-doc-resolver
 ---
 
 # WDR Release Skill
