@@ -1,7 +1,7 @@
 ---
 name: anti-ai-slop
 description: >
-  Apply this skill whenever the user wants to audit, fix, redesign, write, or review UI, UX, copy, or text to avoid the generic "AI slop" aesthetic of 2025–2026. Triggers include: "make this feel less AI", "this looks too generic", "avoid AI clichés", "audit my copy", "anti-pattern review", "humanize this", "this feels soulless", "too corporate", "fix the UX writing", "why does this feel like ChatGPT made it", "anti-design", "brutalist", "raw", "intentional", "authentic", "distinctive", "not like every other AI app". Also trigger when producing new UI, copy, or UX flows and the user cares about quality and distinctiveness. This skill is your checklist, diagnostic tool, and creative brief for everything that makes design feel human, considered, and real in 2026.
+  Apply this skill whenever the user wants to audit, fix, redesign, write, or review UI, UX, copy, or text to avoid the generic "AI slop" aesthetic of 2025–2026. Triggers include: "make this feel less AI", "this looks too generic", "avoid AI clichés", "audit my copy", "anti-pattern review", "humanize this", "this feels soulless", "too corporate", "fix the UX writing", "why does this feel like ChatGPT made it", "anti-design", "brutalist", "raw", "intentional", "authentic", "distinctive", "not like every other AI app", "responsive", "mobile", "tablet", "desktop". Also trigger when producing new UI, copy, or UX flows and the user cares about quality and distinctiveness. Always verify mobile, tablet, and desktop views for proper navigation and layout. This skill is your checklist, diagnostic tool, and creative brief for everything that makes design feel human, considered, and real in 2026.
 ---
 
 # Anti-AI-Slop Skill — 2026 Edition
@@ -76,6 +76,31 @@ These visual patterns define the 2024–2026 AI aesthetic monoculture. Flag ever
 | **Every action requires a reload** | Click save → full page refresh → scroll lost | 2012 called |
 | **Hamburger menu on desktop** | Hidden navigation because mobile-first was misread | Discovery failure. Punishes exploration. |
 | **Hover states only** | Functionality only revealed on hover | Mobile users, keyboard users, discoverers all fail |
+
+### Responsive Anti-Patterns
+
+| Pattern | What it looks like | Why it's slop |
+|---|---|---|
+| **Hamburger menu on desktop** | Hidden navigation on large screens | Discovery failure. Users can't explore. |
+| **Tiny touch targets on mobile** | Buttons/links < 44px | Frustrating, accessibility fail |
+| **Desktop-only layout** | Fixed-width container, horizontal scroll on mobile | Unusable, forces pinch-zoom |
+| **Hidden primary actions** | Important buttons only visible on hover/desktop | Mobile users can't complete tasks |
+| **Intrusive popups on mobile** | Modal that covers entire screen, hard to dismiss | Blocks content, frustrating |
+| **Inconsistent navigation** | Different nav structure per viewport | Users get lost when resizing |
+
+### Responsive Best Practices
+
+| Viewport | Navigation | Layout |
+|---|---|---|
+| **Mobile (< 640px)** | Bottom tab bar OR slide-out drawer | Stacked, full-width |
+| **Tablet (640-1024px)** | Horizontal nav, collapsible sidebar | Hybrid, 2-column max |
+| **Desktop (> 1024px)** | Persistent sidebar OR top nav | Full sidebar (280px) |
+
+**Always verify:**
+1. Touch targets ≥ 44px on mobile
+2. Primary actions visible without scrolling
+3. Navigation accessible at all sizes
+4. Content readable without horizontal scroll
 
 ### What to Do Instead
 

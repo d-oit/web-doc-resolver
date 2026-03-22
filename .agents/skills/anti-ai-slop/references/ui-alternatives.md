@@ -118,3 +118,64 @@
 - **Streaming content** — render as it arrives, don't wait to show everything
 - **Minimal indicator** — tiny dot or bar at the top of the viewport only
 - **Acknowledge the wait** — if it's long, say so specifically and why
+
+---
+
+## Responsive Design
+
+### Breakpoints (2026 Standard)
+
+| Breakpoint | Width | Primary Use |
+|------------|-------|-------------|
+| Mobile | < 640px | Phone portrait |
+| Tablet | 640px - 1024px | Tablet, phone landscape |
+| Desktop | > 1024px | Laptop, desktop |
+
+### Navigation by Viewport
+
+**Mobile (< 640px):**
+- Bottom tab bar for primary navigation (always visible)
+- OR: Slide-out drawer from edge (gesture-friendly)
+- Hamburger is acceptable on mobile only
+- Touch targets: minimum 44px × 44px
+
+**Tablet (640px - 1024px):**
+- Horizontal nav bar with text labels
+- Collapsible sidebar (can hide to maximize content)
+- No hamburger menu if tabs fit
+
+**Desktop (> 1024px):**
+- Persistent sidebar OR top navigation
+- NO hamburger menu (discovery failure pattern)
+- Full configuration panels visible
+
+### Anti-Patterns
+
+| Pattern | Why It's Slop | Fix |
+|---------|---------------|-----|
+| Hamburger on desktop | Hides navigation, hurts discovery | Use visible nav or sidebar |
+| Tiny touch targets | Frustrating on mobile, accessibility fail | Min 44px × 44px |
+| Desktop-only layout on mobile | Unusable, forces pinch-zoom | Mobile-first responsive |
+| Hidden primary actions | Users can't find them | Primary action always visible |
+| Popups on mobile | Hard to dismiss, blocks content | Use bottom sheets |
+
+### Mobile-First Approach
+
+1. Design for mobile first (constraints breed creativity)
+2. Add complexity as screen real estate increases
+3. Never remove functionality on smaller screens — reorganize
+4. Test on actual devices, not just browser resize
+
+### Touch Considerations
+
+- Swipe gestures for navigation (back/forward, close)
+- Pull-to-refresh for dynamic content
+- Long-press for secondary actions (with haptic feedback)
+- Avoid hover-dependent interactions (doesn't exist on touch)
+
+### Performance on Mobile
+
+- Lazy load images and heavy content
+- Minimize JavaScript bundle size
+- Use CSS animations over JS where possible
+- Consider network conditions (3G/4G testing)
