@@ -32,28 +32,27 @@ on:
 permissions:
   contents: read
 
+env:
+  PYTHON_VERSION: '3.12'
+
 jobs:
   free-providers:
     name: Free Providers (Exa MCP + Jina)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     if: inputs.run_free == true || inputs.run_free == 'true'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
+
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
-      - name: Cache pip dependencies
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-live-free-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-live-free-
-            ${{ runner.os }}-pip-
+
       - name: Install dependencies
         run: pip install -r requirements.txt
+
       - name: Run free provider live tests
         run: |
           pytest -m live -s -v \
@@ -63,24 +62,20 @@ jobs:
   exa-live:
     name: Exa SDK Live Test
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     if: inputs.run_exa == true || inputs.run_exa == 'true'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
+
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
-      - name: Cache pip dependencies
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-live-exa-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-live-exa-
-            ${{ runner.os }}-pip-
+
       - name: Install dependencies
         run: pip install -r requirements.txt
+
       - name: Run Exa SDK live test
         run: |
           pytest -m live -s -v \
@@ -91,24 +86,20 @@ jobs:
   tavily-live:
     name: Tavily Live Test
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     if: inputs.run_tavily == true || inputs.run_tavily == 'true'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
+
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
-      - name: Cache pip dependencies
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-live-tavily-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-live-tavily-
-            ${{ runner.os }}-pip-
+
       - name: Install dependencies
         run: pip install -r requirements.txt
+
       - name: Run Tavily live test
         run: |
           pytest -m live -s -v \
@@ -119,24 +110,20 @@ jobs:
   firecrawl-live:
     name: Firecrawl Live Test
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     if: inputs.run_firecrawl == true || inputs.run_firecrawl == 'true'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
+
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
-      - name: Cache pip dependencies
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-live-firecrawl-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-live-firecrawl-
-            ${{ runner.os }}-pip-
+
       - name: Install dependencies
         run: pip install -r requirements.txt
+
       - name: Run Firecrawl live test
         run: |
           pytest -m live -s -v \
@@ -147,26 +134,22 @@ jobs:
   mistral-live:
     name: Mistral Live Tests (Browser + Websearch)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     if: inputs.run_mistral == true || inputs.run_mistral == 'true'
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
+
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
-      - name: Cache pip dependencies
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-live-mistral-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-live-mistral-
-            ${{ runner.os }}-pip-
+
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
           pip install mistralai
+
       - name: Run Mistral live tests
         run: |
           pytest -m live -s -v \
