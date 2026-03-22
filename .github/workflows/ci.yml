@@ -23,20 +23,30 @@ on:
         default: false
         type: boolean
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
+
+env:
+  PYTHON_VERSION: '3.12'
+  RUST_TOOLCHAIN: '1.85'
+  NODE_VERSION: '22'
 
 jobs:
   validate-symlink:
     name: Validate Skill Symlink
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Validate skill symlink
         run: |
@@ -45,130 +55,134 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
 
-      - name: Cache pip dependencies
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-lint-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-lint-
-            ${{ runner.os }}-pip-
-
-      - name: Install dependencies
-        run: |
-          pip install ruff black mypy types-requests
+      - name: Install lint tools
+        run: pip install ruff black mypy types-requests
 
       - name: Run ruff
         run: ruff check .
-        continue-on-error: true
 
       - name: Run black
         run: black --check .
-        continue-on-error: true
 
       - name: Run mypy
         run: mypy scripts/ --ignore-missing-imports
         continue-on-error: true
 
   test:
-    name: Test
+    name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ['3.10', '3.11', '3.12']
+        python-version: ['3.11', '3.12', '3.13']
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
 
-      - name: Cache pip dependencies
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-${{ matrix.python-version }}-
-            ${{ runner.os }}-pip-
-
       - name: Install dependencies
-        run: |
-          pip install pytest pytest-cov requests duckduckgo-search
+        run: pip install pytest pytest-cov requests duckduckgo-search
 
-      - name: Run basic tests
-        run: |
-          python -m pytest -m "not live" --cov=scripts --cov-report=xml --cov-report=term
-        continue-on-error: true
+      - name: Run tests
+        run: python -m pytest -m "not live" --cov=scripts --cov-report=xml --cov-report=term
+
+      - name: Upload coverage report
+        if: matrix.python-version == env.PYTHON_VERSION
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+          retention-days: 7
 
   rust-cli:
     name: Rust CLI
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: 1.85
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
           components: clippy, rustfmt
 
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
-
-      - name: Run tests
-        run: |
-          cd cli && cargo test
+        with:
+          workspaces: cli
 
       - name: Run clippy
-        run: |
-          cd cli && cargo clippy -- -D warnings
+        run: cd cli && cargo clippy -- -D warnings
 
-      - name: Run fmt
-        run: |
-          cd cli && cargo fmt --check
+      - name: Check formatting
+        run: cd cli && cargo fmt --check
+
+      - name: Run tests
+        run: cd cli && cargo test
 
       - name: Build release
-        run: |
-          cd cli && cargo build --release
+        run: cd cli && cargo build --release
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: wdr-linux-x86_64
           path: cli/target/release/wdr
+          retention-days: 7
+
+  web-build:
+    name: Web UI Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: web
+
+      - name: Lint
+        run: npm run lint
+        working-directory: web
+
+      - name: Build
+        run: npm run build
+        working-directory: web
 
   sample:
     name: Sample Run
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
-
-      - name: Cache pip dependencies
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-sample-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-sample-
-            ${{ runner.os }}-pip-
 
       - name: Install dependencies
         run: |
@@ -176,38 +190,30 @@ jobs:
           pip install -e .
 
       - name: Run sample query (no API keys)
-        run: |
-          wdr "Rust agent frameworks" --log-level INFO
+        run: wdr "Rust agent frameworks" --log-level INFO
 
       - name: Run sample URL (no API keys)
-        run: |
-          wdr "https://docs.rs/tokio" --log-level INFO
+        run: wdr "https://docs.rs/tokio" --log-level INFO
 
       - name: Test help output
-        run: |
-          wdr --help
+        run: wdr --help
 
   mistral-test:
     name: Mistral Integration Test
     runs-on: ubuntu-latest
-    if: (github.event_name == 'workflow_dispatch' && (inputs.test_mistral == true || inputs.test_mistral == 'true')) || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    timeout-minutes: 15
+    if: >
+      (github.event_name == 'workflow_dispatch' &&
+       (inputs.test_mistral == true || inputs.test_mistral == 'true')) ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
-
-      - name: Cache pip dependencies
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-mistral-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-mistral-
-            ${{ runner.os }}-pip-
 
       - name: Install dependencies
         run: |
@@ -215,32 +221,26 @@ jobs:
           pip install -e .
 
       - name: Run Mistral test
-        run: |
-          python -m scripts.resolve "https://example.com" --log-level INFO
+        run: python -m scripts.resolve "https://example.com" --log-level INFO
         env:
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
 
   firecrawl-test:
     name: Firecrawl Integration Test
     runs-on: ubuntu-latest
-    if: (github.event_name == 'workflow_dispatch' && (inputs.test_firecrawl == true || inputs.test_firecrawl == 'true')) || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    timeout-minutes: 15
+    if: >
+      (github.event_name == 'workflow_dispatch' &&
+       (inputs.test_firecrawl == true || inputs.test_firecrawl == 'true')) ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
-
-      - name: Cache pip dependencies
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-firecrawl-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-firecrawl-
-            ${{ runner.os }}-pip-
 
       - name: Install dependencies
         run: |
@@ -248,54 +248,26 @@ jobs:
           pip install -e .
 
       - name: Run Firecrawl test
-        run: |
-          python -m scripts.resolve "https://example.com" --log-level INFO
+        run: python -m scripts.resolve "https://example.com" --log-level INFO
         env:
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
-
-  web-build:
-    name: Web UI Build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 20
-
-      - name: Install dependencies
-        run: npm ci
-        working-directory: web
-
-      - name: Build
-        run: npm run build
-        working-directory: web
-
-      - name: Lint
-        run: npm run lint
-        working-directory: web
 
   tavily-test:
     name: Tavily Integration Test
     runs-on: ubuntu-latest
-    if: (github.event_name == 'workflow_dispatch' && (inputs.test_tavily == true || inputs.test_tavily == 'true')) || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    timeout-minutes: 15
+    if: >
+      (github.event_name == 'workflow_dispatch' &&
+       (inputs.test_tavily == true || inputs.test_tavily == 'true')) ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
-
-      - name: Cache pip dependencies
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-tavily-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-tavily-
-            ${{ runner.os }}-pip-
 
       - name: Install dependencies
         run: |
@@ -303,8 +275,7 @@ jobs:
           pip install -e .
 
       - name: Run Tavily test
-        run: |
-          python -m scripts.resolve "Rust agent frameworks" --log-level INFO
+        run: python -m scripts.resolve "Rust agent frameworks" --log-level INFO
         env:
           EXA_API_KEY: ""
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
