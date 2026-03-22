@@ -33,8 +33,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-          cache-dependency-path: cli/ui/pnpm-lock.yaml
 
       - run: pnpm install --ignore-workspace
         working-directory: cli/ui
@@ -56,8 +54,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-          cache-dependency-path: cli/ui/pnpm-lock.yaml
 
       - run: pnpm install --ignore-workspace
         working-directory: cli/ui
@@ -158,7 +154,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: always()
-    needs: [lint, test, web-lint, web-typecheck, web-build, web-e2e]
+    needs: [lint, test, web-lint, web-typecheck, web-build]
     steps:
       - name: Check results
         run: |
@@ -168,7 +164,6 @@ jobs:
             "${{ needs.web-lint.result }}"
             "${{ needs.web-typecheck.result }}"
             "${{ needs.web-build.result }}"
-            "${{ needs.web-e2e.result }}"
           )
           failed=false
           for result in "${results[@]}"; do

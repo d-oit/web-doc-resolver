@@ -143,14 +143,12 @@ See [`.agents/skills/web-doc-resolver/references/CONFIG.md`](.agents/skills/web-
 
 All skills are defined in `.agents/skills/` (canonical source).
 Symlinks in `.blackbox/skills/`, `.claude/skills/`, and `.opencode/skills/` must point to `.agents/skills/`.
-The root `SKILL.md` symlinks to `.agents/skills/web-doc-resolver/SKILL.md`.
 
 ```
 .agents/skills/           # Canonical skill definitions (directories)
 .blackbox/skills/         # Symlinks → ../../.agents/skills/<name>
 .claude/skills/           # Symlinks → ../../.agents/skills/<name>
 .opencode/skills/         # Symlinks → ../../.agents/skills/<name>
-SKILL.md                  # Symlink → .agents/skills/web-doc-resolver/SKILL.md
 ```
 
 Validated on every commit (pre-commit hook) and in CI (`validate-symlink` job).

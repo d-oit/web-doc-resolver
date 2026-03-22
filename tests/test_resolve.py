@@ -431,56 +431,52 @@ class TestCacheBehavior:
 
 
 class TestSkillSymlink:
-    """Test that skill symlinks point to root SKILL.md."""
+    """Test that skill symlinks in .blackbox/skills/, .opencode/skills/ point to .agents/skills/."""
 
     def get_skill_locations(self):
-        """Get all skill symlink locations to test."""
+        """Get all skill directory symlink locations to test."""
         root_dir = Path(__file__).parent.parent
+        canonical = root_dir / ".agents" / "skills" / "web-doc-resolver"
         return [
             (
-                root_dir / ".blackbox" / "skills" / "web-doc-resolver" / "SKILL.md",
+                root_dir / ".blackbox" / "skills" / "web-doc-resolver",
                 ".blackbox/skills",
+                canonical,
             ),
             (
-                root_dir / ".opencode" / "skills" / "web-doc-resolver" / "SKILL.md",
+                root_dir / ".opencode" / "skills" / "web-doc-resolver",
                 ".opencode/skills",
+                canonical,
             ),
         ]
 
     def test_all_skill_symlinks_exist(self):
-        """Test that all skill symlinks exist."""
-        for skill_link, name in self.get_skill_locations():
-            if skill_link.exists():
-                assert skill_link.exists(), f"{name}: Skill symlink does not exist: {skill_link}"
+        """Test that all skill directory symlinks exist."""
+        for skill_link, name, _ in self.get_skill_locations():
+            assert skill_link.exists(), f"{name}: Skill symlink does not exist: {skill_link}"
 
     def test_all_skill_symlinks_are_symlinks(self):
-        """Test that all skill paths are symlinks."""
-        for skill_link, name in self.get_skill_locations():
-            if skill_link.exists():
-                assert skill_link.is_symlink(), f"{name}: {skill_link} is not a symlink"
+        """Test that all skill paths are directory symlinks."""
+        for skill_link, name, _ in self.get_skill_locations():
+            assert skill_link.is_symlink(), f"{name}: {skill_link} is not a symlink"
 
-    def test_all_skill_symlinks_point_to_root(self):
-        """Test that all symlinks point to root SKILL.md."""
+    def test_all_skill_symlinks_point_to_canonical(self):
+        """Test that all symlinks point to .agents/skills/<name>."""
+        for skill_link, name, expected in self.get_skill_locations():
+            resolved_target = skill_link.resolve()
+            resolved_expected = expected.resolve()
+            assert resolved_target == resolved_expected, (
+                f"{name}: Symlink points to wrong target.\n"
+                f"Expected: {resolved_expected}\n"
+                f"Got: {resolved_target}"
+            )
+
+    def test_skill_md_exists_in_canonical(self):
+        """Test that SKILL.md exists in the canonical .agents/skills/ directory."""
         root_dir = Path(__file__).parent.parent
-        root_skill = root_dir / "SKILL.md"
-        resolved_expected = root_skill.resolve()
-
-        for skill_link, name in self.get_skill_locations():
-            if skill_link.exists():
-                resolved_target = skill_link.resolve()
-                assert resolved_target == resolved_expected, (
-                    f"{name}: Symlink points to wrong target.\n"
-                    f"Expected: {resolved_expected}\n"
-                    f"Got: {resolved_target}"
-                )
-
-    def test_root_skill_file_exists(self):
-        """Test that the root SKILL.md file exists."""
-        root_dir = Path(__file__).parent.parent
-        root_skill = root_dir / "SKILL.md"
-
-        assert root_skill.exists(), f"Root SKILL.md does not exist: {root_skill}"
-        assert root_skill.is_file(), f"Root SKILL.md is not a file: {root_skill}"
+        skill_md = root_dir / ".agents" / "skills" / "web-doc-resolver" / "SKILL.md"
+        assert skill_md.exists(), f"SKILL.md does not exist in canonical: {skill_md}"
+        assert skill_md.is_file(), f"SKILL.md is not a file: {skill_md}"
 
 
 class TestDuckDuckGoFallback:
