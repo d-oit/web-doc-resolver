@@ -352,4 +352,4 @@ gh release delete v0.2.0
 
 - `wdr-assets`: Screenshot capture
 - `wdr-cli`: Rust CLI
-- `web-doc-resolver`: Python resolver
+- `do-web-doc-resolver`: Python resolver

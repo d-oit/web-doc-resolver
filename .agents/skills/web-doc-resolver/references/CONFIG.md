@@ -9,7 +9,7 @@
 | `WEB_RESOLVER_MAX_CHARS` | `8000` | Maximum characters in output content |
 | `WEB_RESOLVER_MIN_CHARS` | `200` | Minimum characters for valid result |
 | `WEB_RESOLVER_TIMEOUT` | `30` | HTTP request timeout in seconds |
-| `WEB_RESOLVER_CACHE_DIR` | `~/.cache/web-doc-resolver` | Cache directory path |
+| `WEB_RESOLVER_CACHE_DIR` | `~/.cache/do-web-doc-resolver` | Cache directory path |
 | `WEB_RESOLVER_CACHE_TTL` | `86400` | Cache TTL in seconds (default: 24h) |
 
 ### Provider Limits

@@ -180,4 +180,4 @@ fi
 
 - `agent-browser`: Browser automation
 - `wdr-cli`: Rust CLI for web resolution
-- `web-doc-resolver`: Python resolver
+- `do-web-doc-resolver`: Python resolver

@@ -11,13 +11,14 @@ const PROVIDERS = [
   { id: "serper", label: "Serper", free: false },
   { id: "tavily", label: "Tavily", free: false },
   { id: "firecrawl", label: "Firecrawl", free: false },
+  { id: "mistral", label: "Mistral", free: false },
 ];
 
 const PROFILES = [
   { id: "free", label: "Free", providers: ["exa_mcp", "jina", "duckduckgo"] },
   { id: "balanced", label: "Balanced", providers: ["exa_mcp", "serper", "jina", "duckduckgo"] },
   { id: "fast", label: "Fast", providers: ["serper", "exa_mcp"] },
-  { id: "quality", label: "Quality", providers: ["tavily", "serper", "exa_mcp", "jina"] },
+  { id: "quality", label: "Quality", providers: ["tavily", "serper", "exa_mcp", "jina", "mistral"] },
 ];
 
 export default function Home() {
@@ -268,7 +269,7 @@ export default function Home() {
       <div className="flex-1 flex flex-col min-h-0">
         {/* Header */}
         <div className="border-b-2 border-[#333] p-2 flex items-center justify-between">
-          <span className="text-[11px] text-[#666]">web-doc-resolver</span>
+          <span className="text-[11px] text-[#666]">do-web-doc-resolver</span>
           <Link href="/help" className="text-[11px] text-[#666] hover:text-[#00ff41]">
             Help
           </Link>

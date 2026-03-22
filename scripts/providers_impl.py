@@ -233,7 +233,7 @@ def resolve_with_mistral_websearch(query: str, max_chars: int = MAX_CHARS) -> Re
 
         client = Mistral(api_key=api_key)
         resp = client.chat.complete(
-            model="mistral-large-latest", messages=[UserMessage(content=f"Search: {query}")]
+            model="mistral-small-latest", messages=[UserMessage(content=f"Search: {query}")]
         )
         content = resp.choices[0].message.content if resp.choices else ""
         result = ResolvedResult(

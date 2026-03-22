@@ -82,14 +82,10 @@ impl crate::providers::QueryProvider for MistralWebSearchProvider {
                 messages: vec![MistralMessage {
                     role: "user".to_string(),
                     content: format!(
-                        "Search the web for: {}. Provide {} results with URLs and brief descriptions.",
+                        "Search the web for: {}. Provide {} results with URLs and brief descriptions. Return as markdown with clear headers and links.",
                         query, limit
                     ),
                 }],
-                tool: Some(MistralTool {
-                    tool_type: "web_search".to_string(),
-                }),
-                tool_choice: Some("web_search".to_string()),
             })
             .send()
             .await
@@ -112,17 +108,20 @@ impl crate::providers::QueryProvider for MistralWebSearchProvider {
             .await
             .map_err(|e| ResolverError::ParseError(e.to_string()))?;
 
-        // Parse tool calls for web search results
-        let results = mistral_response
+        // Extract text content from the response
+        let content = mistral_response
             .choices
             .and_then(|c| c.into_iter().next())
             .and_then(|c| c.message)
-            .and_then(|m| m.tool_calls)
-            .unwrap_or_default()
-            .into_iter()
-            .filter_map(|tc| tc.function.arguments)
-            .map(|args| ResolvedResult::new(args.url, Some(args.content), "mistral-websearch", 0.8))
-            .collect();
+            .and_then(|m| m.content)
+            .unwrap_or_default();
+
+        if content.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let url = format!("https://mistral.ai/search?q={}", urlencoding::encode(query));
+        let results = vec![ResolvedResult::new(url, Some(content), "mistral-websearch", 0.8)];
 
         Ok(results)
     }
@@ -132,22 +131,12 @@ impl crate::providers::QueryProvider for MistralWebSearchProvider {
 struct MistralRequest {
     model: String,
     messages: Vec<MistralMessage>,
-    #[serde(default)]
-    tool: Option<MistralTool>,
-    #[serde(default)]
-    tool_choice: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
 struct MistralMessage {
     role: String,
     content: String,
-}
-
-#[derive(Debug, Serialize)]
-struct MistralTool {
-    #[serde(rename = "type")]
-    tool_type: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -165,25 +154,7 @@ struct MistralChoice {
 #[derive(Debug, Deserialize)]
 struct MistralMessageResponse {
     #[serde(default)]
-    tool_calls: Option<Vec<MistralToolCall>>,
-}
-
-#[derive(Debug, Deserialize)]
-struct MistralToolCall {
-    #[serde(default)]
-    function: MistralFunction,
-}
-
-#[derive(Debug, Deserialize, Default)]
-struct MistralFunction {
-    #[serde(default)]
-    arguments: Option<WebSearchResult>,
-}
-
-#[derive(Debug, Deserialize)]
-struct WebSearchResult {
-    url: String,
-    content: String,
+    content: Option<String>,
 }
 
 #[cfg(test)]

@@ -1,6 +1,6 @@
 # Deployment Guide
 
-This guide covers deployment options for the web-doc-resolver project.
+This guide covers deployment options for the do-web-doc-resolver project.
 
 ## Deployment Targets
 
@@ -61,13 +61,13 @@ CMD ["python", "-m", "scripts.resolve", "--server", "--port", "8000"]
 
 ```bash
 # Build
-docker build -t web-doc-resolver .
+docker build -t do-web-doc-resolver .
 
 # Run
 docker run -p 8000:8000 \
   -e EXA_API_KEY=$EXA_API_KEY \
   -e TAVILY_API_KEY=$TAVILY_API_KEY \
-  web-doc-resolver
+  do-web-doc-resolver
 ```
 
 ### 3. Rust Binary Distribution
@@ -106,7 +106,7 @@ For self-hosted deployment of the Python resolver.
 #### Service File
 
 ```ini
-# /etc/systemd/system/web-doc-resolver.service
+# /etc/systemd/system/do-web-doc-resolver.service
 [Unit]
 Description=Web Documentation Resolver
 After=network.target
@@ -115,8 +115,8 @@ After=network.target
 Type=simple
 User=resolver
 Group=resolver
-WorkingDirectory=/opt/web-doc-resolver
-EnvironmentFile=/etc/web-doc-resolver/env
+WorkingDirectory=/opt/do-web-doc-resolver
+EnvironmentFile=/etc/do-web-doc-resolver/env
 ExecStart=/usr/bin/python3 -m scripts.resolve --server --port 8000
 Restart=always
 RestartSec=10
@@ -132,14 +132,14 @@ WantedBy=multi-user.target
 sudo useradd -r -s /bin/false resolver
 
 # Create directory
-sudo mkdir -p /opt/web-doc-resolver
-sudo chown resolver:resolver /opt/web-doc-resolver
+sudo mkdir -p /opt/do-web-doc-resolver
+sudo chown resolver:resolver /opt/do-web-doc-resolver
 
 # Copy files
-sudo cp -r . /opt/web-doc-resolver/
+sudo cp -r . /opt/do-web-doc-resolver/
 
 # Create env file
-sudo tee /etc/web-doc-resolver/env << EOF
+sudo tee /etc/do-web-doc-resolver/env << EOF
 EXA_API_KEY=your_key
 TAVILY_API_KEY=your_key
 SERPER_API_KEY=your_key
@@ -149,8 +149,8 @@ EOF
 
 # Enable and start
 sudo systemctl daemon-reload
-sudo systemctl enable web-doc-resolver
-sudo systemctl start web-doc-resolver
+sudo systemctl enable do-web-doc-resolver
+sudo systemctl start do-web-doc-resolver
 ```
 
 ## Configuration
@@ -183,10 +183,10 @@ Use `cli/config.toml` for default settings.
 
 ```bash
 # Check service status
-systemctl status web-doc-resolver
+systemctl status do-web-doc-resolver
 
 # Check logs
-journalctl -u web-doc-resolver -f
+journalctl -u do-web-doc-resolver -f
 
 # Test endpoint
 curl http://localhost:8000/health
@@ -203,10 +203,10 @@ Consider adding:
 
 ```bash
 # View logs
-tail -f /var/log/web-doc-resolver.log
+tail -f /var/log/do-web-doc-resolver.log
 
 # Rotate logs
-logrotate /etc/logrotate.d/web-doc-resolver
+logrotate /etc/logrotate.d/do-web-doc-resolver
 ```
 
 ## Security

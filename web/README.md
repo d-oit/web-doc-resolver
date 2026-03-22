@@ -24,9 +24,11 @@ https://httpbin.org/html
 ```
 
 The resolver runs through a cascade of providers:
-1. **Jina Reader** (free) — Web-to-markdown conversion
-2. **Firecrawl** (requires API key) — Deep extraction with JS rendering
-3. **Direct Fetch** (free) — Basic HTML extraction
+1. **llms.txt** (free) — Structured docs from `/llms.txt` endpoint
+2. **Jina Reader** (free) — Web-to-markdown conversion
+3. **Firecrawl** (requires API key) — Deep extraction with JS rendering
+4. **Direct Fetch** (free) — Basic HTML extraction
+5. **Mistral** (requires API key) — AI-powered browser extraction
 
 ### Resolving Queries
 
@@ -39,9 +41,11 @@ latest AI research papers
 ```
 
 The query cascade:
-1. **Serper** (requires API key) — Google search
-2. **Tavily** (requires API key) — Comprehensive search
-3. **DuckDuckGo** (free) — Search fallback
+1. **Exa MCP** (free) — Neural search via Model Context Protocol
+2. **Serper** (requires API key) — Google search
+3. **Tavily** (requires API key) — Comprehensive search
+4. **DuckDuckGo** (free) — Search fallback
+5. **Mistral** (requires API key) — AI-powered search fallback
 
 ### Using API Keys
 
@@ -53,6 +57,7 @@ Click **Settings** in the nav bar to add your API keys. Keys are stored locally 
 | Tavily | `tavily_api_key` | [tavily.com](https://tavily.com) | AI-optimized search |
 | Exa | `exa_api_key` | [exa.ai](https://exa.ai) | Neural search |
 | Firecrawl | `firecrawl_api_key` | [firecrawl.dev](https://firecrawl.dev) | JS-rendered pages (500 free/month) |
+| Mistral | `mistral_api_key` | [mistral.ai](https://mistral.ai) | AI-powered search & browser fallback |
 
 ### Result Actions
 
@@ -93,7 +98,8 @@ Resolve a URL or query to markdown.
   "serper_api_key": "optional",
   "tavily_api_key": "optional",
   "exa_api_key": "optional",
-  "firecrawl_api_key": "optional"
+  "firecrawl_api_key": "optional",
+  "mistral_api_key": "optional"
 }
 ```
 

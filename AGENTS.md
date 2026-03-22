@@ -1,6 +1,6 @@
 # AGENTS.md
 
-> **do-web-doc-resolover** — resolves queries or URLs into compact, LLM-ready markdown via a low-cost provider cascade.
+> **do-web-doc-resolver** — resolves queries or URLs into compact, LLM-ready markdown via a low-cost provider cascade.
 > Full detail docs live in [`.agents/skills/web-doc-resolver/`](.agents/skills/web-doc-resolver/). See [agents.md](https://agents.md) for spec.
 
 ## Setup commands
@@ -74,7 +74,7 @@ cd web && npx playwright test --project=desktop
 ## Repository structure
 
 ```
-do-web-doc-resolover/
+do-web-doc-resolver/
 ├── AGENTS.md              # This file (agent instructions, <150 lines)
 ├── README.md              # Human-readable docs
 ├── scripts/

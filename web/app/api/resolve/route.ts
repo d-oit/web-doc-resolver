@@ -286,6 +286,68 @@ async function searchViaExaMcp(query: string, maxChars: number): Promise<string 
   }
 }
 
+/**
+ * AI-powered web search via Mistral API
+ */
+async function searchViaMistralWeb(query: string, apiKey: string, maxChars: number): Promise<string | null> {
+  if (!apiKey) return null;
+  try {
+    const res = await fetchWithTimeout(
+      "https://api.mistral.ai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "mistral-small-latest",
+          messages: [{ role: "user", content: `Research this topic and provide comprehensive, well-sourced information as markdown: ${query}` }],
+          max_tokens: 4000,
+        }),
+      },
+      25000
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const content = data?.choices?.[0]?.message?.content;
+    return content && content.length > 50 ? content.slice(0, maxChars) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * AI-powered browser extraction via Mistral API
+ */
+async function extractViaMistralBrowser(url: string, apiKey: string, maxChars: number): Promise<string | null> {
+  if (!apiKey) return null;
+  try {
+    const res = await fetchWithTimeout(
+      "https://api.mistral.ai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "mistral-small-latest",
+          messages: [{ role: "user", content: `Extract the main content from this URL as clean markdown: ${url}. Return only the content, no commentary.` }],
+          max_tokens: 4000,
+        }),
+      },
+      25000
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const content = data?.choices?.[0]?.message?.content;
+    return content && content.length > 50 ? content.slice(0, maxChars) : null;
+  } catch {
+    return null;
+  }
+}
+
 // Provider mapping for custom selection
 type ProviderFn = (query: string, keys: ProviderKeys, maxChars: number) => Promise<string | null>;
 
@@ -301,6 +363,14 @@ const providerMap: Record<string, ProviderFn> = {
   },
   duckduckgo: async (query, keys, maxChars) => searchViaDuckDuckGoLite(query, maxChars) || searchViaDuckDuckGoFree(query, maxChars),
   jina: async (query, keys, maxChars) => extractViaJina(query, maxChars),
+  mistral_websearch: async (query, keys, maxChars) => {
+    const key = keys.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY;
+    return key ? searchViaMistralWeb(query, key, maxChars) : null;
+  },
+  mistral_browser: async (query, keys, maxChars) => {
+    const key = keys.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY;
+    return key ? extractViaMistralBrowser(query, key, maxChars) : null;
+  },
 };
 
 // Run providers sequentially until one succeeds
@@ -362,6 +432,13 @@ async function resolveUrl(url: string, keys: ProviderKeys, maxChars: number): Pr
   result = await extractViaDirectFetch(url, maxChars);
   if (result) return result;
 
+  // 4. Mistral browser fallback (paid)
+  const mistralKey = keys.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY;
+  if (mistralKey) {
+    result = await extractViaMistralBrowser(url, mistralKey, maxChars);
+    if (result) return result;
+  }
+
   throw new Error("Failed to extract content from URL");
 }
 
@@ -393,6 +470,13 @@ async function resolveQuery(query: string, keys: ProviderKeys, maxChars: number)
 
   result = await searchViaDuckDuckGoFree(query, maxChars);
   if (result) return result;
+
+  // 4. Mistral AI fallback (paid)
+  const mistralKey = keys.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY;
+  if (mistralKey) {
+    result = await searchViaMistralWeb(query, mistralKey, maxChars);
+    if (result) return result;
+  }
 
   throw new Error("No search results found for query. Try adding API keys for better results.");
 }

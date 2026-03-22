@@ -12,8 +12,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "web-doc-resolver",
-    template: "%s — web-doc-resolver",
+    default: "do-web-doc-resolver",
+    template: "%s — do-web-doc-resolver",
   },
   description: "Fetch markdown from URLs. Fallback to search if no result.",
   manifest: "/manifest.json",

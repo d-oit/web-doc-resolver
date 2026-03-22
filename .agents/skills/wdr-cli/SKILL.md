@@ -262,5 +262,5 @@ wdr resolve "API documentation" | grep -A5 "## Authentication"
 
 ## Related Skills
 
-- `web-doc-resolver`: Python implementation with same functionality
+- `do-web-doc-resolver`: Python implementation with same functionality
 - `agent-browser`: Browser automation for complex web interactions

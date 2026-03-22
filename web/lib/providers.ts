@@ -106,6 +106,7 @@ export function getAllQueryProviders(keys: Record<string, string>): string[] {
 export function getUrlProviders(keys: Record<string, string>): string[] {
   const base = ["jina", "direct_fetch"];
   if (keys.FIRECRAWL_API_KEY || keys.firecrawl_api_key) base.splice(1, 0, "firecrawl");
+  if (keys.MISTRAL_API_KEY || keys.mistral_api_key) base.push("mistral_browser");
   return base;
 }
 

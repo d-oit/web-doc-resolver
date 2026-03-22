@@ -64,7 +64,7 @@ timeout = 30
 wait_for_js = true
 
 [providers.mistral]
-model = "mistral-large-latest"
+model = "mistral-small-latest"
 temperature = 0.7
 
 [cache]
