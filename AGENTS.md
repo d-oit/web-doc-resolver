@@ -105,7 +105,6 @@ do-web-doc-resolver/
 ├── .claude/skills/        # Skill symlinks (Claude)
 ├── .opencode/skills/      # Skill symlinks (OpenCode)
 ├── agents-docs/            # Reference docs for AGENTS.md
-├── .mcp.json              # MCP config for Claude Code / OpenCode
 └── .github/workflows/     # CI/CD (ci.yml, release.yml)
 ```
 

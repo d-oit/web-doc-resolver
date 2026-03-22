@@ -99,9 +99,9 @@ If CI fails:
 ## Agent prompt template
 
 ```
-You are implementing GitHub Issue #{N}: "{Title}" for the do-web-doc-resolover project.
+You are implementing GitHub Issue #{N}: "{Title}" for the do-web-doc-resolver project.
 
-CONTEXT: The UI layer is in `/workspaces/web-doc-resolver/cli/ui/`. Components are CSS-only files with BEM classes prefixed `wdr-`.
+CONTEXT: The UI layer is in `/workspaces/do-web-doc-resolver/cli/ui/`. Components are CSS-only files with BEM classes prefixed `wdr-`.
 
 REQUIREMENTS from the issue:
 {issue_body}
@@ -114,7 +114,7 @@ EXISTING COMPONENT CONVENTIONS (from button.css, badge.css):
 - BEM: `.wdr-{component}`, `.wdr-{component}--variant`, `.wdr-{component}__element`
 - Focus-visible outlines, transitions on colors, prefers-reduced-motion
 
-TASK: Create `/workspaces/web-doc-resolver/cli/ui/components/{name}.css`. Max 200 lines. No comments.
+TASK: Create `/workspaces/do-web-doc-resolver/cli/ui/components/{name}.css`. Max 200 lines. No comments.
 
 Also update `components/README.md` to replace the issue link with `{name}.css`.
 ```

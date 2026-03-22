@@ -7,7 +7,7 @@ allowed-tools: Bash(agent-browser:*) Read Write
 metadata:
   author: d-oit
   version: "0.1.0"
-  source: https://github.com/d-oit/do-web-doc-resolover
+  source: https://github.com/d-oit/do-web-doc-resolver
 ---
 
 # WDR Assets Skill

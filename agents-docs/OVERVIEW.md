@@ -71,7 +71,7 @@ Next.js web interface that:
 ## File Structure
 
 ```
-do-web-doc-resolover/
+do-web-doc-resolver/
 ├── scripts/resolve.py       # Main Python resolver
 ├── cli/                     # Rust CLI
 │   ├── Cargo.toml

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Release script for web-doc-resolver
+# Release script for do-web-doc-resolver
 # Usage: ./scripts/release.sh [patch|minor|major|X.Y.Z]
 
 set -e
@@ -215,7 +215,7 @@ echo -e "${GREEN}  Release v$NEW_VERSION complete!${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════${NC}"
 echo ""
 echo "Next steps:"
-echo "  - Check GitHub release: https://github.com/d-oit/do-web-doc-resolover/releases/tag/v$NEW_VERSION"
+echo "  - Check GitHub release: https://github.com/d-oit/do-web-doc-resolver/releases/tag/v$NEW_VERSION"
 echo "  - Update documentation if needed"
 echo "  - Announce release"
 echo ""

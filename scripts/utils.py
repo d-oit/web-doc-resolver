@@ -26,7 +26,7 @@ CACHE_DIR = os.path.expanduser(os.getenv("WEB_RESOLVER_CACHE_DIR", "~/.cache/web
 CACHE_TTL = int(os.getenv("WEB_RESOLVER_CACHE_TTL", str(3600 * 24)))
 
 USER_AGENT = (
-    "Mozilla/5.0 (compatible; WebDocResolver/2.0; +https://github.com/d-oit/web-doc-resolver)"
+    "Mozilla/5.0 (compatible; WebDocResolver/2.0; +https://github.com/d-oit/do-web-doc-resolver)"
 )
 
 BLOCKED_NETWORKS = [

@@ -1,6 +1,6 @@
 # Cascade Resolution Strategy
 
-This document describes the full cascade fallback decision tree used by do-web-doc-resolover.
+This document describes the full cascade fallback decision tree used by do-web-doc-resolver.
 
 ## Overview
 
@@ -172,7 +172,7 @@ def _set_rate_limit(provider: str, cooldown: int = 60):
 ### Cache Implementation
 
 - **Backend**: `diskcache` (if available), otherwise in-memory
-- **Location**: `~/.cache/do-web-doc-resolover/`
+- **Location**: `~/.cache/do-web-doc-resolver/`
 - **TTL**: 24 hours (86400 seconds)
 - **Key**: SHA-256 hash of `source:input`
 

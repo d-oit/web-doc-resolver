@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('App Shell & Layout', () => {
   test('page loads with correct title', async ({ page }) => {
     await page.goto('/');
-    await expect(page).toHaveTitle(/do-web-doc-resolover/i);
+    await expect(page).toHaveTitle(/do-web-doc-resolver/i);
   });
 
   test('has valid manifest for PWA', async ({ page }) => {

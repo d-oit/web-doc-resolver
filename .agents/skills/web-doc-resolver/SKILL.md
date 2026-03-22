@@ -1,5 +1,5 @@
 ---
-name: web-doc-resolver
+name: do-web-doc-resolver
 description: Python implementation for resolving URLs and queries into compact, LLM-ready markdown documentation. Use when you need the Python resolver with full cascade support, quality scoring, circuit breakers, and advanced routing features.
 license: MIT
 compatibility: Python 3.10+, async/await
@@ -7,7 +7,7 @@ allowed-tools: Bash(python:*|wdr:*) Read
 metadata:
   author: d-oit
   version: "0.1.0"
-  source: https://github.com/d-oit/do-web-doc-resolover
+  source: https://github.com/d-oit/do-web-doc-resolver
 ---
 
 # Web Doc Resolver Skill

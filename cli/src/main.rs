@@ -7,7 +7,7 @@ use anyhow::Result;
 use std::process::ExitCode;
 use tracing_subscriber::{EnvFilter, fmt};
 
-use wdr_lib::{
+use do_wdr_lib::{
     cli::Cli,
     config::Config,
     output::{ConfigOutput, JsonOutput, ProviderList},
@@ -19,9 +19,9 @@ use wdr_lib::{
 fn init_logging(verbose: u8) {
     let filter = match verbose {
         0 => EnvFilter::try_from_default_env()
-            .unwrap_or_else(|_| EnvFilter::new("wdr=info,wdr_lib=info")),
-        1 => EnvFilter::new("wdr=debug,wdr_lib=debug"),
-        _ => EnvFilter::new("wdr=trace,wdr_lib=trace"),
+            .unwrap_or_else(|_| EnvFilter::new("do_wdr=info,do_wdr_lib=info")),
+        1 => EnvFilter::new("do_wdr=debug,do_wdr_lib=debug"),
+        _ => EnvFilter::new("do_wdr=trace,do_wdr_lib=trace"),
     };
 
     fmt()
@@ -170,7 +170,7 @@ fn main() -> ExitCode {
 
     // Run the appropriate command
     let result = match cli.command {
-        wdr_lib::cli::Commands::Resolve(args) => {
+        do_wdr_lib::cli::Commands::Resolve(args) => {
             let config = build_config(
                 args.skip.clone(),
                 args.providers_order.clone(),
@@ -197,21 +197,21 @@ fn main() -> ExitCode {
                     args.synthesize,
                 ))
         }
-        wdr_lib::cli::Commands::Providers => {
+        do_wdr_lib::cli::Commands::Providers => {
             ProviderList::print();
             Ok(())
         }
-        wdr_lib::cli::Commands::Config => {
+        do_wdr_lib::cli::Commands::Config => {
             let config = Config::load();
             ConfigOutput::print(&config);
             Ok(())
         }
-        wdr_lib::cli::Commands::CacheStats => {
+        do_wdr_lib::cli::Commands::CacheStats => {
             let config = Config::load();
             tokio::runtime::Runtime::new().unwrap().block_on(async {
-                if let Some(cache) = wdr_lib::SemanticCache::new(&config)? {
+                if let Some(cache) = do_wdr_lib::SemanticCache::new(&config)? {
                     let stats = cache.stats().await?;
-                    wdr_lib::output::CacheStatsOutput::print(&stats);
+                    do_wdr_lib::output::CacheStatsOutput::print(&stats);
                     Ok(())
                 } else {
                     eprintln!("Info: Semantic cache is disabled");

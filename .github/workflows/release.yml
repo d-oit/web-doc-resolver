@@ -165,7 +165,7 @@ jobs:
 
             ### Install
             ```bash
-            curl -L https://github.com/d-oit/web-doc-resolver/releases/download/${{ steps.version.outputs.VERSION }}/wdr-linux-x86_64 -o wdr
+            curl -L https://github.com/d-oit/do-web-doc-resolver/releases/download/${{ steps.version.outputs.VERSION }}/wdr-linux-x86_64 -o wdr
             chmod +x wdr
             ```
 

@@ -10,7 +10,7 @@ compatibility: Requires access to the repository file tree. Works with Claude Co
 metadata:
   author: d-oit
   version: "1.0"
-  project: web-doc-resolver
+  project: do-web-doc-resolver
   tags: readme documentation github badges svg-logo markdown
 allowed-tools: Bash(cat:*) Bash(find:*) Bash(ls:*) Read Write
 ---

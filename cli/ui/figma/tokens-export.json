@@ -4,10 +4,10 @@
   "exportedAt": "2026-03-20T00:00:00.000Z",
   "source": "Figma Variables",
   "targetFormat": "style-dictionary/4",
-  "description": "do-web-doc-resolover design tokens — Figma Variables export for Style Dictionary transformation",
+  "description": "do-web-doc-resolver design tokens — Figma Variables export for Style Dictionary transformation",
 
   "collections": {
-    "do-web-doc-resolover": {
+    "do-web-doc-resolver": {
       "modes": ["light", "dark"],
       "variableScopes": ["ALL_SCOPES"],
 

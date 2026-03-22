@@ -1,4 +1,4 @@
-# Stories — do-web-doc-resolover
+# Stories — do-web-doc-resolver
 
 Storybook 9 with CSF 3 (Component Story Format) for component development.
 

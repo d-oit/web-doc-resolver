@@ -1,12 +1,12 @@
 ---
 name: wdr-ui-component
-description: Implement CSS-only UI components for the do-web-doc-resolover design system. Use when creating new components, fixing component styles, or implementing GitHub issues tagged design-system/frontend in cli/ui/. Triggers include "create component", "implement badge/tooltip/modal", "add CSS for", "design system component", or any task involving cli/ui/components/. Covers token patterns, BEM naming, accessibility, dark mode, and the wave-based GitHub issue implementation workflow.
+description: Implement CSS-only UI components for the do-web-doc-resolver design system. Use when creating new components, fixing component styles, or implementing GitHub issues tagged design-system/frontend in cli/ui/. Triggers include "create component", "implement badge/tooltip/modal", "add CSS for", "design system component", or any task involving cli/ui/components/. Covers token patterns, BEM naming, accessibility, dark mode, and the wave-based GitHub issue implementation workflow.
 allowed-tools: Bash(git:*), Read, Write, Edit, Glob, Grep
 ---
 
 # WDR UI Component Development
 
-CSS-only components for the do-web-doc-resolover developer-first design system.
+CSS-only components for the do-web-doc-resolver developer-first design system.
 
 ## When to use
 

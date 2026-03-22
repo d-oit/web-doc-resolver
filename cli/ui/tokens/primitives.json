@@ -1,6 +1,6 @@
 {
   "$schema": "https://tr.designtokens.org/format/",
-  "$name": "do-web-doc-resolover primitives",
+  "$name": "do-web-doc-resolver primitives",
   "$description": "Figma-exported raw values. Do not edit manually — export from Figma Variables.",
   "color": {
     "ocean": {

@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Project name**: Fixed typo (do-web-doc-resolover → do-web-doc-resolver)
+- **Project name**: Fixed typo (do-web-doc-resolver → do-web-doc-resolver)
 - **Web UI**: Removed emoji badges, replaced with CSS dots
 - **Web UI**: Settings page with local/server key status
 - **CI**: Simplified to Git-based Vercel deployment

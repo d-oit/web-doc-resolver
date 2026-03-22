@@ -1,6 +1,6 @@
 # Web Doc Resolver UI
 
-A Next.js web interface for [do-web-doc-resolover](../README.md) — resolves queries and URLs into compact, LLM-ready markdown via a free-first provider cascade.
+A Next.js web interface for [do-web-doc-resolver](../README.md) — resolves queries and URLs into compact, LLM-ready markdown via a free-first provider cascade.
 
 ## Quick Start
 

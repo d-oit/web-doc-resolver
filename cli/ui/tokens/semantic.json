@@ -1,6 +1,6 @@
 {
   "$schema": "https://tr.designtokens.org/format/",
-  "$name": "do-web-doc-resolover semantic tokens",
+  "$name": "do-web-doc-resolver semantic tokens",
   "$description": "Intent-based aliases referencing primitives. Components reference these, never raw values.",
   "surface": {
     "bg": {

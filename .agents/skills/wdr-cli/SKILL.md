@@ -7,7 +7,7 @@ allowed-tools: Bash(wdr:*) Read
 metadata:
   author: d-oit
   version: "0.1.0"
-  source: https://github.com/d-oit/do-web-doc-resolover/tree/main/cli
+  source: https://github.com/d-oit/do-web-doc-resolver/tree/main/cli
 ---
 
 # WDR CLI Skill
