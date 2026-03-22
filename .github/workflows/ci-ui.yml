@@ -7,86 +7,147 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
+
+env:
+  NODE_VERSION: '22'
+  PNPM_VERSION: '9'
 
 jobs:
   lint:
     name: Lint (cli/ui)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
-        with: { version: 9 }
-      - uses: actions/setup-node@v6
-        with: { node-version: 20 }
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: cli/ui/pnpm-lock.yaml
+
       - run: pnpm install --ignore-workspace
         working-directory: cli/ui
+
       - run: pnpm lint
         working-directory: cli/ui
 
   test:
     name: Unit Tests (cli/ui)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v6
-      - uses: pnpm/action-setup@v5
-        with: { version: 9 }
-      - uses: actions/setup-node@v6
-        with: { node-version: 20 }
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+          cache-dependency-path: cli/ui/pnpm-lock.yaml
+
       - run: pnpm install --ignore-workspace
         working-directory: cli/ui
+
       - run: pnpm test
         working-directory: cli/ui
 
   web-lint:
     name: Lint (web)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with: { node-version: 20 }
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
       - run: npm ci
         working-directory: web
+
       - run: npm run lint
         working-directory: web
 
   web-typecheck:
     name: Typecheck (web)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with: { node-version: 20 }
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
       - run: npm ci
         working-directory: web
+
       - run: npm run typecheck
         working-directory: web
 
   web-build:
     name: Build (web)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with: { node-version: 20 }
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
       - run: npm ci
         working-directory: web
+
       - run: npm run build
         working-directory: web
 
   web-e2e:
     name: E2E Tests (web)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     needs: [web-build]
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with: { node-version: 20 }
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
       - run: npm ci
         working-directory: web
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('web/package-lock.json') }}
+
       - run: npx playwright install chromium
         working-directory: web
+
       - run: npx playwright test --project=desktop
         working-directory: web
         env:
@@ -95,17 +156,29 @@ jobs:
   quality-gate:
     name: Quality Gate
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     if: always()
     needs: [lint, test, web-lint, web-typecheck, web-build, web-e2e]
     steps:
       - name: Check results
         run: |
-          if [[ "${{ needs.lint.result }}" != "success" ]] || \
-             [[ "${{ needs.test.result }}" != "success" ]] || \
-             [[ "${{ needs.web-lint.result }}" != "success" ]] || \
-             [[ "${{ needs.web-typecheck.result }}" != "success" ]] || \
-             [[ "${{ needs.web-build.result }}" != "success" ]] || \
-             [[ "${{ needs.web-e2e.result }}" != "success" ]]; then
-            echo "Quality gate failed"; exit 1
+          results=(
+            "${{ needs.lint.result }}"
+            "${{ needs.test.result }}"
+            "${{ needs.web-lint.result }}"
+            "${{ needs.web-typecheck.result }}"
+            "${{ needs.web-build.result }}"
+            "${{ needs.web-e2e.result }}"
+          )
+          failed=false
+          for result in "${results[@]}"; do
+            if [[ "$result" != "success" && "$result" != "skipped" ]]; then
+              echo "Job failed with result: $result"
+              failed=true
+            fi
+          done
+          if [[ "$failed" == "true" ]]; then
+            echo "Quality gate failed"
+            exit 1
           fi
           echo "All checks passed"
