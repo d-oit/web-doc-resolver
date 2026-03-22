@@ -1,10 +1,22 @@
-<div style="display: flex; align-items: center; gap: 20px; margin-bottom: 20px;">
-  <img src="./assets/logo.png" alt="do-web-doc-resolver Logo" width="80" height="80"/>
-  <div>
-    <h2 style="margin: 0;">do-web-doc-resolver</h2>
-    <p style="margin: 5px 0 0 0;">Resolve queries or URLs into compact, LLM-ready markdown using an intelligent, low-cost cascade</p>
-  </div>
-</div>
+<table>
+  <tr>
+    <td valign="middle" width="96">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="./assets/logo.png">
+        <source media="(prefers-color-scheme: light)" srcset="./assets/logo.png">
+        <img src="./assets/logo.png" alt="do-web-doc-resolver logo" width="80" height="80">
+      </picture>
+    </td>
+    <td valign="middle">
+      <h2>do-web-doc-resolver</h2>
+      <p>Resolve queries or URLs into compact, LLM-ready markdown using an intelligent, low-cost cascade</p>
+    </td>
+  </tr>
+</table>
+
+## Overview
+
+This project implements a v4 cascade resolver with Python core, Rust CLI, and web UI that prioritizes free and low-cost data sources.
 
 ## Overview
 
