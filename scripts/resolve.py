@@ -168,7 +168,7 @@ def resolve_url_stream(
         max_provider_attempts=budget_data["max_provider_attempts"],
         max_paid_attempts=budget_data["max_paid_attempts"],
         max_total_latency_ms=budget_data["max_total_latency_ms"],
-        allow_paid=budget_data["allow_paid"],
+        allow_paid=bool(budget_data["allow_paid"]),
     )
 
     if any(url.lower().endswith(ext) for ext in [".pdf", ".docx", ".pptx"]):
@@ -342,7 +342,7 @@ def resolve_query_stream(
         max_provider_attempts=budget_data["max_provider_attempts"],
         max_paid_attempts=budget_data["max_paid_attempts"],
         max_total_latency_ms=budget_data["max_total_latency_ms"],
-        allow_paid=budget_data["allow_paid"],
+        allow_paid=bool(budget_data["allow_paid"]),
     )
     provider_names = scripts.routing.plan_provider_order(
         target=query, is_url=False, skip_providers=skip, routing_memory=_routing_memory

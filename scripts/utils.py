@@ -423,7 +423,10 @@ def _get_from_cache(input_str: str, source: str) -> dict[str, Any] | None:
     cache = _get_cache()
     if not cache:
         return None
-    return cache.get(_cache_key(input_str, source))
+    result = cache.get(_cache_key(input_str, source))
+    if result is None:
+        return None
+    return dict(result)
 
 
 def _save_to_cache(input_str: str, source: str, result: dict[str, Any], ttl: int | None = None):
