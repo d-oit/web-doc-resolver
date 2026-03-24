@@ -115,7 +115,7 @@ $env:FIRECRAWL_API_KEY="your-firecrawl-key"
 $env:MISTRAL_API_KEY="your-mistral-key"
 ```
 
-Rust CLI supports `config.toml` or `WDR_*` env vars. See [`.agents/skills/web-doc-resolver/references/CONFIG.md`](.agents/skills/web-doc-resolver/references/CONFIG.md) for full reference.
+Rust CLI supports `config.toml` or `WDR_*` env vars. See [`.agents/skills/do-web-doc-resolver/references/CONFIG.md`](.agents/skills/do-web-doc-resolver/references/CONFIG.md) for full reference.
 
 ## Usage
 
@@ -474,9 +474,9 @@ do-web-doc-resolver/
 
 ## Related Files
 
-- [`SKILL.md`](SKILL.md) - Agent skill specification (symlink to `.agents/skills/web-doc-resolver/SKILL.md`)
+- [`AGENTS.md`](AGENTS.md) - Agent skill specification
 - [`AGENTS.md`](AGENTS.md) - Agent usage documentation
-- [`.agents/skills/web-doc-resolver/`](.agents/skills/web-doc-resolver/) - Skill definition and reference docs
+- [`.agents/skills/do-web-doc-resolver/`](.agents/skills/do-web-doc-resolver/) - Skill definition and reference docs
 - [`scripts/resolve.py`](scripts/resolve.py) - Python resolver source
 - [`cli/src/`](cli/src/) - Rust CLI source
 
