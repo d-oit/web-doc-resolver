@@ -1,23 +1,23 @@
-.wdr-focus-ring:focus-visible {
-  outline: 2px solid var(--wdr-border-focus);
+.do-wdr-focus-ring:focus-visible {
+  outline: 2px solid var(--do-wdr-border-focus);
   outline-offset: 2px;
 }
 
-.wdr-focus-ring--strong:focus-visible {
-  outline: 3px solid var(--wdr-border-focus);
+.do-wdr-focus-ring--strong:focus-visible {
+  outline: 3px solid var(--do-wdr-border-focus);
   outline-offset: 3px;
 }
 
-.wdr-focus-ring--inset:focus-visible {
-  outline: 2px solid var(--wdr-border-focus);
+.do-wdr-focus-ring--inset:focus-visible {
+  outline: 2px solid var(--do-wdr-border-focus);
   outline-offset: -2px;
 }
 
-.wdr-input-group:focus-within .wdr-input-label {
-  color: var(--wdr-text-primary);
+.do-wdr-input-group:focus-within .do-wdr-input-label {
+  color: var(--do-wdr-text-primary);
 }
 
-.wdr-sr-only {
+.do-wdr-sr-only {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -30,8 +30,8 @@
   border: 0;
 }
 
-.wdr-sr-only-focusable:focus,
-.wdr-sr-only-focusable:active {
+.do-wdr-sr-only-focusable:focus,
+.do-wdr-sr-only-focusable:active {
   position: static;
   width: auto;
   height: auto;
@@ -43,32 +43,32 @@
   white-space: normal;
 }
 
-.wdr-skip-nav {
+.do-wdr-skip-nav {
   position: absolute;
   top: 0;
   left: 0;
-  z-index: var(--wdr-z-modal);
-  padding: var(--wdr-space-3) var(--wdr-space-4);
-  background: var(--wdr-interactive-bg);
-  color: var(--wdr-interactive-text);
-  font-weight: var(--wdr-weight-semibold);
+  z-index: var(--do-wdr-z-modal);
+  padding: var(--do-wdr-space-3) var(--do-wdr-space-4);
+  background: var(--do-wdr-interactive-bg);
+  color: var(--do-wdr-interactive-text);
+  font-weight: var(--do-wdr-weight-semibold);
   text-decoration: none;
-  border-radius: 0 0 var(--wdr-radius-md) 0;
+  border-radius: 0 0 var(--do-wdr-radius-md) 0;
   transform: translateY(-100%);
-  transition: transform var(--wdr-duration-fast) var(--wdr-ease-out);
+  transition: transform var(--do-wdr-duration-fast) var(--do-wdr-ease-out);
 }
 
-.wdr-skip-nav:focus {
+.do-wdr-skip-nav:focus {
   transform: translateY(0);
-  outline: 2px solid var(--wdr-border-focus);
+  outline: 2px solid var(--do-wdr-border-focus);
   outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wdr-reduce-motion,
-  .wdr-reduce-motion *,
-  .wdr-reduce-motion *::before,
-  .wdr-reduce-motion *::after {
+  .do-wdr-reduce-motion,
+  .do-wdr-reduce-motion *,
+  .do-wdr-reduce-motion *::before,
+  .do-wdr-reduce-motion *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -77,33 +77,33 @@
 }
 
 @media (forced-colors: active) {
-  .wdr-button { border: 1px solid ButtonText; }
-  .wdr-button--primary { background: Highlight; color: HighlightText; }
-  .wdr-input { border: 1px solid ButtonText; }
-  .wdr-card { border: 1px solid ButtonText; }
-  .wdr-stepper__indicator { border: 2px solid ButtonText; }
-  .wdr-sidebar__item--active { background: Highlight; color: HighlightText; }
+  .do-wdr-button { border: 1px solid ButtonText; }
+  .do-wdr-button--primary { background: Highlight; color: HighlightText; }
+  .do-wdr-input { border: 1px solid ButtonText; }
+  .do-wdr-card { border: 1px solid ButtonText; }
+  .do-wdr-stepper__indicator { border: 2px solid ButtonText; }
+  .do-wdr-sidebar__item--active { background: Highlight; color: HighlightText; }
 }
 
 :root {
-  --wdr-contrast-text-on-bg:       12.6;
-  --wdr-contrast-text-secondary:   5.4;
-  --wdr-contrast-text-tertiary:    2.8;
-  --wdr-contrast-interactive:      4.6;
-  --wdr-contrast-error:            4.1;
-  --wdr-contrast-success:          3.2;
+  --do-wdr-contrast-text-on-bg:       12.6;
+  --do-wdr-contrast-text-secondary:   5.4;
+  --do-wdr-contrast-text-tertiary:    2.8;
+  --do-wdr-contrast-interactive:      4.6;
+  --do-wdr-contrast-error:            4.1;
+  --do-wdr-contrast-success:          3.2;
 }
 
 [data-theme="dark"] {
-  --wdr-contrast-text-on-bg:       15.3;
-  --wdr-contrast-text-secondary:   5.1;
-  --wdr-contrast-text-tertiary:    3.0;
-  --wdr-contrast-interactive:      5.2;
-  --wdr-contrast-error:            4.8;
-  --wdr-contrast-success:          4.5;
+  --do-wdr-contrast-text-on-bg:       15.3;
+  --do-wdr-contrast-text-secondary:   5.1;
+  --do-wdr-contrast-text-tertiary:    3.0;
+  --do-wdr-contrast-interactive:      5.2;
+  --do-wdr-contrast-error:            4.8;
+  --do-wdr-contrast-success:          4.5;
 }
 
-.wdr-touch-target {
+.do-wdr-touch-target {
   min-width: 2.75rem;
   min-height: 2.75rem;
   display: inline-flex;
@@ -111,9 +111,9 @@
   justify-content: center;
 }
 
-.wdr-live-polite,
-.wdr-live-assertive,
-.wdr-live-region {
+.do-wdr-live-polite,
+.do-wdr-live-assertive,
+.do-wdr-live-region {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -126,14 +126,14 @@
   border: 0;
 }
 
-[data-wdr-keyboard-nav] .wdr-button:focus-visible,
-[data-wdr-keyboard-nav] .wdr-input:focus-visible,
-[data-wdr-keyboard-nav] .wdr-sidebar__item:focus-visible {
-  outline: 2px solid var(--wdr-border-focus);
+[data-wdr-keyboard-nav] .do-wdr-button:focus-visible,
+[data-wdr-keyboard-nav] .do-wdr-input:focus-visible,
+[data-wdr-keyboard-nav] .do-wdr-sidebar__item:focus-visible {
+  outline: 2px solid var(--do-wdr-border-focus);
   outline-offset: 2px;
 }
 
-[data-wdr-keyboard-nav] .wdr-button--icon:focus-visible {
+[data-wdr-keyboard-nav] .do-wdr-button--icon:focus-visible {
   outline-offset: 0;
 }
 
@@ -142,32 +142,32 @@
   scroll-margin-inline: 1rem;
 }
 
-.wdr-badge__close {
+.do-wdr-badge__close {
   min-width: 1.5rem;
   min-height: 1.5rem;
   padding: 0.25rem;
   margin: -0.25rem;
 }
 
-.wdr-modal__close {
+.do-wdr-modal__close {
   min-width: 1.5rem;
   min-height: 1.5rem;
 }
 
-.wdr-sidebar__item,
-.wdr-sidebar__toggle {
+.do-wdr-sidebar__item,
+.do-wdr-sidebar__toggle {
   min-height: 2rem;
 }
 
-.wdr-checkbox,
-.wdr-radio,
-.wdr-switch {
+.do-wdr-checkbox,
+.do-wdr-radio,
+.do-wdr-switch {
   min-width: 1.5rem;
   min-height: 1.5rem;
 }
 
-.wdr-tab,
-.wdr-pagination__btn {
+.do-wdr-tab,
+.do-wdr-pagination__btn {
   min-height: 2rem;
   min-width: 2rem;
 }

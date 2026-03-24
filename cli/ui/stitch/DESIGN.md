@@ -96,12 +96,12 @@ All color and spacing values resolve from `tokens/semantic.json`. Components ref
 
 | Token | Value |
 |---|---|
-| `--wdr-space-1` | 4px |
-| `--wdr-space-2` | 8px |
-| `--wdr-space-3` | 12px |
-| `--wdr-space-4` | 16px |
-| `--wdr-space-6` | 24px |
-| `--wdr-space-8` | 32px |
+| `--do-wdr-space-1` | 4px |
+| `--do-wdr-space-2` | 8px |
+| `--do-wdr-space-3` | 12px |
+| `--do-wdr-space-4` | 16px |
+| `--do-wdr-space-6` | 24px |
+| `--do-wdr-space-8` | 32px |
 
 ### Breakpoints
 
@@ -118,24 +118,24 @@ Components are pure CSS with BEM naming. All live in `components/`.
 
 | Component | CSS Class | Description |
 |---|---|---|
-| App Shell | `.wdr-app` | Sidebar + main workspace. Source: `layouts/responsive.css` |
-| Sidebar | `.wdr-sidebar` | Left navigation. Variants: expanded, collapsed |
-| Bottom Nav | `.wdr-bottom-nav` | Mobile bottom bar (< 768px) |
-| Icon Rail | `.wdr-icon-rail` | Tablet collapsed sidebar (768-1024px) |
-| Button | `.wdr-button` | Actions. Variants: primary, secondary, ghost, danger, icon |
-| Input | `.wdr-input` | Text entry. Variants: text, search, URL, select, textarea |
-| DataTable | `.wdr-datatable` | Data tables. Variants: default, dense, compact |
-| KeyValue | `.wdr-kv` | Metadata pair display. Variants: default, dense, striped |
-| MarkdownViewer | `.wdr-markdown-viewer` | Rendered markdown pane |
-| CodeBlock | `.wdr-codeblock` | Syntax-highlighted code |
-| Stepper | `.wdr-stepper` | Pipeline cascade. States: pending, running, streaming, complete, failed |
-| Progress | `.wdr-progress` | Progress bars. Variants: sm/md/lg, determinate/indeterminate |
-| StreamIndicator | `.wdr-stream-indicator` | SSE connection status |
-| Card | `.wdr-card` | Content container. Variants: default, interactive, flat, compact |
-| Panel | `.wdr-panel` | Split pane layout. Variants: horizontal, vertical, collapsible |
-| Modal | `.wdr-modal` | Dialog overlay. Variants: sm/md/lg, confirmation |
-| Badge | `.wdr-badge` | Status indicator. Variants: success, warning, error, info, provider |
-| Tooltip | `.wdr-tooltip` | Hover/focus info. Positions: top, bottom, left, right |
+| App Shell | `.do-wdr-app` | Sidebar + main workspace. Source: `layouts/responsive.css` |
+| Sidebar | `.do-wdr-sidebar` | Left navigation. Variants: expanded, collapsed |
+| Bottom Nav | `.do-wdr-bottom-nav` | Mobile bottom bar (< 768px) |
+| Icon Rail | `.do-wdr-icon-rail` | Tablet collapsed sidebar (768-1024px) |
+| Button | `.do-wdr-button` | Actions. Variants: primary, secondary, ghost, danger, icon |
+| Input | `.do-wdr-input` | Text entry. Variants: text, search, URL, select, textarea |
+| DataTable | `.do-wdr-datatable` | Data tables. Variants: default, dense, compact |
+| KeyValue | `.do-wdr-kv` | Metadata pair display. Variants: default, dense, striped |
+| MarkdownViewer | `.do-wdr-markdown-viewer` | Rendered markdown pane |
+| CodeBlock | `.do-wdr-codeblock` | Syntax-highlighted code |
+| Stepper | `.do-wdr-stepper` | Pipeline cascade. States: pending, running, streaming, complete, failed |
+| Progress | `.do-wdr-progress` | Progress bars. Variants: sm/md/lg, determinate/indeterminate |
+| StreamIndicator | `.do-wdr-stream-indicator` | SSE connection status |
+| Card | `.do-wdr-card` | Content container. Variants: default, interactive, flat, compact |
+| Panel | `.do-wdr-panel` | Split pane layout. Variants: horizontal, vertical, collapsible |
+| Modal | `.do-wdr-modal` | Dialog overlay. Variants: sm/md/lg, confirmation |
+| Badge | `.do-wdr-badge` | Status indicator. Variants: success, warning, error, info, provider |
+| Tooltip | `.do-wdr-tooltip` | Hover/focus info. Positions: top, bottom, left, right |
 
 ---
 
@@ -150,51 +150,51 @@ Main resolution screen. Command input, profile selector, pipeline progress, mark
 ### Composition Tree
 
 ```
-AppShell (wdr-app)
-├── Sidebar (wdr-sidebar) -- expanded, lg+
+AppShell (do-wdr-app)
+├── Sidebar (do-wdr-sidebar) -- expanded, lg+
 │   ├── Nav section: Workspace (active)
 │   ├── Nav section: Providers
 │   ├── Nav section: History
 │   └── Nav section: Settings
-├── BottomNav (wdr-bottom-nav) -- < md
-├── IconRail (wdr-icon-rail) -- md to lg
+├── BottomNav (do-wdr-bottom-nav) -- < md
+├── IconRail (do-wdr-icon-rail) -- md to lg
 └── Main Content
     ├── CommandBar (panel header area)
-    │   ├── Input (wdr-input--search, lg size)
+    │   ├── Input (do-wdr-input--search, lg size)
     │   │   └── placeholder: "Enter URL or query..."
-    │   ├── ProfileSelector (wdr-button--secondary)
+    │   ├── ProfileSelector (do-wdr-button--secondary)
     │   │   └── label: "Fast" | "Balanced" | "Quality"
-    │   └── Button (wdr-button--primary)
+    │   └── Button (do-wdr-button--primary)
     │       └── label: "Resolve", icon: arrow-right
-    └── WorkspaceSplit (wdr-panel--horizontal)
-        ├── InputPane (wdr-panel__left)
-        │   ├── Card (wdr-card--flat)
+    └── WorkspaceSplit (do-wdr-panel--horizontal)
+        ├── InputPane (do-wdr-panel__left)
+        │   ├── Card (do-wdr-card--flat)
         │   │   ├── Card Header
-        │   │   │   ├── Badge (wdr-badge--info) "Input"
-        │   │   │   └── KeyValue (wdr-kv--dense)
+        │   │   │   ├── Badge (do-wdr-badge--info) "Input"
+        │   │   │   └── KeyValue (do-wdr-kv--dense)
     │   │   │       ├── Source: [resolved URL]
     │   │   │       ├── Profile: [selected profile]
     │   │   │       └── Cache: miss | hit
     │   │   └── Card Body
-    │   │       ├── Stepper (wdr-stepper--vertical)
+    │   │       ├── Stepper (do-wdr-stepper--vertical)
     │   │       │   ├── Step 1: exa_mcp -- state: pending | running | complete | failed
     │   │       │   ├── Step 2: exa -- state: pending | running | complete | failed
     │   │       │   ├── Step 3: tavily -- state: pending | running | complete | failed
     │   │       │   └── Step 4: duckduckgo -- state: pending | running | complete | failed
     │   │       └── StreamIndicator
     │   │           └── state: disconnected | connecting | streaming | complete | error
-    │   └── OutputPane (wdr-panel__right)
-    │       ├── Card (wdr-card--default)
+    │   └── OutputPane (do-wdr-panel__right)
+    │       ├── Card (do-wdr-card--default)
     │       │   ├── Card Header
-    │       │   │   ├── Badge (wdr-badge--success) "Result"
-    │       │   │   ├── Button (wdr-button--ghost, icon: copy)
-    │       │   │   └── Button (wdr-button--ghost, icon: download)
+    │       │   │   ├── Badge (do-wdr-badge--success) "Result"
+    │       │   │   ├── Button (do-wdr-button--ghost, icon: copy)
+    │       │   │   └── Button (do-wdr-button--ghost, icon: download)
     │       │   └── Card Body
-    │       │       └── MarkdownViewer (wdr-markdown-viewer)
+    │       │       └── MarkdownViewer (do-wdr-markdown-viewer)
     │       │           └── rendered content with code blocks, tables, links
-    │       └── Card (wdr-card--compact)
+    │       └── Card (do-wdr-card--compact)
     │           └── Card Body
-    │               └── KeyValue (wdr-kv--striped)
+    │               └── KeyValue (do-wdr-kv--striped)
     │                   ├── Provider: [active provider]
     │                   ├── Latency: [ms]
     │                   ├── Tokens: [count]
@@ -202,12 +202,12 @@ AppShell (wdr-app)
     │                   └── Profile: [fast | balanced | quality]
     └── TelemetryAccordion (collapsible panel)
         ├── Header: "Telemetry Trace"
-        ├── Progress (wdr-progress--multi-segment)
+        ├── Progress (do-wdr-progress--multi-segment)
         │   ├── Segment: exa_mcp (color: pipeline.running)
         │   ├── Segment: exa (color: pipeline.pending)
         │   ├── Segment: tavily (color: pipeline.pending)
         │   └── Segment: duckduckgo (color: pipeline.pending)
-        └── DataTable (wdr-datatable--dense)
+        └── DataTable (do-wdr-datatable--dense)
             ├── Columns: Provider | Status | Latency | Tokens | Error
             └── Rows: one per cascade step
 ```
@@ -226,8 +226,8 @@ layout:
     height: 56px
     bg: surface.bg-elevated
     border-bottom: border.default
-    padding: 0 var(--wdr-space-4)
-    gap: var(--wdr-space-3)
+    padding: 0 var(--do-wdr-space-4)
+    gap: var(--do-wdr-space-3)
   workspace-split:
     type: horizontal
     ratio: 40:60
@@ -236,16 +236,16 @@ layout:
     min-right: 400px
   input-pane:
     bg: surface.bg
-    padding: var(--wdr-space-4)
+    padding: var(--do-wdr-space-4)
   output-pane:
     bg: surface.bg
-    padding: var(--wdr-space-4)
+    padding: var(--do-wdr-space-4)
   telemetry:
     height: auto
     max-height: 240px
     bg: surface.bg-sunken
     border-top: border.default
-    padding: var(--wdr-space-3)
+    padding: var(--do-wdr-space-3)
 ```
 
 ### Interaction States
@@ -311,7 +311,7 @@ stepper-step:
 
 output-pane:
   loading:
-    shimmer: wdr-shimmer animation
+    shimmer: do-wdr-shimmer animation
     duration: 1.5s
   loaded:
     transition: opacity 200ms ease-out
@@ -369,8 +369,8 @@ BYOK (Bring Your Own Key) management. Masked inputs for API keys, provider healt
 ### Composition Tree
 
 ```
-AppShell (wdr-app)
-├── Sidebar (wdr-sidebar) -- expanded
+AppShell (do-wdr-app)
+├── Sidebar (do-wdr-sidebar) -- expanded
 │   ├── Nav section: Workspace
 │   ├── Nav section: Providers
 │   ├── Nav section: History
@@ -378,39 +378,39 @@ AppShell (wdr-app)
 └── Main Content
     ├── PageHeader
     │   ├── Heading (h1): "Provider Settings"
-    │   └── Badge (wdr-badge--info) "BYOK"
+    │   └── Badge (do-wdr-badge--info) "BYOK"
     └── ProviderGrid (CSS Grid, auto-fill, min 320px)
-        ├── Card (wdr-card--outlined) -- per provider
+        ├── Card (do-wdr-card--outlined) -- per provider
         │   ├── Card Header
-        │   │   ├── Badge (wdr-badge--provider) -- provider name
+        │   │   ├── Badge (do-wdr-badge--provider) -- provider name
         │   │   │   variants: exa, tavily, firecrawl, mistral, jina
         │   │   ├── StatusBadge
-        │   │   │   connected: wdr-badge--success
-        │   │   │   disconnected: wdr-badge--warning
-        │   │   │   error: wdr-badge--error
-        │   │   └── Tooltip (wdr-tooltip)
+        │   │   │   connected: do-wdr-badge--success
+        │   │   │   disconnected: do-wdr-badge--warning
+        │   │   │   error: do-wdr-badge--error
+        │   │   └── Tooltip (do-wdr-tooltip)
         │   │       └── last checked: [timestamp]
         │   ├── Card Body
         │   │   ├── Label: "API Key"
-        │   │   ├── Input (wdr-input--password, masked)
+        │   │   ├── Input (do-wdr-input--password, masked)
         │   │   │   ├── default: masked "●●●●●●●●●●●●●●●●"
         │   │   │   ├── focus: reveal toggle visible
         │   │   │   └── edit: clear, paste, type
-        │   │   ├── KeyValue (wdr-kv--dense)
+        │   │   ├── KeyValue (do-wdr-kv--dense)
         │   │   │   ├── Rate Limit: [n]/min
         │   │   │   ├── Tier: free | pro | enterprise
         │   │   │   └── Endpoint: [url]
-        │   │   └── Button (wdr-button--secondary)
+        │   │   └── Button (do-wdr-button--secondary)
         │   │       └── label: "Test Connection"
         │   └── Card Footer
-        │       ├── Button (wdr-button--ghost--danger) "Remove"
-        │       └── Button (wdr-button--primary) "Save"
+        │       ├── Button (do-wdr-button--ghost--danger) "Remove"
+        │       └── Button (do-wdr-button--primary) "Save"
         │
-        └── Card (wdr-card--flat) -- "Add Provider" card
+        └── Card (do-wdr-card--flat) -- "Add Provider" card
             ├── Card Body
-            │   ├── Button (wdr-button--ghost, icon: plus)
+            │   ├── Button (do-wdr-button--ghost, icon: plus)
             │   │   └── label: "Add Provider"
-            │   └── Input (wdr-input--select)
+            │   └── Input (do-wdr-input--select)
             │       └── options: exa, tavily, firecrawl, mistral, jina
 ```
 
@@ -420,14 +420,14 @@ AppShell (wdr-app)
 layout:
   type: page-scroll
   page-header:
-    padding: var(--wdr-space-6) var(--wdr-space-4)
+    padding: var(--do-wdr-space-6) var(--do-wdr-space-4)
     bg: surface.bg
     border-bottom: border.default
   provider-grid:
     display: grid
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr))
-    gap: var(--wdr-space-4)
-    padding: var(--wdr-space-4)
+    gap: var(--do-wdr-space-4)
+    padding: var(--do-wdr-space-4)
   provider-card:
     bg: surface.bg-elevated
     border: 1px solid border.default
@@ -471,17 +471,17 @@ test-connection:
   testing:
     bg: surface.bg-elevated
     text: text.secondary
-    progress: wdr-progress--indeterminate
+    progress: do-wdr-progress--indeterminate
     button: disabled, label "Testing..."
   success:
     bg: surface.bg-elevated
     border-left: 3px solid signal.success
-    badge: wdr-badge--success "Connected"
+    badge: do-wdr-badge--success "Connected"
     latency: displayed in KeyValue
   failure:
     bg: surface.bg-elevated
     border-left: 3px solid signal.error
-    badge: wdr-badge--error "Failed"
+    badge: do-wdr-badge--error "Failed"
     error-message: displayed below input
 
 provider-badge:
@@ -551,27 +551,27 @@ Browse past resolutions. Sortable data table with search/filter. Restore from ca
 ### Composition Tree
 
 ```
-AppShell (wdr-app)
-├── Sidebar (wdr-sidebar) -- expanded
+AppShell (do-wdr-app)
+├── Sidebar (do-wdr-sidebar) -- expanded
 │   ├── Nav section: Workspace
 │   ├── Nav section: Providers
 │   ├── Nav section: History (active)
 │   └── Nav section: Settings
-├── BottomNav (wdr-bottom-nav) -- < md
-├── IconRail (wdr-icon-rail) -- md to lg
+├── BottomNav (do-wdr-bottom-nav) -- < md
+├── IconRail (do-wdr-icon-rail) -- md to lg
 └── Main Content
     ├── PageHeader
     │   ├── Heading (h1): "History"
-    │   ├── Input (wdr-input--search)
+    │   ├── Input (do-wdr-input--search)
     │   │   └── placeholder: "Search history..."
     │   └── FilterBar
-    │       ├── Input (wdr-input--select) -- "Date Range"
+    │       ├── Input (do-wdr-input--select) -- "Date Range"
     │       │   └── options: Today | 7d | 30d | All
-    │       ├── Input (wdr-input--select) -- "Profile"
+    │       ├── Input (do-wdr-input--select) -- "Profile"
     │       │   └── options: All | Fast | Balanced | Quality
-    │       └── Input (wdr-input--select) -- "Provider"
+    │       └── Input (do-wdr-input--select) -- "Provider"
     │           └── options: All | exa | tavily | duckduckgo | ...
-    ├── DataTable (wdr-datatable--default, lg; wdr-datatable--dense, sm/md)
+    ├── DataTable (do-wdr-datatable--default, lg; do-wdr-datatable--dense, sm/md)
     │   ├── Columns (sortable)
     │   │   ├── Timestamp (default sort: desc)
     │   │   ├── Input (URL or query, truncated)
@@ -584,25 +584,25 @@ AppShell (wdr-app)
     │   │   ├── Cell: 2026-03-20 14:32
     │   │   ├── Cell: "https://react.dev/reference/react/..."
     │   │   ├── Cell: Balanced
-    │   │   ├── Cell: Badge (wdr-badge--provider) "exa"
-    │   │   ├── Cell: Badge (wdr-badge--success) "Cached"
+    │   │   ├── Cell: Badge (do-wdr-badge--provider) "exa"
+    │   │   ├── Cell: Badge (do-wdr-badge--success) "Cached"
     │   │   ├── Cell: 342ms
     │   │   └── Cell:
-    │   │       ├── Button (wdr-button--ghost, icon: arrow-right)
+    │   │       ├── Button (do-wdr-button--ghost, icon: arrow-right)
     │   │       │   └── tooltip: "Restore from cache"
-    │   │       ├── Button (wdr-button--ghost, icon: copy)
+    │   │       ├── Button (do-wdr-button--ghost, icon: copy)
     │   │       │   └── tooltip: "Copy result"
-    │   │       └── Button (wdr-button--ghost--danger, icon: trash)
+    │   │       └── Button (do-wdr-button--ghost--danger, icon: trash)
     │   │           └── tooltip: "Delete"
     │   └── EmptyState (when no results)
-    │       └── Card (wdr-card--flat)
+    │       └── Card (do-wdr-card--flat)
     │           └── Card Body
     │               ├── Heading: "No history entries"
     │               └── Text: "Resolved queries appear here."
     └── Pagination (below table)
-        ├── Button (wdr-button--ghost) "Previous" -- disabled on page 1
+        ├── Button (do-wdr-button--ghost) "Previous" -- disabled on page 1
         ├── Text: "Page 1 of 12"
-        └── Button (wdr-button--ghost) "Next"
+        └── Button (do-wdr-button--ghost) "Next"
 ```
 
 ### Layout Tokens
@@ -611,20 +611,20 @@ AppShell (wdr-app)
 layout:
   type: page-scroll
   page-header:
-    padding: var(--wdr-space-6) var(--wdr-space-4)
+    padding: var(--do-wdr-space-6) var(--do-wdr-space-4)
     bg: surface.bg
     border-bottom: border.default
-    gap: var(--wdr-space-3)
+    gap: var(--do-wdr-space-3)
     flex-direction: column
   filter-bar:
     display: flex
-    gap: var(--wdr-space-2)
+    gap: var(--do-wdr-space-2)
     flex-wrap: wrap
   datatable-container:
-    padding: var(--wdr-space-4)
+    padding: var(--do-wdr-space-4)
     overflow-x: auto
   pagination:
-    padding: var(--wdr-space-3) var(--wdr-space-4)
+    padding: var(--do-wdr-space-3) var(--do-wdr-space-4)
     display: flex
     justify-content: space-between
     align-items: center
@@ -654,7 +654,7 @@ filter-select:
   active:
     bg: surface.bg-elevated
     border: interactive.border
-    badge: wdr-badge--info (filter count)
+    badge: do-wdr-badge--info (filter count)
   open:
     bg: surface.bg-elevated
     border: interactive.border-focus
@@ -694,7 +694,7 @@ restore-button:
 empty-state:
   bg: surface.bg
   text: text.tertiary
-  padding: var(--wdr-space-8)
+  padding: var(--do-wdr-space-8)
   text-align: center
 ```
 
@@ -707,18 +707,18 @@ sm (< 640px):
     search: full width
     filter-bar: horizontal scroll (overflow-x: auto)
   datatable:
-    variant: wdr-datatable--dense
+    variant: do-wdr-datatable--dense
     columns-visible: Timestamp | Input | Status | Actions
     columns-hidden: Profile | Provider | Latency
     scrollable: horizontal overflow
   row:
-    height: var(--wdr-dense-row, 20px)
+    height: var(--do-wdr-dense-row, 20px)
   pagination:
     simplified: "< Page X >" only
 
 md (640-1024px):
   datatable:
-    variant: wdr-datatable--dense
+    variant: do-wdr-datatable--dense
     columns-visible: all
   filter-bar: flex-wrap
 ```
@@ -738,35 +738,35 @@ Error state compositions for pipeline failures, rate limiting, network errors, a
 Triggered when all cascade steps fail.
 
 ```
-Card (wdr-card--status-accented, accent: signal.error)
+Card (do-wdr-card--status-accented, accent: signal.error)
 ├── Card Header
-│   ├── Badge (wdr-badge--error) "Pipeline Failed"
-│   └── Button (wdr-button--ghost, icon: x) -- dismiss
+│   ├── Badge (do-wdr-badge--error) "Pipeline Failed"
+│   └── Button (do-wdr-button--ghost, icon: x) -- dismiss
 ├── Card Body
-│   ├── Stepper (wdr-stepper--vertical)
+│   ├── Stepper (do-wdr-stepper--vertical)
 │   │   ├── Step: exa_mcp -- state: failed
-│   │   │   └── KeyValue (wdr-kv--dense)
+│   │   │   └── KeyValue (do-wdr-kv--dense)
 │   │   │       ├── Error: "API key invalid"
 │   │   │       └── Code: 401
 │   │   ├── Step: exa -- state: failed
-│   │   │   └── KeyValue (wdr-kv--dense)
+│   │   │   └── KeyValue (do-wdr-kv--dense)
 │   │   │       ├── Error: "Rate limit exceeded"
 │   │   │       └── Code: 429
 │   │   ├── Step: tavily -- state: failed
-│   │   │   └── KeyValue (wdr-kv--dense)
+│   │   │   └── KeyValue (do-wdr-kv--dense)
 │   │   │       ├── Error: "Timeout (30s)"
 │   │   │       └── Code: 504
 │   │   └── Step: duckduckgo -- state: failed
-│   │       └── KeyValue (wdr-kv--dense)
+│   │       └── KeyValue (do-wdr-kv--dense)
 │   │           ├── Error: "Connection refused"
 │   │           └── Code: 503
-│   └── KeyValue (wdr-kv--striped)
+│   └── KeyValue (do-wdr-kv--striped)
 │       ├── Total Duration: [ms]
 │       └── Attempted: 4 / 4 providers
 └── Card Footer
-    ├── Button (wdr-button--primary) "Retry All"
-    ├── Button (wdr-button--secondary) "Retry Failed Only"
-    └── Button (wdr-button--ghost) "View Logs"
+    ├── Button (do-wdr-button--primary) "Retry All"
+    ├── Button (do-wdr-button--secondary) "Retry Failed Only"
+    └── Button (do-wdr-button--ghost) "View Logs"
 ```
 
 **Tokens:**
@@ -790,22 +790,22 @@ failed-pipeline:
 Triggered when a provider returns HTTP 429.
 
 ```
-Card (wdr-card--status-accented, accent: signal.warning)
+Card (do-wdr-card--status-accented, accent: signal.warning)
 ├── Card Header
-│   ├── Badge (wdr-badge--warning) "Rate Limited"
+│   ├── Badge (do-wdr-badge--warning) "Rate Limited"
 │   └── Text: provider name
 ├── Card Body
-│   ├── KeyValue (wdr-kv--dense)
+│   ├── KeyValue (do-wdr-kv--dense)
 │   │   ├── Provider: [name]
 │   │   ├── Limit: [n] requests / [period]
 │   │   ├── Remaining: 0
 │   │   ├── Retry-After: [seconds]
 │   │   └── Reset: [timestamp]
-│   └── Progress (wdr-progress--determinate)
+│   └── Progress (do-wdr-progress--determinate)
 │       └── value: countdown to reset
 └── Card Footer
-    ├── Button (wdr-button--primary) "Retry in [n]s" -- disabled until reset
-    └── Button (wdr-button--secondary) "Skip Provider"
+    ├── Button (do-wdr-button--primary) "Retry in [n]s" -- disabled until reset
+    └── Button (do-wdr-button--secondary) "Skip Provider"
 ```
 
 **Tokens:**
@@ -830,21 +830,21 @@ rate-limited:
 Triggered on fetch failure, DNS error, or timeout.
 
 ```
-Card (wdr-card--status-accented, accent: signal.error)
+Card (do-wdr-card--status-accented, accent: signal.error)
 ├── Card Header
-│   └── Badge (wdr-badge--error) "Network Error"
+│   └── Badge (do-wdr-badge--error) "Network Error"
 ├── Card Body
-│   ├── KeyValue (wdr-kv--dense)
+│   ├── KeyValue (do-wdr-kv--dense)
 │   │   ├── Type: DNS | Timeout | Connection Reset | TLS
 │   │   ├── Endpoint: [url]
 │   │   ├── Duration: [ms] (before failure)
 │   │   └── Timestamp: [iso datetime]
-│   └── CodeBlock (wdr-codeblock)
+│   └── CodeBlock (do-wdr-codeblock)
 │       └── raw error output (truncated, expandable)
 └── Card Footer
-    ├── Button (wdr-button--primary) "Retry"
-    ├── Button (wdr-button--ghost) "Copy Error"
-    └── Button (wdr-button--ghost) "Report Issue"
+    ├── Button (do-wdr-button--primary) "Retry"
+    ├── Button (do-wdr-button--ghost) "Copy Error"
+    └── Button (do-wdr-button--ghost) "Report Issue"
 ```
 
 **Tokens:**
@@ -869,12 +869,12 @@ network-error:
 Triggered when a specific provider health check fails or returns non-2xx.
 
 ```
-Card (wdr-card--flat)
+Card (do-wdr-card--flat)
 ├── Card Header
-│   ├── Badge (wdr-badge--provider) "[provider name]"
-│   └── Badge (wdr-badge--error) "Unavailable"
+│   ├── Badge (do-wdr-badge--provider) "[provider name]"
+│   └── Badge (do-wdr-badge--error) "Unavailable"
 ├── Card Body
-│   ├── KeyValue (wdr-kv--dense)
+│   ├── KeyValue (do-wdr-kv--dense)
 │   │   ├── Status: [HTTP status code]
 │   │   ├── Response Time: timeout | [ms]
 │   │   ├── Last Successful: [timestamp]
@@ -882,9 +882,9 @@ Card (wdr-card--flat)
 │   └── Text (text.secondary)
 │       └── "Provider may be experiencing an outage."
 └── Card Footer
-    ├── Button (wdr-button--secondary) "Test Connection"
-    ├── Button (wdr-button--ghost) "View Status Page"
-    └── Button (wdr-button--ghost--danger) "Disable Provider"
+    ├── Button (do-wdr-button--secondary) "Test Connection"
+    ├── Button (do-wdr-button--ghost) "View Status Page"
+    └── Button (do-wdr-button--ghost--danger) "Disable Provider"
 ```
 
 **Tokens:**
@@ -919,7 +919,7 @@ placement:
   provider-settings:
     provider-unavailable: replaces test-connection success state
   history-browser:
-    network-error: modal overlay (wdr-modal--sm)
+    network-error: modal overlay (do-wdr-modal--sm)
 
 animation:
   enter: opacity 0 -> 1, 200ms ease-out
@@ -928,8 +928,8 @@ animation:
 
 z-index:
   inline-card: auto (in flow)
-  modal-overlay: var(--wdr-z-overlay)
-  modal-content: var(--wdr-z-modal)
+  modal-overlay: var(--do-wdr-z-overlay)
+  modal-content: var(--do-wdr-z-modal)
 ```
 
 ---

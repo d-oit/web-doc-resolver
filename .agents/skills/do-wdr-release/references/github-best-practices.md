@@ -183,7 +183,7 @@ jobs:
         with:
           generate_release_notes: true
           files: |
-            cli/target/release/wdr
+            cli/target/release/do-wdr
             assets/screenshots/release-*/\*.png
 ```
 

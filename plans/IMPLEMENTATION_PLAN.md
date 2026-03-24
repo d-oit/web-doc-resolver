@@ -9,20 +9,20 @@
 
 ## Naming Decision (2026-03-24)
 
-**Decision**: Keep `wdr` as the CLI binary/command name. Keep `do-wdr` as the Rust crate name (for crates.io).
+**Decision**: Use `do-wdr` as the CLI binary/command name. Keep `do-wdr` as the Rust crate name (for crates.io).
 
 | Context | Name | Rationale |
 |---------|------|-----------|
-| CLI binary | `wdr` | Short, matches `rg`/`fd` convention, established everywhere |
-| Rust crate | `do-wdr` | Unique on crates.io (was renamed from `wdr` for publishing) |
+| CLI binary | `do-wdr` | Matches crate name, unique on crates.io |
+| Rust crate | `do-wdr` | Unique on crates.io |
 | Python package | `do-web-doc-resolver` | PyPI standard, matches repo name |
-| Skill folders | `wdr-*` | Short prefix, no change needed |
-| Env vars | `WDR_*` | Established user API, no change |
-| CSS classes | `.wdr-*`, `--wdr-*` | Short prefix, no change |
-| Config paths | `~/.config/wdr/` | Established user API, no change |
+| Skill folders | `do-wdr-*` | Short prefix, no change needed |
+| Env vars | `DO_WDR_*` | Established user API, no change |
+| CSS classes | `.do-wdr-*`, `--do-wdr-*` | Short prefix, no change |
+| Config paths | `~/.config/do-wdr/` | Established user API, no change |
 | npm scoped pkgs | `@do-wdr/*` | Already correct |
 
-**Action taken**: Changed `[[bin]] name = "do-wdr"` → `name = "wdr"` in `cli/Cargo.toml`.
+**Action taken**: Changed `[[bin]] name = "do-wdr"` → `name = "do-wdr"` in `cli/Cargo.toml`.
 
 ---
 
@@ -50,7 +50,7 @@ This plan addresses 6 open GitHub issues and several code quality improvements. 
 | 4 | Python Semantic Cache #130 | ✅ Complete | Web cache with TTL, stats, API |
 | 5 | UI State Persistence #128 | ✅ Complete | Server sync with localStorage fallback |
 | 6 | E2E Test Fixes | ✅ Complete | data-testid selectors, Vercel root dir |
-| 7 | Binary Name Fix | ✅ Complete | `wdr` binary, `do-wdr` crate name |
+| 7 | Binary Name Fix | ✅ Complete | `do-wdr` binary, `do-wdr` crate name |
 
 ### CI Status
 - CI (Python/Rust/lint): ✅ All passing
@@ -495,9 +495,9 @@ cache.store(query, CacheEntry(
 **File**: `scripts/utils.py` or new `config.py`
 
 ```python
-ENABLE_SEMANTIC_CACHE = os.environ.get("WDR_SEMANTIC_CACHE", "1") == "1"
-SEMANTIC_CACHE_THRESHOLD = float(os.environ.get("WDR_CACHE_THRESHOLD", "0.85"))
-SEMANTIC_CACHE_MAX_ENTRIES = int(os.environ.get("WDR_CACHE_MAX_ENTRIES", "10000"))
+ENABLE_SEMANTIC_CACHE = os.environ.get("DO_WDR_SEMANTIC_CACHE", "1") == "1"
+SEMANTIC_CACHE_THRESHOLD = float(os.environ.get("DO_WDR_CACHE_THRESHOLD", "0.85"))
+SEMANTIC_CACHE_MAX_ENTRIES = int(os.environ.get("DO_WDR_CACHE_MAX_ENTRIES", "10000"))
 ```
 
 #### 4.5 Add Tests
@@ -652,8 +652,8 @@ Add missing fields to 6 skills:
 
 | Skill | Missing |
 |-------|---------|
-| wdr-ui-component | license, compatibility, metadata |
-| wdr-issue-swarm | license, compatibility, metadata |
+| do-wdr-ui-component | license, compatibility, metadata |
+| do-wdr-issue-swarm | license, compatibility, metadata |
 | skill-creator | compatibility, allowed-tools, metadata |
 | anti-ai-slop | license, compatibility, allowed-tools, metadata |
 | vercel-cli | license, compatibility, allowed-tools, metadata |

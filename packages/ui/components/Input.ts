@@ -1,4 +1,4 @@
-import { cn } from "@wdr/utils";
+import { cn } from "@do-wdr/utils";
 
 export function Input(props: {
   className?: string;

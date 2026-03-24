@@ -3,7 +3,7 @@ name: do-web-doc-resolver
 description: Python implementation for resolving URLs and queries into compact, LLM-ready markdown documentation. Use when you need the Python resolver with full cascade support, quality scoring, circuit breakers, and advanced routing features.
 license: MIT
 compatibility: Python 3.10+, async/await
-allowed-tools: Bash(python:*|wdr:*) Read
+allowed-tools: Bash(python:*|do-wdr:*) Read
 metadata:
   author: d-oit
   version: "0.1.0"
@@ -241,5 +241,5 @@ do-web-doc-resolver/
 
 ## Related Skills
 
-- `wdr-cli`: Rust compiled CLI for faster performance
+- `do-wdr-cli`: Rust compiled CLI for faster performance
 - `agent-browser`: Browser automation for complex web interactions

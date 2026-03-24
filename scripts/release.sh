@@ -19,7 +19,7 @@ WEB_VERSION=$(node -p "require('./web/package.json').version" 2>/dev/null || ech
 CLI_VERSION=$(grep '^version' "$ROOT_DIR/cli/Cargo.toml" | head -1 | sed 's/version = "\(.*\)"/\1/')
 
 echo -e "${BLUE}═══════════════════════════════════════════${NC}"
-echo -e "${BLUE}  WDR Release Manager${NC}"
+echo -e "${BLUE}  DO-WDR Release Manager${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════${NC}"
 echo ""
 echo -e "Current versions:"

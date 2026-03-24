@@ -1,16 +1,16 @@
 :root {
-  --wdr-resize-divider-color: var(--wdr-border-default);
-  --wdr-resize-divider-size: 1px;
-  --wdr-resize-hit-area: 4px;
-  --wdr-resize-handle-size: 3px;
-  --wdr-resize-handle-dot-color: var(--wdr-text-tertiary);
-  --wdr-resize-handle-hover-bg: var(--wdr-interactive-bg);
-  --wdr-resize-min-pane: 64px;
-  --wdr-resize-snap-threshold: 10px;
-  --wdr-resize-transition: var(--wdr-transition-colors);
+  --do-wdr-resize-divider-color: var(--do-wdr-border-default);
+  --do-wdr-resize-divider-size: 1px;
+  --do-wdr-resize-hit-area: 4px;
+  --do-wdr-resize-handle-size: 3px;
+  --do-wdr-resize-handle-dot-color: var(--do-wdr-text-tertiary);
+  --do-wdr-resize-handle-hover-bg: var(--do-wdr-interactive-bg);
+  --do-wdr-resize-min-pane: 64px;
+  --do-wdr-resize-snap-threshold: 10px;
+  --do-wdr-resize-transition: var(--do-wdr-transition-colors);
 }
 
-.wdr-resize {
+.do-wdr-resize {
   display: flex;
   position: relative;
   width: 100%;
@@ -19,74 +19,74 @@
   container-type: inline-size;
 }
 
-.wdr-resize--horizontal {
+.do-wdr-resize--horizontal {
   flex-direction: row;
 }
 
-.wdr-resize--vertical {
+.do-wdr-resize--vertical {
   flex-direction: column;
 }
 
-.wdr-resize__pane {
+.do-wdr-resize__pane {
   flex: 1 1 0%;
   min-width: 0;
   min-height: 0;
   overflow: auto;
 }
 
-.wdr-resize--horizontal > .wdr-resize__pane {
-  min-width: var(--wdr-resize-min-pane);
+.do-wdr-resize--horizontal > .do-wdr-resize__pane {
+  min-width: var(--do-wdr-resize-min-pane);
 }
 
-.wdr-resize--vertical > .wdr-resize__pane {
-  min-height: var(--wdr-resize-min-pane);
+.do-wdr-resize--vertical > .do-wdr-resize__pane {
+  min-height: var(--do-wdr-resize-min-pane);
 }
 
-.wdr-resize__pane--size {
+.do-wdr-resize__pane--size {
   flex: 0 0 auto;
 }
 
-.wdr-resize__divider {
+.do-wdr-resize__divider {
   position: relative;
   flex: 0 0 auto;
-  background: var(--wdr-resize-divider-color);
-  transition: background var(--wdr-resize-transition);
-  z-index: var(--wdr-z-sticky);
+  background: var(--do-wdr-resize-divider-color);
+  transition: background var(--do-wdr-resize-transition);
+  z-index: var(--do-wdr-z-sticky);
 }
 
-.wdr-resize--horizontal > .wdr-resize__divider {
-  width: var(--wdr-resize-divider-size);
-  padding-left: var(--wdr-resize-hit-area);
-  padding-right: var(--wdr-resize-hit-area);
+.do-wdr-resize--horizontal > .do-wdr-resize__divider {
+  width: var(--do-wdr-resize-divider-size);
+  padding-left: var(--do-wdr-resize-hit-area);
+  padding-right: var(--do-wdr-resize-hit-area);
   cursor: col-resize;
 }
 
-.wdr-resize--vertical > .wdr-resize__divider {
-  height: var(--wdr-resize-divider-size);
-  padding-top: var(--wdr-resize-hit-area);
-  padding-bottom: var(--wdr-resize-hit-area);
+.do-wdr-resize--vertical > .do-wdr-resize__divider {
+  height: var(--do-wdr-resize-divider-size);
+  padding-top: var(--do-wdr-resize-hit-area);
+  padding-bottom: var(--do-wdr-resize-hit-area);
   cursor: row-resize;
 }
 
-.wdr-resize__divider:focus-visible {
-  outline: 2px solid var(--wdr-border-focus);
+.do-wdr-resize__divider:focus-visible {
+  outline: 2px solid var(--do-wdr-border-focus);
   outline-offset: 2px;
 }
 
-.wdr-resize__divider:hover,
-.wdr-resize__divider:focus-visible {
-  background: var(--wdr-resize-handle-hover-bg);
+.do-wdr-resize__divider:hover,
+.do-wdr-resize__divider:focus-visible {
+  background: var(--do-wdr-resize-handle-hover-bg);
 }
 
-.wdr-resize__handle {
+.do-wdr-resize__handle {
   position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: opacity var(--wdr-transition-opacity);
+  transition: opacity var(--do-wdr-transition-opacity);
 }
 
-.wdr-resize--horizontal > .wdr-resize__divider > .wdr-resize__handle {
+.do-wdr-resize--horizontal > .do-wdr-resize__divider > .do-wdr-resize__handle {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -96,7 +96,7 @@
   gap: 3px;
 }
 
-.wdr-resize--vertical > .wdr-resize__divider > .wdr-resize__handle {
+.do-wdr-resize--vertical > .do-wdr-resize__divider > .do-wdr-resize__handle {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -106,73 +106,73 @@
   gap: 3px;
 }
 
-.wdr-resize__handle::before,
-.wdr-resize__handle::after {
+.do-wdr-resize__handle::before,
+.do-wdr-resize__handle::after {
   content: '';
   display: block;
-  border-radius: var(--wdr-radius-full);
-  background: var(--wdr-resize-handle-dot-color);
-  transition: background var(--wdr-resize-transition);
+  border-radius: var(--do-wdr-radius-full);
+  background: var(--do-wdr-resize-handle-dot-color);
+  transition: background var(--do-wdr-resize-transition);
 }
 
-.wdr-resize--horizontal > .wdr-resize__divider > .wdr-resize__handle::before,
-.wdr-resize--horizontal > .wdr-resize__divider > .wdr-resize__handle::after,
-.wdr-resize--horizontal > .wdr-resize__divider > .wdr-resize__handle span {
-  width: var(--wdr-resize-handle-size);
-  height: var(--wdr-resize-handle-size);
-  border-radius: var(--wdr-radius-full);
-  background: var(--wdr-resize-handle-dot-color);
+.do-wdr-resize--horizontal > .do-wdr-resize__divider > .do-wdr-resize__handle::before,
+.do-wdr-resize--horizontal > .do-wdr-resize__divider > .do-wdr-resize__handle::after,
+.do-wdr-resize--horizontal > .do-wdr-resize__divider > .do-wdr-resize__handle span {
+  width: var(--do-wdr-resize-handle-size);
+  height: var(--do-wdr-resize-handle-size);
+  border-radius: var(--do-wdr-radius-full);
+  background: var(--do-wdr-resize-handle-dot-color);
 }
 
-.wdr-resize--vertical > .wdr-resize__divider > .wdr-resize__handle::before,
-.wdr-resize--vertical > .wdr-resize__divider > .wdr-resize__handle::after,
-.wdr-resize--vertical > .wdr-resize__divider > .wdr-resize__handle span {
-  width: var(--wdr-resize-handle-size);
-  height: var(--wdr-resize-handle-size);
-  border-radius: var(--wdr-radius-full);
-  background: var(--wdr-resize-handle-dot-color);
+.do-wdr-resize--vertical > .do-wdr-resize__divider > .do-wdr-resize__handle::before,
+.do-wdr-resize--vertical > .do-wdr-resize__divider > .do-wdr-resize__handle::after,
+.do-wdr-resize--vertical > .do-wdr-resize__divider > .do-wdr-resize__handle span {
+  width: var(--do-wdr-resize-handle-size);
+  height: var(--do-wdr-resize-handle-size);
+  border-radius: var(--do-wdr-radius-full);
+  background: var(--do-wdr-resize-handle-dot-color);
 }
 
-.wdr-resize__divider:hover .wdr-resize__handle::before,
-.wdr-resize__divider:hover .wdr-resize__handle::after,
-.wdr-resize__divider:hover .wdr-resize__handle span,
-.wdr-resize__divider:focus-visible .wdr-resize__handle::before,
-.wdr-resize__divider:focus-visible .wdr-resize__handle::after,
-.wdr-resize__divider:focus-visible .wdr-resize__handle span {
-  background: var(--wdr-text-primary);
+.do-wdr-resize__divider:hover .do-wdr-resize__handle::before,
+.do-wdr-resize__divider:hover .do-wdr-resize__handle::after,
+.do-wdr-resize__divider:hover .do-wdr-resize__handle span,
+.do-wdr-resize__divider:focus-visible .do-wdr-resize__handle::before,
+.do-wdr-resize__divider:focus-visible .do-wdr-resize__handle::after,
+.do-wdr-resize__divider:focus-visible .do-wdr-resize__handle span {
+  background: var(--do-wdr-text-primary);
 }
 
-.wdr-resize--collapsed > .wdr-resize__pane:not(.wdr-resize__pane--size) {
+.do-wdr-resize--collapsed > .do-wdr-resize__pane:not(.do-wdr-resize__pane--size) {
   display: none;
 }
 
-.wdr-resize--dragging {
+.do-wdr-resize--dragging {
   user-select: none;
 }
 
-.wdr-resize--dragging > .wdr-resize__pane {
+.do-wdr-resize--dragging > .do-wdr-resize__pane {
   pointer-events: none;
 }
 
 @container (max-width: 320px) {
-  .wdr-resize--horizontal {
+  .do-wdr-resize--horizontal {
     flex-direction: column;
   }
 
-  .wdr-resize--horizontal > .wdr-resize__divider {
+  .do-wdr-resize--horizontal > .do-wdr-resize__divider {
     width: auto;
-    height: var(--wdr-resize-divider-size);
-    padding: var(--wdr-resize-hit-area) 0;
+    height: var(--do-wdr-resize-divider-size);
+    padding: var(--do-wdr-resize-hit-area) 0;
     cursor: row-resize;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wdr-resize,
-  .wdr-resize__divider,
-  .wdr-resize__handle::before,
-  .wdr-resize__handle::after,
-  .wdr-resize__handle span {
+  .do-wdr-resize,
+  .do-wdr-resize__divider,
+  .do-wdr-resize__handle::before,
+  .do-wdr-resize__handle::after,
+  .do-wdr-resize__handle span {
     transition: none;
     animation: none;
   }

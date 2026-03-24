@@ -1,5 +1,5 @@
 ---
-name: wdr-assets
+name: do-wdr-assets
 description: Create screenshots, images, and visual tests for documentation. Use when you need to capture UI screenshots, generate visual assets, create test captures, or update documentation images. Automates browser-based image capture with agent-browser and saves to assets/ folder.
 license: MIT
 compatibility: Node.js, agent-browser, Chromium
@@ -179,5 +179,5 @@ fi
 ## Related Skills
 
 - `agent-browser`: Browser automation
-- `wdr-cli`: Rust CLI for web resolution
+- `do-wdr-cli`: Rust CLI for web resolution
 - `do-web-doc-resolver`: Python resolver

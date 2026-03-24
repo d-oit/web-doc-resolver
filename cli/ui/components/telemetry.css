@@ -1,176 +1,176 @@
 :root {
-  --wdr-telemetry-font:       var(--wdr-font-mono);
-  --wdr-telemetry-fs:         var(--wdr-text-xs);
-  --wdr-telemetry-fs-sm:      0.625rem;
-  --wdr-telemetry-bg:         var(--wdr-surface-bg);
-  --wdr-telemetry-bg-el:      var(--wdr-surface-bg-elevated);
-  --wdr-telemetry-bg-sub:     var(--wdr-surface-bg-subtle);
-  --wdr-telemetry-border:     var(--wdr-border-default);
-  --wdr-telemetry-border-sub: var(--wdr-border-subtle);
-  --wdr-telemetry-text:       var(--wdr-text-primary);
-  --wdr-telemetry-muted:      var(--wdr-text-tertiary);
-  --wdr-telemetry-radius:     var(--wdr-radius-sm);
-  --wdr-telemetry-gap:        var(--wdr-space-1);
-  --wdr-telemetry-px:         var(--wdr-space-2);
-  --wdr-telemetry-py:         var(--wdr-space-1);
-  --wdr-telemetry-tr:         var(--wdr-transition-colors);
-  --wdr-telemetry-bar-h:      4px;
-  --wdr-telemetry-fast:       var(--wdr-signal-success);
-  --wdr-telemetry-mid:        var(--wdr-signal-warning);
-  --wdr-telemetry-slow:       var(--wdr-signal-error);
-  --wdr-telemetry-active:     var(--wdr-signal-success);
+  --do-wdr-telemetry-font:       var(--do-wdr-font-mono);
+  --do-wdr-telemetry-fs:         var(--do-wdr-text-xs);
+  --do-wdr-telemetry-fs-sm:      0.625rem;
+  --do-wdr-telemetry-bg:         var(--do-wdr-surface-bg);
+  --do-wdr-telemetry-bg-el:      var(--do-wdr-surface-bg-elevated);
+  --do-wdr-telemetry-bg-sub:     var(--do-wdr-surface-bg-subtle);
+  --do-wdr-telemetry-border:     var(--do-wdr-border-default);
+  --do-wdr-telemetry-border-sub: var(--do-wdr-border-subtle);
+  --do-wdr-telemetry-text:       var(--do-wdr-text-primary);
+  --do-wdr-telemetry-muted:      var(--do-wdr-text-tertiary);
+  --do-wdr-telemetry-radius:     var(--do-wdr-radius-sm);
+  --do-wdr-telemetry-gap:        var(--do-wdr-space-1);
+  --do-wdr-telemetry-px:         var(--do-wdr-space-2);
+  --do-wdr-telemetry-py:         var(--do-wdr-space-1);
+  --do-wdr-telemetry-tr:         var(--do-wdr-transition-colors);
+  --do-wdr-telemetry-bar-h:      4px;
+  --do-wdr-telemetry-fast:       var(--do-wdr-signal-success);
+  --do-wdr-telemetry-mid:        var(--do-wdr-signal-warning);
+  --do-wdr-telemetry-slow:       var(--do-wdr-signal-error);
+  --do-wdr-telemetry-active:     var(--do-wdr-signal-success);
 }
 
-.wdr-telemetry {
-  font-family: var(--wdr-telemetry-font);
-  font-size: var(--wdr-telemetry-fs);
-  color: var(--wdr-telemetry-text);
-  border: 1px solid var(--wdr-telemetry-border);
-  border-radius: var(--wdr-telemetry-radius);
-  background: var(--wdr-telemetry-bg);
+.do-wdr-telemetry {
+  font-family: var(--do-wdr-telemetry-font);
+  font-size: var(--do-wdr-telemetry-fs);
+  color: var(--do-wdr-telemetry-text);
+  border: 1px solid var(--do-wdr-telemetry-border);
+  border-radius: var(--do-wdr-telemetry-radius);
+  background: var(--do-wdr-telemetry-bg);
   overflow: hidden;
 }
 
-.wdr-telemetry:focus-visible { outline: 2px solid var(--wdr-border-focus); outline-offset: 2px; }
+.do-wdr-telemetry:focus-visible { outline: 2px solid var(--do-wdr-border-focus); outline-offset: 2px; }
 
-.wdr-telemetry__header {
+.do-wdr-telemetry__header {
   display: flex;
   align-items: center;
-  gap: var(--wdr-telemetry-gap);
-  padding: var(--wdr-telemetry-py) var(--wdr-telemetry-px);
+  gap: var(--do-wdr-telemetry-gap);
+  padding: var(--do-wdr-telemetry-py) var(--do-wdr-telemetry-px);
   cursor: pointer;
   user-select: none;
-  background: var(--wdr-telemetry-bg-sub);
-  border-bottom: 1px solid var(--wdr-telemetry-border-sub);
-  transition: var(--wdr-telemetry-tr);
+  background: var(--do-wdr-telemetry-bg-sub);
+  border-bottom: 1px solid var(--do-wdr-telemetry-border-sub);
+  transition: var(--do-wdr-telemetry-tr);
 }
 
-.wdr-telemetry__header:hover { background: var(--wdr-telemetry-bg-el); }
+.do-wdr-telemetry__header:hover { background: var(--do-wdr-telemetry-bg-el); }
 
-.wdr-telemetry__chevron {
+.do-wdr-telemetry__chevron {
   width: 0.625rem;
   height: 0.625rem;
   flex-shrink: 0;
-  color: var(--wdr-telemetry-muted);
-  transition: transform var(--wdr-transition-transform, 150ms ease);
+  color: var(--do-wdr-telemetry-muted);
+  transition: transform var(--do-wdr-transition-transform, 150ms ease);
 }
 
-.wdr-telemetry--open > .wdr-telemetry__header .wdr-telemetry__chevron { transform: rotate(90deg); }
+.do-wdr-telemetry--open > .do-wdr-telemetry__header .do-wdr-telemetry__chevron { transform: rotate(90deg); }
 
-.wdr-telemetry__title {
+.do-wdr-telemetry__title {
   flex: 1;
   min-width: 0;
-  font-family: var(--wdr-font-sans);
-  font-weight: var(--wdr-weight-medium);
+  font-family: var(--do-wdr-font-sans);
+  font-weight: var(--do-wdr-weight-medium);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.wdr-telemetry__summary { display: flex; align-items: center; gap: var(--wdr-space-2); flex-shrink: 0; color: var(--wdr-telemetry-muted); font-size: var(--wdr-telemetry-fs-sm); }
+.do-wdr-telemetry__summary { display: flex; align-items: center; gap: var(--do-wdr-space-2); flex-shrink: 0; color: var(--do-wdr-telemetry-muted); font-size: var(--do-wdr-telemetry-fs-sm); }
 
-.wdr-telemetry__body { display: none; flex-direction: column; padding: var(--wdr-telemetry-gap) 0; }
-.wdr-telemetry--open > .wdr-telemetry__body { display: flex; }
+.do-wdr-telemetry__body { display: none; flex-direction: column; padding: var(--do-wdr-telemetry-gap) 0; }
+.do-wdr-telemetry--open > .do-wdr-telemetry__body { display: flex; }
 
-.wdr-telemetry__section { padding: var(--wdr-telemetry-py) var(--wdr-telemetry-px); }
-.wdr-telemetry__section + .wdr-telemetry__section { border-top: 1px solid var(--wdr-telemetry-border-sub); }
+.do-wdr-telemetry__section { padding: var(--do-wdr-telemetry-py) var(--do-wdr-telemetry-px); }
+.do-wdr-telemetry__section + .do-wdr-telemetry__section { border-top: 1px solid var(--do-wdr-telemetry-border-sub); }
 
-.wdr-telemetry__section-label { font-family: var(--wdr-font-sans); font-size: var(--wdr-telemetry-fs-sm); font-weight: var(--wdr-weight-semibold); color: var(--wdr-telemetry-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: var(--wdr-telemetry-gap); }
+.do-wdr-telemetry__section-label { font-family: var(--do-wdr-font-sans); font-size: var(--do-wdr-telemetry-fs-sm); font-weight: var(--do-wdr-weight-semibold); color: var(--do-wdr-telemetry-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: var(--do-wdr-telemetry-gap); }
 
-.wdr-telemetry__provider {
+.do-wdr-telemetry__provider {
   display: flex;
   align-items: center;
-  gap: var(--wdr-space-2);
-  padding: var(--wdr-space-0_5, 2px) var(--wdr-telemetry-px);
-  transition: var(--wdr-telemetry-tr);
+  gap: var(--do-wdr-space-2);
+  padding: var(--do-wdr-space-0_5, 2px) var(--do-wdr-telemetry-px);
+  transition: var(--do-wdr-telemetry-tr);
 }
 
-.wdr-telemetry__provider:nth-child(even) { background: var(--wdr-data-row-alt); }
-.wdr-telemetry__provider:hover { background: var(--wdr-data-row-hover); }
+.do-wdr-telemetry__provider:nth-child(even) { background: var(--do-wdr-data-row-alt); }
+.do-wdr-telemetry__provider:hover { background: var(--do-wdr-data-row-hover); }
 
-.wdr-telemetry__provider-name { flex: 0 0 6rem; font-weight: var(--wdr-weight-medium); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.do-wdr-telemetry__provider-name { flex: 0 0 6rem; font-weight: var(--do-wdr-weight-medium); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.wdr-telemetry__active-dot {
+.do-wdr-telemetry__active-dot {
   width: 6px;
   height: 6px;
-  border-radius: var(--wdr-radius-full);
-  background: var(--wdr-telemetry-active);
+  border-radius: var(--do-wdr-radius-full);
+  background: var(--do-wdr-telemetry-active);
   flex-shrink: 0;
-  animation: wdr-pulse-stream 1.5s ease-in-out infinite;
+  animation: do-wdr-pulse-stream 1.5s ease-in-out infinite;
 }
 
-.wdr-telemetry__provider--inactive .wdr-telemetry__active-dot { background: var(--wdr-telemetry-muted); animation: none; }
+.do-wdr-telemetry__provider--inactive .do-wdr-telemetry__active-dot { background: var(--do-wdr-telemetry-muted); animation: none; }
 
-.wdr-telemetry__latency { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.do-wdr-telemetry__latency { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 
-.wdr-telemetry__latency-bar {
-  height: var(--wdr-telemetry-bar-h);
-  background: var(--wdr-telemetry-border-sub);
-  border-radius: var(--wdr-radius-full);
+.do-wdr-telemetry__latency-bar {
+  height: var(--do-wdr-telemetry-bar-h);
+  background: var(--do-wdr-telemetry-border-sub);
+  border-radius: var(--do-wdr-radius-full);
   overflow: hidden;
 }
 
-.wdr-telemetry__latency-fill {
+.do-wdr-telemetry__latency-fill {
   height: 100%;
   border-radius: inherit;
-  transition: width var(--wdr-transition-transform, 150ms ease);
+  transition: width var(--do-wdr-transition-transform, 150ms ease);
 }
 
-.wdr-telemetry__latency-fill--fast { background: var(--wdr-telemetry-fast); }
-.wdr-telemetry__latency-fill--mid  { background: var(--wdr-telemetry-mid); }
-.wdr-telemetry__latency-fill--slow { background: var(--wdr-telemetry-slow); }
+.do-wdr-telemetry__latency-fill--fast { background: var(--do-wdr-telemetry-fast); }
+.do-wdr-telemetry__latency-fill--mid  { background: var(--do-wdr-telemetry-mid); }
+.do-wdr-telemetry__latency-fill--slow { background: var(--do-wdr-telemetry-slow); }
 
-.wdr-telemetry__latency-value {
-  font-size: var(--wdr-telemetry-fs-sm);
+.do-wdr-telemetry__latency-value {
+  font-size: var(--do-wdr-telemetry-fs-sm);
   font-variant-numeric: tabular-nums;
-  color: var(--wdr-telemetry-muted);
+  color: var(--do-wdr-telemetry-muted);
 }
 
-.wdr-telemetry__tokens { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--wdr-space-2); }
-.wdr-telemetry__token-col { display: flex; flex-direction: column; gap: 1px; }
-.wdr-telemetry__token-label { font-size: var(--wdr-telemetry-fs-sm); color: var(--wdr-telemetry-muted); text-transform: uppercase; letter-spacing: 0.04em; }
-.wdr-telemetry__token-value { font-variant-numeric: tabular-nums; font-weight: var(--wdr-weight-medium); }
+.do-wdr-telemetry__tokens { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--do-wdr-space-2); }
+.do-wdr-telemetry__token-col { display: flex; flex-direction: column; gap: 1px; }
+.do-wdr-telemetry__token-label { font-size: var(--do-wdr-telemetry-fs-sm); color: var(--do-wdr-telemetry-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.do-wdr-telemetry__token-value { font-variant-numeric: tabular-nums; font-weight: var(--do-wdr-weight-medium); }
 
-.wdr-telemetry__badges { display: flex; align-items: center; gap: var(--wdr-space-1); }
+.do-wdr-telemetry__badges { display: flex; align-items: center; gap: var(--do-wdr-space-1); }
 
-.wdr-telemetry__cache-badge { display: inline-flex; align-items: center; gap: 2px; padding: 0 var(--wdr-space-1); border-radius: var(--wdr-radius-full); font-size: var(--wdr-telemetry-fs-sm); font-weight: var(--wdr-weight-medium); line-height: 1.5; }
+.do-wdr-telemetry__cache-badge { display: inline-flex; align-items: center; gap: 2px; padding: 0 var(--do-wdr-space-1); border-radius: var(--do-wdr-radius-full); font-size: var(--do-wdr-telemetry-fs-sm); font-weight: var(--do-wdr-weight-medium); line-height: 1.5; }
 
-.wdr-telemetry__cache-badge--hit { background: oklch(0.95 0.04 155); color: var(--wdr-telemetry-active); }
-.wdr-telemetry__cache-badge--miss { background: var(--wdr-telemetry-bg-sub); color: var(--wdr-telemetry-muted); }
+.do-wdr-telemetry__cache-badge--hit { background: oklch(0.95 0.04 155); color: var(--do-wdr-telemetry-active); }
+.do-wdr-telemetry__cache-badge--miss { background: var(--do-wdr-telemetry-bg-sub); color: var(--do-wdr-telemetry-muted); }
 
-.wdr-telemetry__actions {
+.do-wdr-telemetry__actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--wdr-space-1);
-  padding: var(--wdr-telemetry-py) var(--wdr-telemetry-px);
-  border-top: 1px solid var(--wdr-telemetry-border-sub);
+  gap: var(--do-wdr-space-1);
+  padding: var(--do-wdr-telemetry-py) var(--do-wdr-telemetry-px);
+  border-top: 1px solid var(--do-wdr-telemetry-border-sub);
 }
 
-.wdr-telemetry__copy {
+.do-wdr-telemetry__copy {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  padding: 2px var(--wdr-space-1);
-  border: 1px solid var(--wdr-telemetry-border);
-  border-radius: var(--wdr-radius-sm);
+  padding: 2px var(--do-wdr-space-1);
+  border: 1px solid var(--do-wdr-telemetry-border);
+  border-radius: var(--do-wdr-radius-sm);
   background: transparent;
-  color: var(--wdr-telemetry-muted);
-  font-family: var(--wdr-telemetry-font);
-  font-size: var(--wdr-telemetry-fs-sm);
+  color: var(--do-wdr-telemetry-muted);
+  font-family: var(--do-wdr-telemetry-font);
+  font-size: var(--do-wdr-telemetry-fs-sm);
   cursor: pointer;
-  transition: var(--wdr-telemetry-tr);
+  transition: var(--do-wdr-telemetry-tr);
 }
 
-.wdr-telemetry__copy:hover { background: var(--wdr-telemetry-bg-el); color: var(--wdr-telemetry-text); }
-.wdr-telemetry__copy:focus-visible { outline: 2px solid var(--wdr-border-focus); outline-offset: 1px; }
-.wdr-telemetry__copy--success { color: var(--wdr-telemetry-active); border-color: var(--wdr-telemetry-active); }
+.do-wdr-telemetry__copy:hover { background: var(--do-wdr-telemetry-bg-el); color: var(--do-wdr-telemetry-text); }
+.do-wdr-telemetry__copy:focus-visible { outline: 2px solid var(--do-wdr-border-focus); outline-offset: 1px; }
+.do-wdr-telemetry__copy--success { color: var(--do-wdr-telemetry-active); border-color: var(--do-wdr-telemetry-active); }
 
-.wdr-telemetry--dense .wdr-telemetry__header,
-.wdr-telemetry--dense .wdr-telemetry__section,
-.wdr-telemetry--dense .wdr-telemetry__provider { padding: 2px var(--wdr-telemetry-px); }
+.do-wdr-telemetry--dense .do-wdr-telemetry__header,
+.do-wdr-telemetry--dense .do-wdr-telemetry__section,
+.do-wdr-telemetry--dense .do-wdr-telemetry__provider { padding: 2px var(--do-wdr-telemetry-px); }
 
 @media (prefers-reduced-motion: reduce) {
-  .wdr-telemetry, .wdr-telemetry__chevron, .wdr-telemetry__latency-fill,
-  .wdr-telemetry__copy, .wdr-telemetry__provider, .wdr-telemetry__active-dot { transition: none; animation: none; }
+  .do-wdr-telemetry, .do-wdr-telemetry__chevron, .do-wdr-telemetry__latency-fill,
+  .do-wdr-telemetry__copy, .do-wdr-telemetry__provider, .do-wdr-telemetry__active-dot { transition: none; animation: none; }
 }

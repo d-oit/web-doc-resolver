@@ -18,7 +18,7 @@ The main Python implementation that:
 
 ### 2. Rust CLI (`cli/`)
 
-A compiled binary (`wdr`) that:
+A compiled binary (`do-wdr`) that:
 - Provides fast CLI access
 - Mirrors Python functionality
 - Supports cross-platform builds

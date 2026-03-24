@@ -1,9 +1,9 @@
 ---
-name: wdr-cli
-description: Use the wdr (Web Documentation Resolver) CLI binary to resolve URLs and queries into markdown documentation. Use when you need fast command-line access to web documentation resolution, prefer compiled binary over Python, or need to integrate wdr into shell scripts and automation.
+name: do-wdr-cli
+description: Use the do-wdr (Web Documentation Resolver) CLI binary to resolve URLs and queries into markdown documentation. Use when you need fast command-line access to web documentation resolution, prefer compiled binary over Python, or need to integrate do-wdr into shell scripts and automation.
 license: MIT
 compatibility: Rust stable, cross-platform Linux/macOS/Windows
-allowed-tools: Bash(wdr:*) Read
+allowed-tools: Bash(do-wdr:*) Read
 metadata:
   author: d-oit
   version: "0.1.0"
@@ -21,17 +21,17 @@ Activate this skill when you need to:
 - Integrate documentation resolution into shell scripts
 - Get faster performance than the Python implementation
 - Use CLI-specific features (metrics, cache stats, provider selection)
-- Build automation workflows with wdr
+- Build automation workflows with do-wdr
 
 ## Prerequisites
 
 Build the CLI first:
 ```bash
 cd cli && cargo build --release
-# Binary: cli/target/release/wdr
+# Binary: cli/target/release/do-wdr
 ```
 
-Or ensure `wdr` is in your PATH.
+Or ensure `do-wdr` is in your PATH.
 
 ## Commands
 
@@ -40,7 +40,7 @@ Or ensure `wdr` is in your PATH.
 Resolve a URL or query to markdown documentation.
 
 ```bash
-wdr resolve <INPUT> [OPTIONS]
+do-wdr resolve <INPUT> [OPTIONS]
 ```
 
 **Arguments:**
@@ -70,7 +70,7 @@ wdr resolve <INPUT> [OPTIONS]
 List all available providers and their status.
 
 ```bash
-wdr providers
+do-wdr providers
 ```
 
 ### config
@@ -78,7 +78,7 @@ wdr providers
 Show current configuration.
 
 ```bash
-wdr config
+do-wdr config
 ```
 
 ### cache-stats
@@ -86,7 +86,7 @@ wdr config
 Show semantic cache statistics.
 
 ```bash
-wdr cache-stats
+do-wdr cache-stats
 ```
 
 ## Examples
@@ -95,68 +95,68 @@ wdr cache-stats
 
 ```bash
 # Resolve a URL
-wdr resolve "https://docs.rs/tokio/latest/tokio/"
+do-wdr resolve "https://docs.rs/tokio/latest/tokio/"
 
 # Resolve a query
-wdr resolve "Rust async runtime comparison"
+do-wdr resolve "Rust async runtime comparison"
 
 # JSON output
-wdr resolve "Python web frameworks" --json
+do-wdr resolve "Python web frameworks" --json
 ```
 
 ### Provider Selection
 
 ```bash
 # Use specific provider
-wdr resolve "query" --provider exa_mcp
+do-wdr resolve "query" --provider exa_mcp
 
 # Skip providers
-wdr resolve "query" --skip tavily,serper
+do-wdr resolve "query" --skip tavily,serper
 
 # Custom provider order
-wdr resolve "query" --providers-order duckduckgo,exa_mcp,tavily
+do-wdr resolve "query" --providers-order duckduckgo,exa_mcp,tavily
 ```
 
 ### Output Options
 
 ```bash
 # Save to file
-wdr resolve "https://example.com" --output result.md
+do-wdr resolve "https://example.com" --output result.md
 
 # JSON output to file
-wdr resolve "query" --json --output results.json
+do-wdr resolve "query" --json --output results.json
 
 # Include metrics
-wdr resolve "query" --json --metrics-json
+do-wdr resolve "query" --json --metrics-json
 ```
 
 ### Performance Profiles
 
 ```bash
 # Free tier only (no API keys needed)
-wdr resolve "query" --profile free
+do-wdr resolve "query" --profile free
 
 # Balanced speed and quality
-wdr resolve "query" --profile balanced
+do-wdr resolve "query" --profile balanced
 
 # Fast results
-wdr resolve "query" --profile fast
+do-wdr resolve "query" --profile fast
 
 # High quality results
-wdr resolve "query" --profile quality
+do-wdr resolve "query" --profile quality
 ```
 
 ### Advanced Features
 
 ```bash
 # Synthesize multiple results
-wdr resolve "query" --synthesize
+do-wdr resolve "query" --synthesize
 
 # Skip cache
-wdr resolve "query" --skip-cache
+do-wdr resolve "query" --skip-cache
 
 # Save metrics for analysis
-wdr resolve "query" --metrics-file metrics.json
+do-wdr resolve "query" --metrics-file metrics.json
 ```
 
 ## Available Providers
@@ -238,13 +238,13 @@ Use `-v` flags for debugging:
 
 ```bash
 # Info level
-wdr resolve "query" -v
+do-wdr resolve "query" -v
 
 # Debug level
-wdr resolve "query" -vv
+do-wdr resolve "query" -vv
 
 # Trace level
-wdr resolve "query" -vvv
+do-wdr resolve "query" -vvv
 ```
 
 ## Integration with Scripts
@@ -253,11 +253,11 @@ wdr resolve "query" -vvv
 #!/bin/bash
 # Example: Resolve and process results
 
-RESULT=$(wdr resolve "Rust web frameworks" --json)
+RESULT=$(do-wdr resolve "Rust web frameworks" --json)
 echo "$RESULT" | jq '.content' > frameworks.md
 
 # Use in pipeline
-wdr resolve "API documentation" | grep -A5 "## Authentication"
+do-wdr resolve "API documentation" | grep -A5 "## Authentication"
 ```
 
 ## Related Skills

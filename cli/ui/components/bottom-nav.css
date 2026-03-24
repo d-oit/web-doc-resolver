@@ -1,123 +1,123 @@
 :root {
-  --wdr-bottomnav-bg: var(--wdr-surface-bg-elevated);
-  --wdr-bottomnav-border: var(--wdr-border-default);
-  --wdr-bottomnav-height: 44px;
-  --wdr-bottomnav-z: var(--wdr-z-sticky);
-  --wdr-bottomnav-icon-size: 24px;
-  --wdr-bottomnav-icon-color: var(--wdr-text-tertiary);
-  --wdr-bottomnav-icon-color-active: var(--wdr-interactive-bg);
-  --wdr-bottomnav-item-min-w: 44px;
-  --wdr-bottomnav-item-min-h: 44px;
-  --wdr-bottomnav-indicator-w: 20px;
-  --wdr-bottomnav-indicator-h: 2px;
-  --wdr-bottomnav-indicator-color: var(--wdr-interactive-bg);
-  --wdr-bottomnav-label-font: var(--wdr-text-xs);
-  --wdr-bottomnav-label-color: var(--wdr-text-tertiary);
-  --wdr-bottomnav-label-color-active: var(--wdr-interactive-bg);
-  --wdr-bottomnav-gap: var(--wdr-space-1);
-  --wdr-bottomnav-safe-bottom: env(safe-area-inset-bottom, 0px);
-  --wdr-bottomnav-transition: var(--wdr-transition-colors);
+  --do-wdr-bottomnav-bg: var(--do-wdr-surface-bg-elevated);
+  --do-wdr-bottomnav-border: var(--do-wdr-border-default);
+  --do-wdr-bottomnav-height: 44px;
+  --do-wdr-bottomnav-z: var(--do-wdr-z-sticky);
+  --do-wdr-bottomnav-icon-size: 24px;
+  --do-wdr-bottomnav-icon-color: var(--do-wdr-text-tertiary);
+  --do-wdr-bottomnav-icon-color-active: var(--do-wdr-interactive-bg);
+  --do-wdr-bottomnav-item-min-w: 44px;
+  --do-wdr-bottomnav-item-min-h: 44px;
+  --do-wdr-bottomnav-indicator-w: 20px;
+  --do-wdr-bottomnav-indicator-h: 2px;
+  --do-wdr-bottomnav-indicator-color: var(--do-wdr-interactive-bg);
+  --do-wdr-bottomnav-label-font: var(--do-wdr-text-xs);
+  --do-wdr-bottomnav-label-color: var(--do-wdr-text-tertiary);
+  --do-wdr-bottomnav-label-color-active: var(--do-wdr-interactive-bg);
+  --do-wdr-bottomnav-gap: var(--do-wdr-space-1);
+  --do-wdr-bottomnav-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --do-wdr-bottomnav-transition: var(--do-wdr-transition-colors);
 }
 
-.wdr-bottomnav {
+.do-wdr-bottomnav {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  height: var(--wdr-bottomnav-height);
-  padding-bottom: var(--wdr-bottomnav-safe-bottom);
-  background: var(--wdr-bottomnav-bg);
-  border-top: 1px solid var(--wdr-bottomnav-border);
+  height: var(--do-wdr-bottomnav-height);
+  padding-bottom: var(--do-wdr-bottomnav-safe-bottom);
+  background: var(--do-wdr-bottomnav-bg);
+  border-top: 1px solid var(--do-wdr-bottomnav-border);
   display: flex;
   align-items: center;
   justify-content: space-around;
-  z-index: var(--wdr-bottomnav-z);
+  z-index: var(--do-wdr-bottomnav-z);
   -webkit-tap-highlight-color: transparent;
 }
 
-.wdr-bottomnav__item {
+.do-wdr-bottomnav__item {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--wdr-bottomnav-gap);
-  min-width: var(--wdr-bottomnav-item-min-w);
-  min-height: var(--wdr-bottomnav-item-min-h);
-  padding: var(--wdr-space-1);
+  gap: var(--do-wdr-bottomnav-gap);
+  min-width: var(--do-wdr-bottomnav-item-min-w);
+  min-height: var(--do-wdr-bottomnav-item-min-h);
+  padding: var(--do-wdr-space-1);
   background: none;
   border: none;
   cursor: pointer;
-  color: var(--wdr-bottomnav-icon-color);
+  color: var(--do-wdr-bottomnav-icon-color);
   text-decoration: none;
   user-select: none;
-  transition: var(--wdr-bottomnav-transition);
+  transition: var(--do-wdr-bottomnav-transition);
   position: relative;
   -webkit-tap-highlight-color: transparent;
 }
 
-.wdr-bottomnav__item:hover {
-  color: var(--wdr-bottomnav-icon-color-active);
+.do-wdr-bottomnav__item:hover {
+  color: var(--do-wdr-bottomnav-icon-color-active);
 }
 
-.wdr-bottomnav__item:focus-visible {
-  outline: 2px solid var(--wdr-border-focus);
+.do-wdr-bottomnav__item:focus-visible {
+  outline: 2px solid var(--do-wdr-border-focus);
   outline-offset: 2px;
-  border-radius: var(--wdr-radius-sm);
+  border-radius: var(--do-wdr-radius-sm);
 }
 
-.wdr-bottomnav__item--active {
-  color: var(--wdr-bottomnav-icon-color-active);
+.do-wdr-bottomnav__item--active {
+  color: var(--do-wdr-bottomnav-icon-color-active);
 }
 
-.wdr-bottomnav__item--active .wdr-bottomnav__item-label {
-  color: var(--wdr-bottomnav-label-color-active);
+.do-wdr-bottomnav__item--active .do-wdr-bottomnav__item-label {
+  color: var(--do-wdr-bottomnav-label-color-active);
 }
 
-.wdr-bottomnav__item-icon {
-  width: var(--wdr-bottomnav-icon-size);
-  height: var(--wdr-bottomnav-icon-size);
+.do-wdr-bottomnav__item-icon {
+  width: var(--do-wdr-bottomnav-icon-size);
+  height: var(--do-wdr-bottomnav-icon-size);
   flex-shrink: 0;
 }
 
-.wdr-bottomnav__item-label {
-  font-size: var(--wdr-bottomnav-label-font);
-  color: var(--wdr-bottomnav-label-color);
+.do-wdr-bottomnav__item-label {
+  font-size: var(--do-wdr-bottomnav-label-font);
+  color: var(--do-wdr-bottomnav-label-color);
   line-height: 1;
-  transition: var(--wdr-bottomnav-transition);
+  transition: var(--do-wdr-bottomnav-transition);
 }
 
-.wdr-bottomnav__item-indicator {
+.do-wdr-bottomnav__item-indicator {
   position: absolute;
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: var(--wdr-bottomnav-indicator-w);
-  height: var(--wdr-bottomnav-indicator-h);
-  background: var(--wdr-bottomnav-indicator-color);
-  border-radius: 0 0 var(--wdr-radius-sm) var(--wdr-radius-sm);
+  width: var(--do-wdr-bottomnav-indicator-w);
+  height: var(--do-wdr-bottomnav-indicator-h);
+  background: var(--do-wdr-bottomnav-indicator-color);
+  border-radius: 0 0 var(--do-wdr-radius-sm) var(--do-wdr-radius-sm);
   opacity: 0;
-  transition: var(--wdr-bottomnav-transition);
+  transition: var(--do-wdr-bottomnav-transition);
 }
 
-.wdr-bottomnav__item--active .wdr-bottomnav__item-indicator {
+.do-wdr-bottomnav__item--active .do-wdr-bottomnav__item-indicator {
   opacity: 1;
 }
 
-.wdr-bottomnav__item--active .wdr-bottomnav__item-icon {
+.do-wdr-bottomnav__item--active .do-wdr-bottomnav__item-icon {
   filter: brightness(1.1);
 }
 
 @media (min-width: 768px) {
-  .wdr-bottomnav {
+  .do-wdr-bottomnav {
     display: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wdr-bottomnav,
-  .wdr-bottomnav__item,
-  .wdr-bottomnav__item-label,
-  .wdr-bottomnav__item-indicator {
+  .do-wdr-bottomnav,
+  .do-wdr-bottomnav__item,
+  .do-wdr-bottomnav__item-label,
+  .do-wdr-bottomnav__item-indicator {
     transition: none;
     animation: none;
   }

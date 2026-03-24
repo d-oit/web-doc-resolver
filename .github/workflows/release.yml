@@ -79,16 +79,16 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            binary: wdr
-            asset_name: wdr-linux-x86_64
+            binary: do-wdr
+            asset_name: do-wdr-linux-x86_64
           - os: macos-latest
             target: aarch64-apple-darwin
-            binary: wdr
-            asset_name: wdr-macos-aarch64
+            binary: do-wdr
+            asset_name: do-wdr-macos-aarch64
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            binary: wdr.exe
-            asset_name: wdr-windows-x86_64.exe
+            binary: do-wdr.exe
+            asset_name: do-wdr-windows-x86_64.exe
     steps:
       - uses: actions/checkout@v6
 
@@ -157,21 +157,21 @@ jobs:
           generate_release_notes: true
           make_latest: true
           files: |
-            dist/wdr-linux-x86_64
-            dist/wdr-macos-aarch64
-            dist/wdr-windows-x86_64.exe
+            dist/do-wdr-linux-x86_64
+            dist/do-wdr-macos-aarch64
+            dist/do-wdr-windows-x86_64.exe
           body: |
             ## do-web-doc-resolver ${{ steps.version.outputs.VERSION }}
 
             ### Install
             ```bash
-            curl -L https://github.com/d-oit/do-web-doc-resolver/releases/download/${{ steps.version.outputs.VERSION }}/wdr-linux-x86_64 -o wdr
-            chmod +x wdr
+            curl -L https://github.com/d-oit/do-web-doc-resolver/releases/download/${{ steps.version.outputs.VERSION }}/do-wdr-linux-x86_64 -o do-wdr
+            chmod +x do-wdr
             ```
 
             ### Binaries
-            - `wdr-linux-x86_64` — Linux x86_64
-            - `wdr-macos-aarch64` — macOS Apple Silicon
-            - `wdr-windows-x86_64.exe` — Windows x86_64
+            - `do-wdr-linux-x86_64` — Linux x86_64
+            - `do-wdr-macos-aarch64` — macOS Apple Silicon
+            - `do-wdr-windows-x86_64.exe` — Windows x86_64
 
             > Binaries include [build provenance attestations](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds) for supply-chain security.

@@ -13,7 +13,7 @@
 //! ```toml
 //! [semantic_cache]
 //! enabled = true
-//! path = ".wdr_cache"
+//! path = ".do-wdr_cache"
 //! threshold = 0.85
 //! max_entries = 10000
 //! ```
@@ -79,7 +79,7 @@ impl Default for SemanticCacheConfig {
     fn default() -> Self {
         Self {
             enabled: false,
-            path: ".wdr_cache".to_string(),
+            path: ".do-wdr_cache".to_string(),
             threshold: 0.85,
             max_entries: 10000,
         }

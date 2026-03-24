@@ -1,5 +1,5 @@
 ---
-name: wdr-release
+name: do-wdr-release
 description: Manage releases, versioning, changelogs, and GitHub releases. Use when creating releases, bumping versions, generating changelogs, creating tags, or managing the release workflow. Combines Git and GitHub best practices for professional releases.
 license: MIT
 compatibility: Git, GitHub CLI (gh), Node.js, Cargo
@@ -350,6 +350,6 @@ gh release delete v0.2.0
 
 ## Related Skills
 
-- `wdr-assets`: Screenshot capture
-- `wdr-cli`: Rust CLI
+- `do-wdr-assets`: Screenshot capture
+- `do-wdr-cli`: Rust CLI
 - `do-web-doc-resolver`: Python resolver

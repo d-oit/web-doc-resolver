@@ -9,9 +9,9 @@
 # Python (primary skill)
 pip install -r requirements.txt
 
-# Rust CLI (wdr binary)
+# Rust CLI (do-wdr binary)
 cd cli && cargo build --release
-# Binary: cli/target/release/wdr
+# Binary: cli/target/release/do-wdr
 
 # Web UI (Next.js + Playwright)
 cd web && npm install && npx playwright install chromium
@@ -92,7 +92,7 @@ do-web-doc-resolver/
 │       ├── capture-release.sh
 │       ├── capture-flow.sh
 │       └── capture-responsive.sh
-├── cli/                   # Rust CLI (wdr binary)
+├── cli/                   # Rust CLI (do-wdr binary)
 │   ├── Cargo.toml
 │   └── src/
 ├── web/                   # Next.js web UI (Vercel deployed)
@@ -106,8 +106,8 @@ do-web-doc-resolver/
 │   └── screenshots/       # Screenshot images
 ├── .agents/skills/        # Canonical skill definitions
 │   ├── do-web-doc-resolver/  # Python resolver skill
-│   ├── wdr-cli/           # Rust CLI skill
-│   └── wdr-assets/        # Screenshot/asset skill
+│   ├── do-wdr-cli/        # Rust CLI skill
+│   └── do-wdr-assets/     # Screenshot/asset skill
 ├── .blackbox/skills/      # Skill symlinks (Blackbox)
 ├── .claude/skills/        # Skill symlinks (Claude)
 ├── .opencode/skills/      # Skill symlinks (OpenCode)
@@ -185,9 +185,9 @@ Manual check: `python scripts/validate_skill_symlink.py`
 | Skill | Location | Description |
 |---|---|---|
 | do-web-doc-resolver | `.agents/skills/do-web-doc-resolver/` | Python resolver with cascade |
-| wdr-cli | `.agents/skills/wdr-cli/` | Rust CLI (wdr binary) |
-| wdr-assets | `.agents/skills/wdr-assets/` | Screenshots & visual assets |
-| wdr-release | `.agents/skills/wdr-release/` | Release management & Git/GitHub best practices |
+| do-wdr-cli | `.agents/skills/do-wdr-cli/` | Rust CLI (do-wdr binary) |
+| do-wdr-assets | `.agents/skills/do-wdr-assets/` | Screenshots & visual assets |
+| do-wdr-release | `.agents/skills/do-wdr-release/` | Release management & Git/GitHub best practices |
 
 ## Assets
 
@@ -219,7 +219,7 @@ Releases follow [Semantic Versioning](https://semver.org/) with conventional com
 ./scripts/changelog.sh v0.2.0
 ```
 
-See [`wdr-release` skill](.agents/skills/wdr-release/SKILL.md) for full release workflow.
+See [`do-wdr-release` skill](.agents/skills/do-wdr-release/SKILL.md) for full release workflow.
 
 ## Deployment (Vercel)
 

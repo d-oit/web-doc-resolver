@@ -44,7 +44,7 @@ export const Primary: Story = {
     label: 'Resolve URL',
   },
   render: (args) => `
-    <button class="wdr-button wdr-button--${args.variant} wdr-button--${args.size}"
+    <button class="do-wdr-button do-wdr-button--${args.variant} do-wdr-button--${args.size}"
             ${args.disabled ? 'disabled' : ''}>
       ${args.label}
     </button>

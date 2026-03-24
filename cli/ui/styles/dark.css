@@ -1,6 +1,6 @@
 <script>
 (function(){
-  var t=localStorage.getItem('wdr-theme');
+  var t=localStorage.getItem('do-wdr-theme');
   if(t==='dark'||t==='light'){
     document.documentElement.setAttribute('data-theme',t);
   }else if(!document.documentElement.hasAttribute('data-theme')){
@@ -12,7 +12,7 @@
 </script>
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]):not(.wdr-light) {
+  :root:not([data-theme="light"]):not(.do-wdr-light) {
     color-scheme: dark;
   }
 }
@@ -26,19 +26,19 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wdr-theme-toggle,
-  .wdr-theme-toggle__icon {
+  .do-wdr-theme-toggle,
+  .do-wdr-theme-toggle__icon {
     transition: none;
   }
 }
 
 @media (forced-colors: active) {
   :root {
-    --wdr-interactive-bg: Highlight;
-    --wdr-interactive-text: HighlightText;
-    --wdr-border-default: CanvasText;
-    --wdr-signal-success: LinkText;
-    --wdr-signal-error: Mark;
+    --do-wdr-interactive-bg: Highlight;
+    --do-wdr-interactive-text: HighlightText;
+    --do-wdr-border-default: CanvasText;
+    --do-wdr-signal-success: LinkText;
+    --do-wdr-signal-error: Mark;
   }
 
   * {

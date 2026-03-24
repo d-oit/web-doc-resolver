@@ -31,13 +31,13 @@ type Story = StoryObj;
 
 export const Default: Story = {
   render: (args) => `
-    <div class="wdr-input-group">
-      <label class="wdr-input-label">${args.label}</label>
-      <input class="wdr-input wdr-input--${args.size} ${args.error ? 'wdr-input--error' : ''}"
+    <div class="do-wdr-input-group">
+      <label class="do-wdr-input-label">${args.label}</label>
+      <input class="do-wdr-input do-wdr-input--${args.size} ${args.error ? 'do-wdr-input--error' : ''}"
              type="text"
              placeholder="${args.placeholder}"
              ${args.disabled ? 'disabled' : ''} />
-      ${args.helper ? `<span class="wdr-input-helper ${args.error ? 'wdr-input-helper--error' : ''}">${args.helper}</span>` : ''}
+      ${args.helper ? `<span class="do-wdr-input-helper ${args.error ? 'do-wdr-input-helper--error' : ''}">${args.helper}</span>` : ''}
     </div>
   `,
 };
@@ -65,18 +65,18 @@ export const Disabled: Story = {
 
 export const Textarea: Story = {
   render: () => `
-    <div class="wdr-input-group">
-      <label class="wdr-input-label">Prompt</label>
-      <textarea class="wdr-textarea" placeholder="Enter your prompt..." rows="4"></textarea>
+    <div class="do-wdr-input-group">
+      <label class="do-wdr-input-label">Prompt</label>
+      <textarea class="do-wdr-textarea" placeholder="Enter your prompt..." rows="4"></textarea>
     </div>
   `,
 };
 
 export const Select: Story = {
   render: () => `
-    <div class="wdr-input-group">
-      <label class="wdr-input-label">Provider</label>
-      <select class="wdr-select wdr-input wdr-input--md">
+    <div class="do-wdr-input-group">
+      <label class="do-wdr-input-label">Provider</label>
+      <select class="do-wdr-select do-wdr-input do-wdr-input--md">
         <option>Exa MCP</option>
         <option>Exa SDK</option>
         <option>Tavily</option>
@@ -89,9 +89,9 @@ export const Select: Story = {
 
 export const InlineGroup: Story = {
   render: () => `
-    <div class="wdr-input-inline">
-      <input class="wdr-input wdr-input--md" type="text" placeholder="https://example.com" />
-      <button class="wdr-button wdr-button--primary wdr-button--md">Resolve</button>
+    <div class="do-wdr-input-inline">
+      <input class="do-wdr-input do-wdr-input--md" type="text" placeholder="https://example.com" />
+      <button class="do-wdr-button do-wdr-button--primary do-wdr-button--md">Resolve</button>
     </div>
   `,
 };

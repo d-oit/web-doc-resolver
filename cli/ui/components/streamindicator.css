@@ -1,176 +1,176 @@
 :root {
-  --wdr-stream-height:            1.5rem;
-  --wdr-stream-height-compact:    1.5rem;
-  --wdr-stream-gap:               var(--wdr-space-2);
-  --wdr-stream-font:              var(--wdr-font-mono);
-  --wdr-stream-font-size:         var(--wdr-text-xs);
-  --wdr-stream-label-font:        var(--wdr-font-sans);
-  --wdr-stream-label-size:        var(--wdr-text-xs);
-  --wdr-stream-radius:            var(--wdr-radius-md);
-  --wdr-stream-transition:        var(--wdr-transition-colors);
+  --do-wdr-stream-height:            1.5rem;
+  --do-wdr-stream-height-compact:    1.5rem;
+  --do-wdr-stream-gap:               var(--do-wdr-space-2);
+  --do-wdr-stream-font:              var(--do-wdr-font-mono);
+  --do-wdr-stream-font-size:         var(--do-wdr-text-xs);
+  --do-wdr-stream-label-font:        var(--do-wdr-font-sans);
+  --do-wdr-stream-label-size:        var(--do-wdr-text-xs);
+  --do-wdr-stream-radius:            var(--do-wdr-radius-md);
+  --do-wdr-stream-transition:        var(--do-wdr-transition-colors);
 
-  --wdr-stream-indicator-size:    0.5rem;
-  --wdr-stream-indicator-radius:  var(--wdr-radius-full);
+  --do-wdr-stream-indicator-size:    0.5rem;
+  --do-wdr-stream-indicator-radius:  var(--do-wdr-radius-full);
 
-  --wdr-stream-disconnected-bg:    var(--wdr-surface-bg-elevated);
-  --wdr-stream-disconnected-color: var(--wdr-text-tertiary);
-  --wdr-stream-disconnected-dot:   var(--wdr-text-tertiary);
+  --do-wdr-stream-disconnected-bg:    var(--do-wdr-surface-bg-elevated);
+  --do-wdr-stream-disconnected-color: var(--do-wdr-text-tertiary);
+  --do-wdr-stream-disconnected-dot:   var(--do-wdr-text-tertiary);
 
-  --wdr-stream-connecting-bg:      var(--wdr-interactive-bg-subtle);
-  --wdr-stream-connecting-color:   var(--wdr-signal-info);
-  --wdr-stream-connecting-dot:     var(--wdr-pipeline-running);
+  --do-wdr-stream-connecting-bg:      var(--do-wdr-interactive-bg-subtle);
+  --do-wdr-stream-connecting-color:   var(--do-wdr-signal-info);
+  --do-wdr-stream-connecting-dot:     var(--do-wdr-pipeline-running);
 
-  --wdr-stream-streaming-bg:       var(--wdr-interactive-bg-subtle);
-  --wdr-stream-streaming-color:    var(--wdr-pipeline-streaming);
-  --wdr-stream-streaming-dot:      var(--wdr-pipeline-streaming);
+  --do-wdr-stream-streaming-bg:       var(--do-wdr-interactive-bg-subtle);
+  --do-wdr-stream-streaming-color:    var(--do-wdr-pipeline-streaming);
+  --do-wdr-stream-streaming-dot:      var(--do-wdr-pipeline-streaming);
 
-  --wdr-stream-complete-bg:        var(--wdr-signal-success-bg);
-  --wdr-stream-complete-color:     var(--wdr-signal-success);
-  --wdr-stream-complete-dot:       var(--wdr-pipeline-complete);
+  --do-wdr-stream-complete-bg:        var(--do-wdr-signal-success-bg);
+  --do-wdr-stream-complete-color:     var(--do-wdr-signal-success);
+  --do-wdr-stream-complete-dot:       var(--do-wdr-pipeline-complete);
 
-  --wdr-stream-error-bg:           var(--wdr-signal-error-bg);
-  --wdr-stream-error-color:        var(--wdr-signal-error);
-  --wdr-stream-error-dot:          var(--wdr-pipeline-failed);
+  --do-wdr-stream-error-bg:           var(--do-wdr-signal-error-bg);
+  --do-wdr-stream-error-color:        var(--do-wdr-signal-error);
+  --do-wdr-stream-error-dot:          var(--do-wdr-pipeline-failed);
 
-  --wdr-stream-reconnect-bg:       var(--wdr-signal-error);
-  --wdr-stream-reconnect-bg-hover: var(--wdr-signal-error-bg);
-  --wdr-stream-reconnect-color:    var(--wdr-signal-error);
+  --do-wdr-stream-reconnect-bg:       var(--do-wdr-signal-error);
+  --do-wdr-stream-reconnect-bg-hover: var(--do-wdr-signal-error-bg);
+  --do-wdr-stream-reconnect-color:    var(--do-wdr-signal-error);
 }
 
-.wdr-stream {
+.do-wdr-stream {
   display: inline-flex;
   align-items: center;
-  gap: var(--wdr-stream-gap);
-  height: var(--wdr-stream-height-compact);
-  padding: 0 var(--wdr-space-2);
-  border-radius: var(--wdr-stream-radius);
-  font-family: var(--wdr-stream-font);
-  font-size: var(--wdr-stream-font-size);
-  background: var(--wdr-stream-disconnected-bg);
-  color: var(--wdr-stream-disconnected-color);
-  transition: var(--wdr-stream-transition);
+  gap: var(--do-wdr-stream-gap);
+  height: var(--do-wdr-stream-height-compact);
+  padding: 0 var(--do-wdr-space-2);
+  border-radius: var(--do-wdr-stream-radius);
+  font-family: var(--do-wdr-stream-font);
+  font-size: var(--do-wdr-stream-font-size);
+  background: var(--do-wdr-stream-disconnected-bg);
+  color: var(--do-wdr-stream-disconnected-color);
+  transition: var(--do-wdr-stream-transition);
   white-space: nowrap;
   user-select: none;
   border: 1px solid transparent;
 }
 
-.wdr-stream:focus-visible {
-  outline: 2px solid var(--wdr-border-focus);
+.do-wdr-stream:focus-visible {
+  outline: 2px solid var(--do-wdr-border-focus);
   outline-offset: 2px;
 }
 
-.wdr-stream__dot {
-  width: var(--wdr-stream-indicator-size);
-  height: var(--wdr-stream-indicator-size);
-  border-radius: var(--wdr-stream-indicator-radius);
-  background: var(--wdr-stream-disconnected-dot);
+.do-wdr-stream__dot {
+  width: var(--do-wdr-stream-indicator-size);
+  height: var(--do-wdr-stream-indicator-size);
+  border-radius: var(--do-wdr-stream-indicator-radius);
+  background: var(--do-wdr-stream-disconnected-dot);
   flex-shrink: 0;
-  transition: var(--wdr-stream-transition);
+  transition: var(--do-wdr-stream-transition);
 }
 
-.wdr-stream__label {
-  font-family: var(--wdr-stream-label-font);
-  font-size: var(--wdr-stream-label-size);
+.do-wdr-stream__label {
+  font-family: var(--do-wdr-stream-label-font);
+  font-size: var(--do-wdr-stream-label-size);
   color: inherit;
   line-height: 1;
 }
 
-.wdr-stream__rate {
+.do-wdr-stream__rate {
   font-variant-numeric: tabular-nums;
-  color: var(--wdr-text-secondary);
+  color: var(--do-wdr-text-secondary);
 }
 
-.wdr-stream__elapsed {
+.do-wdr-stream__elapsed {
   font-variant-numeric: tabular-nums;
-  color: var(--wdr-text-tertiary);
+  color: var(--do-wdr-text-tertiary);
 }
 
-.wdr-stream__reconnect {
+.do-wdr-stream__reconnect {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   height: 1rem;
-  padding: 0 var(--wdr-space-1);
-  margin-left: var(--wdr-space-1);
+  padding: 0 var(--do-wdr-space-1);
+  margin-left: var(--do-wdr-space-1);
   border: none;
-  border-radius: var(--wdr-radius-sm);
-  font-family: var(--wdr-stream-label-font);
-  font-size: var(--wdr-stream-label-size);
-  font-weight: var(--wdr-weight-medium);
-  background: var(--wdr-stream-reconnect-bg);
+  border-radius: var(--do-wdr-radius-sm);
+  font-family: var(--do-wdr-stream-label-font);
+  font-size: var(--do-wdr-stream-label-size);
+  font-weight: var(--do-wdr-weight-medium);
+  background: var(--do-wdr-stream-reconnect-bg);
   color: oklch(1 0 0);
   cursor: pointer;
-  transition: var(--wdr-stream-transition);
+  transition: var(--do-wdr-stream-transition);
   line-height: 1;
 }
 
-.wdr-stream__reconnect:hover {
+.do-wdr-stream__reconnect:hover {
   opacity: 0.85;
 }
 
-.wdr-stream__reconnect:focus-visible {
-  outline: 2px solid var(--wdr-border-focus);
+.do-wdr-stream__reconnect:focus-visible {
+  outline: 2px solid var(--do-wdr-border-focus);
   outline-offset: 1px;
 }
 
-.wdr-stream__separator {
+.do-wdr-stream__separator {
   width: 1px;
   height: 0.75rem;
-  background: var(--wdr-border-default);
+  background: var(--do-wdr-border-default);
   flex-shrink: 0;
 }
 
-.wdr-stream--disconnected {
-  background: var(--wdr-stream-disconnected-bg);
-  color: var(--wdr-stream-disconnected-color);
+.do-wdr-stream--disconnected {
+  background: var(--do-wdr-stream-disconnected-bg);
+  color: var(--do-wdr-stream-disconnected-color);
 }
 
-.wdr-stream--disconnected .wdr-stream__dot {
-  background: var(--wdr-stream-disconnected-dot);
+.do-wdr-stream--disconnected .do-wdr-stream__dot {
+  background: var(--do-wdr-stream-disconnected-dot);
 }
 
-.wdr-stream--connecting {
-  background: var(--wdr-stream-connecting-bg);
-  color: var(--wdr-stream-connecting-color);
+.do-wdr-stream--connecting {
+  background: var(--do-wdr-stream-connecting-bg);
+  color: var(--do-wdr-stream-connecting-color);
 }
 
-.wdr-stream--connecting .wdr-stream__dot {
-  background: var(--wdr-stream-connecting-dot);
-  animation: wdr-pulse-stream 1.5s ease-in-out infinite;
+.do-wdr-stream--connecting .do-wdr-stream__dot {
+  background: var(--do-wdr-stream-connecting-dot);
+  animation: do-wdr-pulse-stream 1.5s ease-in-out infinite;
 }
 
-.wdr-stream--streaming {
-  background: var(--wdr-stream-streaming-bg);
-  color: var(--wdr-stream-streaming-color);
-  animation: wdr-pulse-stream 1.5s ease-in-out infinite;
+.do-wdr-stream--streaming {
+  background: var(--do-wdr-stream-streaming-bg);
+  color: var(--do-wdr-stream-streaming-color);
+  animation: do-wdr-pulse-stream 1.5s ease-in-out infinite;
 }
 
-.wdr-stream--streaming .wdr-stream__dot {
-  background: var(--wdr-stream-streaming-dot);
+.do-wdr-stream--streaming .do-wdr-stream__dot {
+  background: var(--do-wdr-stream-streaming-dot);
 }
 
-.wdr-stream--complete {
-  background: var(--wdr-stream-complete-bg);
-  color: var(--wdr-stream-complete-color);
+.do-wdr-stream--complete {
+  background: var(--do-wdr-stream-complete-bg);
+  color: var(--do-wdr-stream-complete-color);
 }
 
-.wdr-stream--complete .wdr-stream__dot {
-  background: var(--wdr-stream-complete-dot);
+.do-wdr-stream--complete .do-wdr-stream__dot {
+  background: var(--do-wdr-stream-complete-dot);
 }
 
-.wdr-stream--error {
-  background: var(--wdr-stream-error-bg);
-  color: var(--wdr-stream-error-color);
+.do-wdr-stream--error {
+  background: var(--do-wdr-stream-error-bg);
+  color: var(--do-wdr-stream-error-color);
 }
 
-.wdr-stream--error .wdr-stream__dot {
-  background: var(--wdr-stream-error-dot);
+.do-wdr-stream--error .do-wdr-stream__dot {
+  background: var(--do-wdr-stream-error-dot);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wdr-stream,
-  .wdr-stream__dot,
-  .wdr-stream__reconnect {
+  .do-wdr-stream,
+  .do-wdr-stream__dot,
+  .do-wdr-stream__reconnect {
     transition: none;
     animation: none;
   }

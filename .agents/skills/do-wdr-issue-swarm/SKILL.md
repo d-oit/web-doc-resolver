@@ -1,5 +1,5 @@
 ---
-name: wdr-issue-swarm
+name: do-wdr-issue-swarm
 description: Implement GitHub issues in parallel using a swarm of specialist agents with wave-based dependency resolution. Use when the user asks to "implement all issues", "fix all GitHub issues", "swarm issues", or wants to batch-implement multiple GitHub issues. Covers dependency analysis, parallel agent launch, atomic commits, GH Actions monitoring, and issue closing.
 allowed-tools: Bash(git:*), Bash(gh:*), Bash(python:*), Read, Write, Edit, Glob, Task
 ---
@@ -101,7 +101,7 @@ If CI fails:
 ```
 You are implementing GitHub Issue #{N}: "{Title}" for the do-web-doc-resolver project.
 
-CONTEXT: The UI layer is in `/workspaces/do-web-doc-resolver/cli/ui/`. Components are CSS-only files with BEM classes prefixed `wdr-`.
+CONTEXT: The UI layer is in `/workspaces/do-web-doc-resolver/cli/ui/`. Components are CSS-only files with BEM classes prefixed `do-wdr-`.
 
 REQUIREMENTS from the issue:
 {issue_body}
@@ -111,7 +111,7 @@ EXISTING TOKENS (from design_tokens.css):
 
 EXISTING COMPONENT CONVENTIONS (from button.css, badge.css):
 - Component tokens in `:root {}` block
-- BEM: `.wdr-{component}`, `.wdr-{component}--variant`, `.wdr-{component}__element`
+- BEM: `.do-wdr-{component}`, `.do-wdr-{component}--variant`, `.do-wdr-{component}__element`
 - Focus-visible outlines, transitions on colors, prefers-reduced-motion
 
 TASK: Create `/workspaces/do-web-doc-resolver/cli/ui/components/{name}.css`. Max 200 lines. No comments.

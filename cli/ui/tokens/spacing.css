@@ -5,62 +5,62 @@
 
 :root {
   /* Primitive spacing */
-  --wdr-space-0:    0;
-  --wdr-space-px:   1px;
-  --wdr-space-0_5:  0.125rem;  /* 2px  */
-  --wdr-space-1:    0.25rem;   /* 4px  */
-  --wdr-space-1_5:  0.375rem;  /* 6px  */
-  --wdr-space-2:    0.5rem;    /* 8px  */
-  --wdr-space-2_5:  0.625rem;  /* 10px */
-  --wdr-space-3:    0.75rem;   /* 12px */
-  --wdr-space-4:    1rem;      /* 16px */
-  --wdr-space-5:    1.25rem;   /* 20px */
-  --wdr-space-6:    1.5rem;    /* 24px */
-  --wdr-space-8:    2rem;      /* 32px */
-  --wdr-space-10:   2.5rem;    /* 40px */
-  --wdr-space-12:   3rem;      /* 48px */
-  --wdr-space-16:   4rem;      /* 64px */
-  --wdr-space-20:   5rem;      /* 80px */
-  --wdr-space-24:   6rem;      /* 96px */
+  --do-wdr-space-0:    0;
+  --do-wdr-space-px:   1px;
+  --do-wdr-space-0_5:  0.125rem;  /* 2px  */
+  --do-wdr-space-1:    0.25rem;   /* 4px  */
+  --do-wdr-space-1_5:  0.375rem;  /* 6px  */
+  --do-wdr-space-2:    0.5rem;    /* 8px  */
+  --do-wdr-space-2_5:  0.625rem;  /* 10px */
+  --do-wdr-space-3:    0.75rem;   /* 12px */
+  --do-wdr-space-4:    1rem;      /* 16px */
+  --do-wdr-space-5:    1.25rem;   /* 20px */
+  --do-wdr-space-6:    1.5rem;    /* 24px */
+  --do-wdr-space-8:    2rem;      /* 32px */
+  --do-wdr-space-10:   2.5rem;    /* 40px */
+  --do-wdr-space-12:   3rem;      /* 48px */
+  --do-wdr-space-16:   4rem;      /* 64px */
+  --do-wdr-space-20:   5rem;      /* 80px */
+  --do-wdr-space-24:   6rem;      /* 96px */
 
   /* Semantic spacing — used in component tokens */
-  --wdr-gap-tight:    var(--wdr-space-1);
-  --wdr-gap-default:  var(--wdr-space-2);
-  --wdr-gap-relaxed:  var(--wdr-space-4);
-  --wdr-gap-loose:    var(--wdr-space-6);
+  --do-wdr-gap-tight:    var(--do-wdr-space-1);
+  --do-wdr-gap-default:  var(--do-wdr-space-2);
+  --do-wdr-gap-relaxed:  var(--do-wdr-space-4);
+  --do-wdr-gap-loose:    var(--do-wdr-space-6);
 
-  --wdr-padding-inset-xs:  var(--wdr-space-1);
-  --wdr-padding-inset-sm:  var(--wdr-space-2);
-  --wdr-padding-inset-md:  var(--wdr-space-3);
-  --wdr-padding-inset-lg:  var(--wdr-space-4);
-  --wdr-padding-inset-xl:  var(--wdr-space-6);
+  --do-wdr-padding-inset-xs:  var(--do-wdr-space-1);
+  --do-wdr-padding-inset-sm:  var(--do-wdr-space-2);
+  --do-wdr-padding-inset-md:  var(--do-wdr-space-3);
+  --do-wdr-padding-inset-lg:  var(--do-wdr-space-4);
+  --do-wdr-padding-inset-xl:  var(--do-wdr-space-6);
 
-  --wdr-padding-inline-xs: var(--wdr-space-1);
-  --wdr-padding-inline-sm: var(--wdr-space-2);
-  --wdr-padding-inline-md: var(--wdr-space-3);
-  --wdr-padding-inline-lg: var(--wdr-space-4);
-  --wdr-padding-inline-xl: var(--wdr-space-6);
+  --do-wdr-padding-inline-xs: var(--do-wdr-space-1);
+  --do-wdr-padding-inline-sm: var(--do-wdr-space-2);
+  --do-wdr-padding-inline-md: var(--do-wdr-space-3);
+  --do-wdr-padding-inline-lg: var(--do-wdr-space-4);
+  --do-wdr-padding-inline-xl: var(--do-wdr-space-6);
 
-  --wdr-padding-block-xs:  var(--wdr-space-0_5);
-  --wdr-padding-block-sm:  var(--wdr-space-1);
-  --wdr-padding-block-md:  var(--wdr-space-2);
-  --wdr-padding-block-lg:  var(--wdr-space-3);
-  --wdr-padding-block-xl:  var(--wdr-space-4);
+  --do-wdr-padding-block-xs:  var(--do-wdr-space-0_5);
+  --do-wdr-padding-block-sm:  var(--do-wdr-space-1);
+  --do-wdr-padding-block-md:  var(--do-wdr-space-2);
+  --do-wdr-padding-block-lg:  var(--do-wdr-space-3);
+  --do-wdr-padding-block-xl:  var(--do-wdr-space-4);
 
   /* Stack spacing (vertical rhythm) */
-  --wdr-stack-xs:  var(--wdr-space-1);
-  --wdr-stack-sm:  var(--wdr-space-2);
-  --wdr-stack-md:  var(--wdr-space-4);
-  --wdr-stack-lg:  var(--wdr-space-6);
-  --wdr-stack-xl:  var(--wdr-space-8);
+  --do-wdr-stack-xs:  var(--do-wdr-space-1);
+  --do-wdr-stack-sm:  var(--do-wdr-space-2);
+  --do-wdr-stack-md:  var(--do-wdr-space-4);
+  --do-wdr-stack-lg:  var(--do-wdr-space-6);
+  --do-wdr-stack-xl:  var(--do-wdr-space-8);
 
   /* Section spacing */
-  --wdr-section-gap:  var(--wdr-space-8);
-  --wdr-page-gutter:  var(--wdr-space-4);
+  --do-wdr-section-gap:  var(--do-wdr-space-8);
+  --do-wdr-page-gutter:  var(--do-wdr-space-4);
 
   /* Data-dense compact spacing */
-  --wdr-compact-gap:       var(--wdr-space-1);
-  --wdr-compact-padding:   var(--wdr-space-1_5);
-  --wdr-compact-row:       var(--wdr-space-6); /* 24px row height */
-  --wdr-dense-row:         var(--wdr-space-5); /* 20px row height */
+  --do-wdr-compact-gap:       var(--do-wdr-space-1);
+  --do-wdr-compact-padding:   var(--do-wdr-space-1_5);
+  --do-wdr-compact-row:       var(--do-wdr-space-6); /* 24px row height */
+  --do-wdr-dense-row:         var(--do-wdr-space-5); /* 20px row height */
 }

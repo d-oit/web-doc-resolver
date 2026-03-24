@@ -1,126 +1,126 @@
 :root {
-  --wdr-navshell-container-type: inline-size;
-  --wdr-navshell-transition: var(--wdr-duration-moderate) var(--wdr-ease-default);
-  --wdr-navshell-mobile-bottom-pad: calc(var(--wdr-bottomnav-height) + var(--wdr-bottomnav-safe-bottom, 0px));
+  --do-wdr-navshell-container-type: inline-size;
+  --do-wdr-navshell-transition: var(--do-wdr-duration-moderate) var(--do-wdr-ease-default);
+  --do-wdr-navshell-mobile-bottom-pad: calc(var(--do-wdr-bottomnav-height) + var(--do-wdr-bottomnav-safe-bottom, 0px));
 }
 
-.wdr-nav-shell {
+.do-wdr-nav-shell {
   display: flex;
   height: 100%;
   width: 100%;
-  container-type: var(--wdr-navshell-container-type);
+  container-type: var(--do-wdr-navshell-container-type);
   container-name: nav-shell;
 }
 
-.wdr-nav-shell__nav {
+.do-wdr-nav-shell__nav {
   flex-shrink: 0;
   height: 100%;
-  transition: width var(--wdr-navshell-transition),
-              opacity var(--wdr-navshell-transition),
-              transform var(--wdr-navshell-transition);
+  transition: width var(--do-wdr-navshell-transition),
+              opacity var(--do-wdr-navshell-transition),
+              transform var(--do-wdr-navshell-transition);
 }
 
-.wdr-nav-shell__main {
+.do-wdr-nav-shell__main {
   flex: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
   height: 100%;
   overflow: hidden;
-  transition: padding-bottom var(--wdr-navshell-transition);
+  transition: padding-bottom var(--do-wdr-navshell-transition);
 }
 
-.wdr-nav-shell__bottomnav-wrapper {
+.do-wdr-nav-shell__bottomnav-wrapper {
   display: none;
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: var(--wdr-bottomnav-z, var(--wdr-z-sticky, 100));
+  z-index: var(--do-wdr-bottomnav-z, var(--do-wdr-z-sticky, 100));
 }
 
 @media (max-width: 47.999rem) {
-  .wdr-nav-shell__nav { display: none; }
-  .wdr-nav-shell__bottomnav-wrapper { display: block; }
-  .wdr-nav-shell__main { padding-bottom: var(--wdr-navshell-mobile-bottom-pad); }
-  .wdr-nav-shell .wdr-bottomnav { display: flex; }
-  .wdr-nav-shell .wdr-iconrail,
-  .wdr-nav-shell .wdr-sidebar { display: none; }
+  .do-wdr-nav-shell__nav { display: none; }
+  .do-wdr-nav-shell__bottomnav-wrapper { display: block; }
+  .do-wdr-nav-shell__main { padding-bottom: var(--do-wdr-navshell-mobile-bottom-pad); }
+  .do-wdr-nav-shell .do-wdr-bottomnav { display: flex; }
+  .do-wdr-nav-shell .do-wdr-iconrail,
+  .do-wdr-nav-shell .do-wdr-sidebar { display: none; }
 }
 
 @media (min-width: 48rem) and (max-width: 63.999rem) {
-  .wdr-nav-shell__nav { display: block; }
-  .wdr-nav-shell__bottomnav-wrapper { display: none; }
-  .wdr-nav-shell__main { padding-bottom: 0; }
-  .wdr-nav-shell .wdr-bottomnav,
-  .wdr-nav-shell .wdr-sidebar { display: none; }
-  .wdr-nav-shell .wdr-iconrail { display: flex; }
+  .do-wdr-nav-shell__nav { display: block; }
+  .do-wdr-nav-shell__bottomnav-wrapper { display: none; }
+  .do-wdr-nav-shell__main { padding-bottom: 0; }
+  .do-wdr-nav-shell .do-wdr-bottomnav,
+  .do-wdr-nav-shell .do-wdr-sidebar { display: none; }
+  .do-wdr-nav-shell .do-wdr-iconrail { display: flex; }
 }
 
 @media (min-width: 64rem) {
-  .wdr-nav-shell__nav { display: block; }
-  .wdr-nav-shell__bottomnav-wrapper { display: none; }
-  .wdr-nav-shell__main { padding-bottom: 0; }
-  .wdr-nav-shell .wdr-bottomnav,
-  .wdr-nav-shell .wdr-iconrail { display: none; }
-  .wdr-nav-shell .wdr-sidebar { display: flex; }
+  .do-wdr-nav-shell__nav { display: block; }
+  .do-wdr-nav-shell__bottomnav-wrapper { display: none; }
+  .do-wdr-nav-shell__main { padding-bottom: 0; }
+  .do-wdr-nav-shell .do-wdr-bottomnav,
+  .do-wdr-nav-shell .do-wdr-iconrail { display: none; }
+  .do-wdr-nav-shell .do-wdr-sidebar { display: flex; }
 }
 
-.wdr-nav-shell__nav-enter {
-  animation: wdr-nav-shell-slide-in var(--wdr-navshell-transition) forwards;
+.do-wdr-nav-shell__nav-enter {
+  animation: do-wdr-nav-shell-slide-in var(--do-wdr-navshell-transition) forwards;
 }
 
-.wdr-nav-shell__nav-exit {
-  animation: wdr-nav-shell-slide-out var(--wdr-navshell-transition) forwards;
+.do-wdr-nav-shell__nav-exit {
+  animation: do-wdr-nav-shell-slide-out var(--do-wdr-navshell-transition) forwards;
 }
 
-.wdr-nav-shell__bottomnav-enter {
-  animation: wdr-nav-shell-rise-in var(--wdr-navshell-transition) forwards;
+.do-wdr-nav-shell__bottomnav-enter {
+  animation: do-wdr-nav-shell-rise-in var(--do-wdr-navshell-transition) forwards;
 }
 
-.wdr-nav-shell__bottomnav-exit {
-  animation: wdr-nav-shell-rise-out var(--wdr-navshell-transition) forwards;
+.do-wdr-nav-shell__bottomnav-exit {
+  animation: do-wdr-nav-shell-rise-out var(--do-wdr-navshell-transition) forwards;
 }
 
-@keyframes wdr-nav-shell-slide-in {
+@keyframes do-wdr-nav-shell-slide-in {
   from { opacity: 0; transform: translateX(-1rem); }
   to { opacity: 1; transform: translateX(0); }
 }
 
-@keyframes wdr-nav-shell-slide-out {
+@keyframes do-wdr-nav-shell-slide-out {
   from { opacity: 1; transform: translateX(0); }
   to { opacity: 0; transform: translateX(-1rem); }
 }
 
-@keyframes wdr-nav-shell-rise-in {
+@keyframes do-wdr-nav-shell-rise-in {
   from { opacity: 0; transform: translateY(1rem); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes wdr-nav-shell-rise-out {
+@keyframes do-wdr-nav-shell-rise-out {
   from { opacity: 1; transform: translateY(0); }
   to { opacity: 0; transform: translateY(1rem); }
 }
 
 @container nav-shell (max-width: 48rem) {
-  .wdr-nav-shell__content-pad-left { padding-left: 0; }
+  .do-wdr-nav-shell__content-pad-left { padding-left: 0; }
 }
 
 @container nav-shell (min-width: 48rem) and (max-width: 64rem) {
-  .wdr-nav-shell__content-pad-left { padding-left: var(--wdr-iconrail-width); }
+  .do-wdr-nav-shell__content-pad-left { padding-left: var(--do-wdr-iconrail-width); }
 }
 
 @container nav-shell (min-width: 64rem) {
-  .wdr-nav-shell__content-pad-left { padding-left: var(--wdr-sidebar-width); }
+  .do-wdr-nav-shell__content-pad-left { padding-left: var(--do-wdr-sidebar-width); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wdr-nav-shell__nav,
-  .wdr-nav-shell__main,
-  .wdr-nav-shell__nav-enter,
-  .wdr-nav-shell__nav-exit,
-  .wdr-nav-shell__bottomnav-enter,
-  .wdr-nav-shell__bottomnav-exit {
+  .do-wdr-nav-shell__nav,
+  .do-wdr-nav-shell__main,
+  .do-wdr-nav-shell__nav-enter,
+  .do-wdr-nav-shell__nav-exit,
+  .do-wdr-nav-shell__bottomnav-enter,
+  .do-wdr-nav-shell__bottomnav-exit {
     transition: none;
     animation: none;
   }

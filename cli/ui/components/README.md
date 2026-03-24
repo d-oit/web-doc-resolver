@@ -56,28 +56,28 @@ Data-dense, developer-first component library. No chat bubbles. No whimsy.
 
 ## Naming Convention
 
-All tokens follow `--wdr-{component}-{element}-{variant}-{state}`:
+All tokens follow `--do-wdr-{component}-{element}-{variant}-{state}`:
 
 ```
---wdr-button-bg                    (component + element)
---wdr-button-bg-hover              (component + element + state)
---wdr-button-primary-bg            (component + variant + element)
---wdr-button-primary-bg-hover      (component + variant + element + state)
---wdr-input-border-error            (component + element + state)
---wdr-stepper-step-complete-icon   (component + element + state + sub-element)
+--do-wdr-button-bg                    (component + element)
+--do-wdr-button-bg-hover              (component + element + state)
+--do-wdr-button-primary-bg            (component + variant + element)
+--do-wdr-button-primary-bg-hover      (component + variant + element + state)
+--do-wdr-input-border-error            (component + element + state)
+--do-wdr-stepper-step-complete-icon   (component + element + state + sub-element)
 ```
 
 ## Usage Pattern
 
 ```html
 <!-- Semantic HTML, not div soup -->
-<button class="wdr-button wdr-button--primary">
+<button class="do-wdr-button do-wdr-button--primary">
   Resolve URL
 </button>
 
-<fieldset class="wdr-input-group">
-  <label class="wdr-input-label" for="url">Target URL</label>
-  <input class="wdr-input" id="url" type="url" placeholder="https://..." />
+<fieldset class="do-wdr-input-group">
+  <label class="do-wdr-input-label" for="url">Target URL</label>
+  <input class="do-wdr-input" id="url" type="url" placeholder="https://..." />
 </fieldset>
 ```
 

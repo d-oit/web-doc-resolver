@@ -6,7 +6,7 @@ use clap::{Parser, Subcommand};
 
 /// CLI argument parser
 #[derive(Parser, Debug)]
-#[command(name = "wdr")]
+#[command(name = "do-wdr")]
 #[command(about = "Web Documentation Resolver - Resolve URLs and queries into documentation", long_about = None)]
 #[command(version = "0.1.0")]
 pub struct Cli {
@@ -121,7 +121,7 @@ mod tests {
 
     #[test]
     fn test_cli_parse_resolve() {
-        let cli = Cli::parse_from(&["wdr", "resolve", "https://example.com"]);
+        let cli = Cli::parse_from(&["do-wdr", "resolve", "https://example.com"]);
         match cli.command {
             Commands::Resolve(args) => {
                 assert_eq!(args.input, "https://example.com");
@@ -133,7 +133,7 @@ mod tests {
     #[test]
     fn test_cli_parse_resolve_with_options() {
         let cli = Cli::parse_from(&[
-            "wdr",
+            "do-wdr",
             "resolve",
             "test query",
             "--provider",
@@ -155,7 +155,7 @@ mod tests {
 
     #[test]
     fn test_cli_parse_providers() {
-        let cli = Cli::parse_from(&["wdr", "providers"]);
+        let cli = Cli::parse_from(&["do-wdr", "providers"]);
         match cli.command {
             Commands::Providers => {}
             _ => panic!("Expected Providers command"),
@@ -164,7 +164,7 @@ mod tests {
 
     #[test]
     fn test_cli_parse_config() {
-        let cli = Cli::parse_from(&["wdr", "config"]);
+        let cli = Cli::parse_from(&["do-wdr", "config"]);
         match cli.command {
             Commands::Config => {}
             _ => panic!("Expected Config command"),
@@ -173,10 +173,10 @@ mod tests {
 
     #[test]
     fn test_cli_verbose_flag() {
-        let cli = Cli::parse_from(&["wdr", "-v", "resolve", "test"]);
+        let cli = Cli::parse_from(&["do-wdr", "-v", "resolve", "test"]);
         assert_eq!(cli.verbose, 1);
 
-        let cli = Cli::parse_from(&["wdr", "-vv", "resolve", "test"]);
+        let cli = Cli::parse_from(&["do-wdr", "-vv", "resolve", "test"]);
         assert_eq!(cli.verbose, 2);
     }
 }

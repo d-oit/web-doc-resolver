@@ -1,193 +1,193 @@
 :root {
-  --wdr-healthcheck-font:           var(--wdr-font-sans);
-  --wdr-healthcheck-font-mono:      var(--wdr-font-mono);
-  --wdr-healthcheck-font-size:      var(--wdr-text-xs);
-  --wdr-healthcheck-radius:         var(--wdr-radius-md);
-  --wdr-healthcheck-transition:     var(--wdr-transition-colors);
-  --wdr-healthcheck-gap:            var(--wdr-space-2);
-  --wdr-healthcheck-btn-height:     1.75rem;
-  --wdr-healthcheck-btn-px:         var(--wdr-space-2);
-  --wdr-healthcheck-btn-font:       var(--wdr-text-xs);
-  --wdr-healthcheck-btn-weight:     var(--wdr-weight-medium);
-  --wdr-healthcheck-btn-bg:         var(--wdr-interactive-bg-subtle);
-  --wdr-healthcheck-btn-bg-hover:   var(--wdr-interactive-bg-subtle-hover);
-  --wdr-healthcheck-btn-text:       var(--wdr-text-secondary);
-  --wdr-healthcheck-btn-text-hover: var(--wdr-text-primary);
-  --wdr-healthcheck-badge-height:   1.5rem;
-  --wdr-healthcheck-badge-px:       var(--wdr-space-2);
-  --wdr-healthcheck-badge-gap:      var(--wdr-space-1);
-  --wdr-healthcheck-badge-radius:   var(--wdr-radius-full);
-  --wdr-healthcheck-dot-size:       0.375rem;
-  --wdr-healthcheck-success-bg:     var(--wdr-signal-success-bg);
-  --wdr-healthcheck-success-color:  var(--wdr-signal-success);
-  --wdr-healthcheck-warning-bg:     var(--wdr-signal-warning-bg);
-  --wdr-healthcheck-warning-color:  var(--wdr-signal-warning);
-  --wdr-healthcheck-error-bg:       var(--wdr-signal-error-bg);
-  --wdr-healthcheck-error-color:    var(--wdr-signal-error);
-  --wdr-healthcheck-meta-size:      0.625rem;
-  --wdr-healthcheck-meta-color:     var(--wdr-text-tertiary);
-  --wdr-healthcheck-spinner-size:   0.875rem;
-  --wdr-healthcheck-spinner-width:  2px;
+  --do-wdr-healthcheck-font:           var(--do-wdr-font-sans);
+  --do-wdr-healthcheck-font-mono:      var(--do-wdr-font-mono);
+  --do-wdr-healthcheck-font-size:      var(--do-wdr-text-xs);
+  --do-wdr-healthcheck-radius:         var(--do-wdr-radius-md);
+  --do-wdr-healthcheck-transition:     var(--do-wdr-transition-colors);
+  --do-wdr-healthcheck-gap:            var(--do-wdr-space-2);
+  --do-wdr-healthcheck-btn-height:     1.75rem;
+  --do-wdr-healthcheck-btn-px:         var(--do-wdr-space-2);
+  --do-wdr-healthcheck-btn-font:       var(--do-wdr-text-xs);
+  --do-wdr-healthcheck-btn-weight:     var(--do-wdr-weight-medium);
+  --do-wdr-healthcheck-btn-bg:         var(--do-wdr-interactive-bg-subtle);
+  --do-wdr-healthcheck-btn-bg-hover:   var(--do-wdr-interactive-bg-subtle-hover);
+  --do-wdr-healthcheck-btn-text:       var(--do-wdr-text-secondary);
+  --do-wdr-healthcheck-btn-text-hover: var(--do-wdr-text-primary);
+  --do-wdr-healthcheck-badge-height:   1.5rem;
+  --do-wdr-healthcheck-badge-px:       var(--do-wdr-space-2);
+  --do-wdr-healthcheck-badge-gap:      var(--do-wdr-space-1);
+  --do-wdr-healthcheck-badge-radius:   var(--do-wdr-radius-full);
+  --do-wdr-healthcheck-dot-size:       0.375rem;
+  --do-wdr-healthcheck-success-bg:     var(--do-wdr-signal-success-bg);
+  --do-wdr-healthcheck-success-color:  var(--do-wdr-signal-success);
+  --do-wdr-healthcheck-warning-bg:     var(--do-wdr-signal-warning-bg);
+  --do-wdr-healthcheck-warning-color:  var(--do-wdr-signal-warning);
+  --do-wdr-healthcheck-error-bg:       var(--do-wdr-signal-error-bg);
+  --do-wdr-healthcheck-error-color:    var(--do-wdr-signal-error);
+  --do-wdr-healthcheck-meta-size:      0.625rem;
+  --do-wdr-healthcheck-meta-color:     var(--do-wdr-text-tertiary);
+  --do-wdr-healthcheck-spinner-size:   0.875rem;
+  --do-wdr-healthcheck-spinner-width:  2px;
 }
 
-.wdr-healthcheck {
+.do-wdr-healthcheck {
   display: inline-flex;
   align-items: center;
-  gap: var(--wdr-healthcheck-gap);
-  font-family: var(--wdr-healthcheck-font);
-  font-size: var(--wdr-healthcheck-font-size);
-  transition: var(--wdr-healthcheck-transition);
+  gap: var(--do-wdr-healthcheck-gap);
+  font-family: var(--do-wdr-healthcheck-font);
+  font-size: var(--do-wdr-healthcheck-font-size);
+  transition: var(--do-wdr-healthcheck-transition);
 }
 
-.wdr-healthcheck__button {
+.do-wdr-healthcheck__button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--wdr-healthcheck-badge-gap);
-  height: var(--wdr-healthcheck-btn-height);
-  padding: 0 var(--wdr-healthcheck-btn-px);
-  font-family: var(--wdr-healthcheck-font);
-  font-size: var(--wdr-healthcheck-btn-font);
-  font-weight: var(--wdr-healthcheck-btn-weight);
+  gap: var(--do-wdr-healthcheck-badge-gap);
+  height: var(--do-wdr-healthcheck-btn-height);
+  padding: 0 var(--do-wdr-healthcheck-btn-px);
+  font-family: var(--do-wdr-healthcheck-font);
+  font-size: var(--do-wdr-healthcheck-btn-font);
+  font-weight: var(--do-wdr-healthcheck-btn-weight);
   line-height: 1;
-  color: var(--wdr-healthcheck-btn-text);
-  background: var(--wdr-healthcheck-btn-bg);
-  border: 1px solid var(--wdr-border-default);
-  border-radius: var(--wdr-healthcheck-radius);
+  color: var(--do-wdr-healthcheck-btn-text);
+  background: var(--do-wdr-healthcheck-btn-bg);
+  border: 1px solid var(--do-wdr-border-default);
+  border-radius: var(--do-wdr-healthcheck-radius);
   cursor: pointer;
   white-space: nowrap;
   user-select: none;
-  transition: var(--wdr-healthcheck-transition);
+  transition: var(--do-wdr-healthcheck-transition);
 }
 
-.wdr-healthcheck__button:hover {
-  background: var(--wdr-healthcheck-btn-bg-hover);
-  color: var(--wdr-healthcheck-btn-text-hover);
-  border-color: var(--wdr-border-focus);
+.do-wdr-healthcheck__button:hover {
+  background: var(--do-wdr-healthcheck-btn-bg-hover);
+  color: var(--do-wdr-healthcheck-btn-text-hover);
+  border-color: var(--do-wdr-border-focus);
 }
 
-.wdr-healthcheck__button:focus-visible {
-  outline: 2px solid var(--wdr-border-focus);
+.do-wdr-healthcheck__button:focus-visible {
+  outline: 2px solid var(--do-wdr-border-focus);
   outline-offset: 2px;
 }
 
-.wdr-healthcheck__button:disabled,
-.wdr-healthcheck__button[aria-disabled="true"] {
+.do-wdr-healthcheck__button:disabled,
+.do-wdr-healthcheck__button[aria-disabled="true"] {
   opacity: 0.5;
   cursor: not-allowed;
   pointer-events: none;
 }
 
-.wdr-healthcheck__button--loading {
+.do-wdr-healthcheck__button--loading {
   position: relative;
   color: transparent;
   pointer-events: none;
 }
 
-.wdr-healthcheck__button--loading::after {
+.do-wdr-healthcheck__button--loading::after {
   content: '';
   position: absolute;
-  width: var(--wdr-healthcheck-spinner-size);
-  height: var(--wdr-healthcheck-spinner-size);
-  border: var(--wdr-healthcheck-spinner-width) solid var(--wdr-text-tertiary);
+  width: var(--do-wdr-healthcheck-spinner-size);
+  height: var(--do-wdr-healthcheck-spinner-size);
+  border: var(--do-wdr-healthcheck-spinner-width) solid var(--do-wdr-text-tertiary);
   border-right-color: transparent;
-  border-radius: var(--wdr-radius-full);
-  animation: wdr-healthcheck-spin 0.6s linear infinite;
+  border-radius: var(--do-wdr-radius-full);
+  animation: do-wdr-healthcheck-spin 0.6s linear infinite;
 }
 
-.wdr-healthcheck__icon {
+.do-wdr-healthcheck__icon {
   width: 0.875rem;
   height: 0.875rem;
   flex-shrink: 0;
 }
 
-.wdr-healthcheck__badge {
+.do-wdr-healthcheck__badge {
   display: inline-flex;
   align-items: center;
-  gap: var(--wdr-healthcheck-badge-gap);
-  height: var(--wdr-healthcheck-badge-height);
-  padding: 0 var(--wdr-healthcheck-badge-px);
-  border-radius: var(--wdr-healthcheck-badge-radius);
-  font-family: var(--wdr-healthcheck-font-mono);
-  font-size: var(--wdr-healthcheck-font-size);
+  gap: var(--do-wdr-healthcheck-badge-gap);
+  height: var(--do-wdr-healthcheck-badge-height);
+  padding: 0 var(--do-wdr-healthcheck-badge-px);
+  border-radius: var(--do-wdr-healthcheck-badge-radius);
+  font-family: var(--do-wdr-healthcheck-font-mono);
+  font-size: var(--do-wdr-healthcheck-font-size);
   line-height: 1;
   white-space: nowrap;
   user-select: none;
-  transition: var(--wdr-healthcheck-transition);
+  transition: var(--do-wdr-healthcheck-transition);
   border: 1px solid transparent;
 }
 
-.wdr-healthcheck__dot {
-  width: var(--wdr-healthcheck-dot-size);
-  height: var(--wdr-healthcheck-dot-size);
-  border-radius: var(--wdr-radius-full);
+.do-wdr-healthcheck__dot {
+  width: var(--do-wdr-healthcheck-dot-size);
+  height: var(--do-wdr-healthcheck-dot-size);
+  border-radius: var(--do-wdr-radius-full);
   background: currentColor;
   flex-shrink: 0;
-  transition: var(--wdr-healthcheck-transition);
+  transition: var(--do-wdr-healthcheck-transition);
 }
 
-.wdr-healthcheck__badge--success {
-  background: var(--wdr-healthcheck-success-bg);
-  color: var(--wdr-healthcheck-success-color);
+.do-wdr-healthcheck__badge--success {
+  background: var(--do-wdr-healthcheck-success-bg);
+  color: var(--do-wdr-healthcheck-success-color);
 }
 
-.wdr-healthcheck__badge--warning {
-  background: var(--wdr-healthcheck-warning-bg);
-  color: var(--wdr-healthcheck-warning-color);
+.do-wdr-healthcheck__badge--warning {
+  background: var(--do-wdr-healthcheck-warning-bg);
+  color: var(--do-wdr-healthcheck-warning-color);
 }
 
-.wdr-healthcheck__badge--error {
-  background: var(--wdr-healthcheck-error-bg);
-  color: var(--wdr-healthcheck-error-color);
+.do-wdr-healthcheck__badge--error {
+  background: var(--do-wdr-healthcheck-error-bg);
+  color: var(--do-wdr-healthcheck-error-color);
 }
 
-.wdr-healthcheck__badge--loading {
-  background: var(--wdr-surface-bg-subtle);
-  color: var(--wdr-text-tertiary);
+.do-wdr-healthcheck__badge--loading {
+  background: var(--do-wdr-surface-bg-subtle);
+  color: var(--do-wdr-text-tertiary);
 }
 
-.wdr-healthcheck__badge--loading .wdr-healthcheck__dot {
-  background: var(--wdr-pipeline-running);
-  animation: wdr-healthcheck-pulse 1.5s ease-in-out infinite;
+.do-wdr-healthcheck__badge--loading .do-wdr-healthcheck__dot {
+  background: var(--do-wdr-pipeline-running);
+  animation: do-wdr-healthcheck-pulse 1.5s ease-in-out infinite;
 }
 
-.wdr-healthcheck__meta {
-  font-family: var(--wdr-healthcheck-font-mono);
-  font-size: var(--wdr-healthcheck-meta-size);
-  color: var(--wdr-healthcheck-meta-color);
+.do-wdr-healthcheck__meta {
+  font-family: var(--do-wdr-healthcheck-font-mono);
+  font-size: var(--do-wdr-healthcheck-meta-size);
+  color: var(--do-wdr-healthcheck-meta-color);
   font-variant-numeric: tabular-nums;
 }
 
-.wdr-healthcheck__separator {
+.do-wdr-healthcheck__separator {
   width: 1px;
   height: 0.75rem;
-  background: var(--wdr-border-default);
+  background: var(--do-wdr-border-default);
   flex-shrink: 0;
 }
 
-.wdr-healthcheck__validation {
-  font-size: var(--wdr-healthcheck-meta-size);
-  color: var(--wdr-healthcheck-error-color);
+.do-wdr-healthcheck__validation {
+  font-size: var(--do-wdr-healthcheck-meta-size);
+  color: var(--do-wdr-healthcheck-error-color);
 }
 
-@keyframes wdr-healthcheck-spin {
+@keyframes do-wdr-healthcheck-spin {
   to { transform: rotate(360deg); }
 }
 
-@keyframes wdr-healthcheck-pulse {
+@keyframes do-wdr-healthcheck-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wdr-healthcheck,
-  .wdr-healthcheck__button,
-  .wdr-healthcheck__badge,
-  .wdr-healthcheck__dot {
+  .do-wdr-healthcheck,
+  .do-wdr-healthcheck__button,
+  .do-wdr-healthcheck__badge,
+  .do-wdr-healthcheck__dot {
     transition: none;
     animation: none;
   }
-  .wdr-healthcheck__button--loading::after {
+  .do-wdr-healthcheck__button--loading::after {
     animation: none;
   }
 }

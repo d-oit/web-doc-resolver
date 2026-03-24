@@ -25,8 +25,8 @@ async function validateCss() {
       failures++;
     }
 
-    if (!content.includes('.wdr-')) {
-      console.error(`FAIL: ${file} missing wdr- prefixed classes`);
+    if (!content.includes('.do-wdr-')) {
+      console.error(`FAIL: ${file} missing do-wdr- prefixed classes`);
       failures++;
     }
   }

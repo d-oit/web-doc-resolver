@@ -1,6 +1,6 @@
 # WDR CLI Commands Reference
 
-Complete reference for all wdr CLI commands and options.
+Complete reference for all do-wdr CLI commands and options.
 
 ## Global Options
 
@@ -19,7 +19,7 @@ Resolve a URL or query to markdown documentation.
 ### Synopsis
 
 ```bash
-wdr resolve <INPUT> [OPTIONS]
+do-wdr resolve <INPUT> [OPTIONS]
 ```
 
 ### Arguments
@@ -78,25 +78,25 @@ Available profiles: `free`, `balanced`, `fast`, `quality`
 
 ```bash
 # Basic URL resolution
-wdr resolve "https://docs.rs/tokio/latest/tokio/"
+do-wdr resolve "https://docs.rs/tokio/latest/tokio/"
 
 # Query with JSON output
-wdr resolve "Rust async frameworks" --json
+do-wdr resolve "Rust async frameworks" --json
 
 # Use specific provider
-wdr resolve "query" --provider exa_mcp
+do-wdr resolve "query" --provider exa_mcp
 
 # Skip paid providers
-wdr resolve "query" --skip tavily,serper,firecrawl
+do-wdr resolve "query" --skip tavily,serper,firecrawl
 
 # Save to file with metrics
-wdr resolve "https://example.com" --output docs.md --metrics-file metrics.json
+do-wdr resolve "https://example.com" --output docs.md --metrics-file metrics.json
 
 # Free profile (no API keys needed)
-wdr resolve "query" --profile free
+do-wdr resolve "query" --profile free
 
 # Synthesize results with AI
-wdr resolve "query" --synthesize
+do-wdr resolve "query" --synthesize
 ```
 
 ## providers Command
@@ -106,7 +106,7 @@ List all available providers and their status.
 ### Synopsis
 
 ```bash
-wdr providers
+do-wdr providers
 ```
 
 ### Output
@@ -140,7 +140,7 @@ Show current configuration.
 ### Synopsis
 
 ```bash
-wdr config
+do-wdr config
 ```
 
 ### Output
@@ -182,7 +182,7 @@ Show semantic cache statistics.
 ### Synopsis
 
 ```bash
-wdr cache-stats
+do-wdr cache-stats
 ```
 
 ### Output
@@ -218,8 +218,8 @@ Requires semantic cache to be enabled (feature `semantic-cache`).
 | `SERPER_API_KEY` | Serper API key |
 | `FIRECRAWL_API_KEY` | Firecrawl API key |
 | `MISTRAL_API_KEY` | Mistral API key |
-| `WDR_LOG_LEVEL` | Log level (trace, debug, info, warn, error) |
-| `WDR_CONFIG_FILE` | Path to config file |
+| `DO_WDR_LOG_LEVEL` | Log level (trace, debug, info, warn, error) |
+| `DO_WDR_CONFIG_FILE` | Path to config file |
 
 ## Shell Completions
 
@@ -227,11 +227,11 @@ Generate shell completions:
 
 ```bash
 # Bash
-wdr completions bash > ~/.bash_completion
+do-wdr completions bash > ~/.bash_completion
 
 # Zsh
-wdr completions zsh > ~/.zsh/_wdr
+do-wdr completions zsh > ~/.zsh/_do-wdr
 
 # Fish
-wdr completions fish > ~/.config/fish/completions/wdr.fish
+do-wdr completions fish > ~/.config/fish/completions/do-wdr.fish
 ```

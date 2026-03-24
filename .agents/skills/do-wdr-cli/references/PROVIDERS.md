@@ -1,6 +1,6 @@
 # WDR CLI Providers Reference
 
-Complete reference for all providers available in the wdr CLI.
+Complete reference for all providers available in the do-wdr CLI.
 
 ## Provider Types
 
@@ -25,7 +25,7 @@ Providers are categorized by input type:
 
 **Usage:**
 ```bash
-wdr resolve "query" --provider exa_mcp
+do-wdr resolve "query" --provider exa_mcp
 ```
 
 **Notes:**
@@ -48,7 +48,7 @@ wdr resolve "query" --provider exa_mcp
 **Usage:**
 ```bash
 export EXA_API_KEY="your_key"
-wdr resolve "query" --provider exa_sdk
+do-wdr resolve "query" --provider exa_sdk
 ```
 
 **Notes:**
@@ -71,7 +71,7 @@ wdr resolve "query" --provider exa_sdk
 **Usage:**
 ```bash
 export TAVILY_API_KEY="your_key"
-wdr resolve "query" --provider tavily
+do-wdr resolve "query" --provider tavily
 ```
 
 **Notes:**
@@ -94,7 +94,7 @@ wdr resolve "query" --provider tavily
 **Usage:**
 ```bash
 export SERPER_API_KEY="your_key"
-wdr resolve "query" --provider serper
+do-wdr resolve "query" --provider serper
 ```
 
 **Notes:**
@@ -115,7 +115,7 @@ wdr resolve "query" --provider serper
 
 **Usage:**
 ```bash
-wdr resolve "query" --provider duckduckgo
+do-wdr resolve "query" --provider duckduckgo
 ```
 
 **Notes:**
@@ -138,7 +138,7 @@ wdr resolve "query" --provider duckduckgo
 **Usage:**
 ```bash
 export MISTRAL_API_KEY="your_key"
-wdr resolve "query" --provider mistral_websearch
+do-wdr resolve "query" --provider mistral_websearch
 ```
 
 **Notes:**
@@ -162,7 +162,7 @@ wdr resolve "query" --provider mistral_websearch
 
 **Usage:**
 ```bash
-wdr resolve "https://example.com" --provider llms_txt
+do-wdr resolve "https://example.com" --provider llms_txt
 ```
 
 **Notes:**
@@ -184,7 +184,7 @@ wdr resolve "https://example.com" --provider llms_txt
 
 **Usage:**
 ```bash
-wdr resolve "https://example.com" --provider jina
+do-wdr resolve "https://example.com" --provider jina
 ```
 
 **Notes:**
@@ -207,7 +207,7 @@ wdr resolve "https://example.com" --provider jina
 **Usage:**
 ```bash
 export FIRECRAWL_API_KEY="your_key"
-wdr resolve "https://example.com" --provider firecrawl
+do-wdr resolve "https://example.com" --provider firecrawl
 ```
 
 **Notes:**
@@ -229,7 +229,7 @@ wdr resolve "https://example.com" --provider firecrawl
 
 **Usage:**
 ```bash
-wdr resolve "https://example.com" --provider direct_fetch
+do-wdr resolve "https://example.com" --provider direct_fetch
 ```
 
 **Notes:**
@@ -252,7 +252,7 @@ wdr resolve "https://example.com" --provider direct_fetch
 **Usage:**
 ```bash
 export MISTRAL_API_KEY="your_key"
-wdr resolve "https://example.com" --provider mistral_browser
+do-wdr resolve "https://example.com" --provider mistral_browser
 ```
 
 **Notes:**
@@ -274,7 +274,7 @@ wdr resolve "https://example.com" --provider mistral_browser
 
 **Usage:**
 ```bash
-wdr resolve "https://example.com/doc.pdf" --provider docling
+do-wdr resolve "https://example.com/doc.pdf" --provider docling
 ```
 
 **Notes:**
@@ -295,7 +295,7 @@ wdr resolve "https://example.com/doc.pdf" --provider docling
 
 **Usage:**
 ```bash
-wdr resolve "https://example.com/image.png" --provider ocr
+do-wdr resolve "https://example.com/image.png" --provider ocr
 ```
 
 **Notes:**
@@ -329,13 +329,13 @@ Skip specific providers:
 
 ```bash
 # Skip paid providers
-wdr resolve "query" --skip exa_sdk,tavily,serper,mistral_websearch
+do-wdr resolve "query" --skip exa_sdk,tavily,serper,mistral_websearch
 
 # Skip specific provider
-wdr resolve "query" --skip firecrawl
+do-wdr resolve "query" --skip firecrawl
 
 # Use only free providers
-wdr resolve "query" --skip exa_sdk,tavily,serper,mistral_websearch,mistral_browser
+do-wdr resolve "query" --skip exa_sdk,tavily,serper,mistral_websearch,mistral_browser
 ```
 
 ## Custom Provider Order
@@ -343,5 +343,5 @@ wdr resolve "query" --skip exa_sdk,tavily,serper,mistral_websearch,mistral_brows
 Override default priority:
 
 ```bash
-wdr resolve "query" --providers-order duckduckgo,exa_mcp,tavily
+do-wdr resolve "query" --providers-order duckduckgo,exa_mcp,tavily
 ```

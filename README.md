@@ -41,7 +41,7 @@ This project implements a v4 cascade resolver with Python core, Rust CLI, and we
 
 ## Features
 
-- **Three Interfaces**: Python library, Rust CLI (`wdr`), and Next.js web UI
+- **Three Interfaces**: Python library, Rust CLI (`do-wdr`), and Next.js web UI
 - **Execution Profiles**: `free`, `balanced`, `fast`, and `quality` modes
 - **Telemetry & Metrics**: Detailed per-provider latency and cost tracking
 - **Content Compaction**: Intelligent boilerplate removal and deduplication
@@ -69,7 +69,7 @@ pip install -r requirements.txt
 
 ```bash
 cd cli && cargo build --release
-# Binary: cli/target/release/wdr
+# Binary: cli/target/release/do-wdr
 ```
 
 ### Web UI
@@ -115,7 +115,7 @@ $env:FIRECRAWL_API_KEY="your-firecrawl-key"
 $env:MISTRAL_API_KEY="your-mistral-key"
 ```
 
-Rust CLI supports `config.toml` or `WDR_*` env vars. See [`.agents/skills/do-web-doc-resolver/references/CONFIG.md`](.agents/skills/do-web-doc-resolver/references/CONFIG.md) for full reference.
+Rust CLI supports `config.toml` or `DO_WDR_*` env vars. See [`.agents/skills/do-web-doc-resolver/references/CONFIG.md`](.agents/skills/do-web-doc-resolver/references/CONFIG.md) for full reference.
 
 ## Usage
 
@@ -193,41 +193,41 @@ python -m scripts.resolve "https://example.com" --provider jina
 python -m scripts.resolve "https://example.com" --providers-order "llms_txt,jina,direct_fetch"
 ```
 
-### Rust CLI (`wdr`)
+### Rust CLI (`do-wdr`)
 
 ```bash
 # Build the CLI
 cd cli && cargo build --release
 
 # Resolve a URL or query
-./target/release/wdr resolve "https://example.com"
-./target/release/wdr resolve "machine learning tutorials"
+./target/release/do-wdr resolve "https://example.com"
+./target/release/do-wdr resolve "machine learning tutorials"
 
 # Output as JSON
-./target/release/wdr resolve "query" --json
+./target/release/do-wdr resolve "query" --json
 
 # Save to file
-./target/release/wdr resolve "https://example.com" -o result.md
+./target/release/do-wdr resolve "https://example.com" -o result.md
 
 # Use execution profile
-./target/release/wdr resolve "query" --profile free    # No paid providers
-./target/release/wdr resolve "query" --profile fast    # Low latency
-./target/release/wdr resolve "query" --profile quality # Best results
+./target/release/do-wdr resolve "query" --profile free    # No paid providers
+./target/release/do-wdr resolve "query" --profile fast    # Low latency
+./target/release/do-wdr resolve "query" --profile quality # Best results
 
 # Skip providers
-./target/release/wdr resolve "query" --skip exa_mcp,exa
+./target/release/do-wdr resolve "query" --skip exa_mcp,exa
 
 # AI synthesis from multiple providers
-./target/release/wdr resolve "query" --synthesize
+./target/release/do-wdr resolve "query" --synthesize
 
 # Metrics output
-./target/release/wdr resolve "query" --metrics-json
+./target/release/do-wdr resolve "query" --metrics-json
 
 # List available providers
-./target/release/wdr providers
+./target/release/do-wdr providers
 
 # Show current config
-./target/release/wdr config
+./target/release/do-wdr config
 ```
 
 ### Web UI
@@ -443,7 +443,7 @@ do-web-doc-resolver/
 │   ├── resolve.py         # Main Python resolver
 │   ├── quality_gate.sh    # Pre-commit quality checks
 │   └── setup-hooks.sh     # Git hook installer
-├── cli/                   # Rust CLI (wdr binary)
+├── cli/                   # Rust CLI (do-wdr binary)
 │   ├── Cargo.toml
 │   └── src/
 │       ├── main.rs        # Entry point

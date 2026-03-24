@@ -38,9 +38,9 @@ const preview: Preview = {
       wrapper.style.cssText = `
         min-height: 100vh;
         padding: 1.5rem;
-        background: var(--wdr-surface-bg);
-        color: var(--wdr-text-primary);
-        font-family: var(--wdr-font-sans);
+        background: var(--do-wdr-surface-bg);
+        color: var(--do-wdr-text-primary);
+        font-family: var(--do-wdr-font-sans);
         transition: background 0.15s, color 0.15s;
       `;
       wrapper.innerHTML = storyFn() as string;

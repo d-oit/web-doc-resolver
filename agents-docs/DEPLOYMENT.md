@@ -168,9 +168,9 @@ export FIRECRAWL_API_KEY="your_firecrawl_key"
 export MISTRAL_API_KEY="your_mistral_key"
 
 # Runtime settings
-export WDR_LOG_LEVEL=INFO
-export WDR_MAX_CHARS=8000
-export WDR_OUTPUT_LIMIT=10
+export DO_WDR_LOG_LEVEL=INFO
+export DO_WDR_MAX_CHARS=8000
+export DO_WDR_OUTPUT_LIMIT=10
 ```
 
 ### Config File

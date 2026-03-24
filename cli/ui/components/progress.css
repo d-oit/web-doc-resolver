@@ -1,121 +1,121 @@
 :root {
-  --wdr-progress-track-bg:       var(--wdr-border-default);
-  --wdr-progress-track-radius:   var(--wdr-radius-full);
+  --do-wdr-progress-track-bg:       var(--do-wdr-border-default);
+  --do-wdr-progress-track-radius:   var(--do-wdr-radius-full);
 
-  --wdr-progress-sm-height:  4px;
-  --wdr-progress-md-height:  8px;
-  --wdr-progress-lg-height: 12px;
+  --do-wdr-progress-sm-height:  4px;
+  --do-wdr-progress-md-height:  8px;
+  --do-wdr-progress-lg-height: 12px;
 
-  --wdr-progress-fill-bg:         var(--wdr-interactive-bg);
-  --wdr-progress-success-bg:      var(--wdr-signal-success);
-  --wdr-progress-warning-bg:      var(--wdr-signal-warning);
-  --wdr-progress-error-bg:        var(--wdr-signal-error);
+  --do-wdr-progress-fill-bg:         var(--do-wdr-interactive-bg);
+  --do-wdr-progress-success-bg:      var(--do-wdr-signal-success);
+  --do-wdr-progress-warning-bg:      var(--do-wdr-signal-warning);
+  --do-wdr-progress-error-bg:        var(--do-wdr-signal-error);
 
-  --wdr-progress-shimmer-bg:      linear-gradient(
+  --do-wdr-progress-shimmer-bg:      linear-gradient(
     90deg,
     transparent 0%,
     oklch(1 0 0 / 0.30) 50%,
     transparent 100%
   );
 
-  --wdr-progress-label-font:      var(--wdr-font-mono);
-  --wdr-progress-label-size:      var(--wdr-text-xs);
-  --wdr-progress-label-color:     var(--wdr-text-inverse);
+  --do-wdr-progress-label-font:      var(--do-wdr-font-mono);
+  --do-wdr-progress-label-size:      var(--do-wdr-text-xs);
+  --do-wdr-progress-label-color:     var(--do-wdr-text-inverse);
 
-  --wdr-progress-segment-gap:     2px;
-  --wdr-progress-transition:      var(--wdr-transition-colors);
+  --do-wdr-progress-segment-gap:     2px;
+  --do-wdr-progress-transition:      var(--do-wdr-transition-colors);
 }
 
-.wdr-progress {
+.do-wdr-progress {
   position: relative;
   width: 100%;
-  height: var(--wdr-progress-md-height);
-  background: var(--wdr-progress-track-bg);
-  border-radius: var(--wdr-progress-track-radius);
+  height: var(--do-wdr-progress-md-height);
+  background: var(--do-wdr-progress-track-bg);
+  border-radius: var(--do-wdr-progress-track-radius);
   overflow: hidden;
 }
 
-.wdr-progress--sm { height: var(--wdr-progress-sm-height); }
-.wdr-progress--md { height: var(--wdr-progress-md-height); }
-.wdr-progress--lg { height: var(--wdr-progress-lg-height); }
+.do-wdr-progress--sm { height: var(--do-wdr-progress-sm-height); }
+.do-wdr-progress--md { height: var(--do-wdr-progress-md-height); }
+.do-wdr-progress--lg { height: var(--do-wdr-progress-lg-height); }
 
-.wdr-progress__fill {
+.do-wdr-progress__fill {
   height: 100%;
-  background: var(--wdr-progress-fill-bg);
+  background: var(--do-wdr-progress-fill-bg);
   border-radius: inherit;
-  transition: width var(--wdr-duration-slow, 300ms) ease,
-              background var(--wdr-progress-transition);
+  transition: width var(--do-wdr-duration-slow, 300ms) ease,
+              background var(--do-wdr-progress-transition);
   will-change: width;
 }
 
-.wdr-progress--success .wdr-progress__fill { background: var(--wdr-progress-success-bg); }
-.wdr-progress--warning .wdr-progress__fill { background: var(--wdr-progress-warning-bg); }
-.wdr-progress--error   .wdr-progress__fill { background: var(--wdr-progress-error-bg); }
+.do-wdr-progress--success .do-wdr-progress__fill { background: var(--do-wdr-progress-success-bg); }
+.do-wdr-progress--warning .do-wdr-progress__fill { background: var(--do-wdr-progress-warning-bg); }
+.do-wdr-progress--error   .do-wdr-progress__fill { background: var(--do-wdr-progress-error-bg); }
 
-.wdr-progress--indeterminate .wdr-progress__fill {
+.do-wdr-progress--indeterminate .do-wdr-progress__fill {
   width: 40%;
-  animation: wdr-progress-indeterminate 1.5s ease-in-out infinite;
+  animation: do-wdr-progress-indeterminate 1.5s ease-in-out infinite;
 }
 
-@keyframes wdr-progress-indeterminate {
+@keyframes do-wdr-progress-indeterminate {
   0%   { transform: translateX(-100%); }
   100% { transform: translateX(350%); }
 }
 
-.wdr-progress--indeterminate .wdr-progress__fill::after {
+.do-wdr-progress--indeterminate .do-wdr-progress__fill::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: var(--wdr-progress-shimmer-bg);
+  background: var(--do-wdr-progress-shimmer-bg);
   background-size: 200% 100%;
-  animation: wdr-shimmer 1.5s linear infinite;
+  animation: do-wdr-shimmer 1.5s linear infinite;
 }
 
-.wdr-progress--labeled {
+.do-wdr-progress--labeled {
   height: auto;
-  min-height: var(--wdr-progress-md-height);
+  min-height: var(--do-wdr-progress-md-height);
 }
 
-.wdr-progress--labeled.wdr-progress--sm {
-  min-height: var(--wdr-progress-lg-height);
+.do-wdr-progress--labeled.do-wdr-progress--sm {
+  min-height: var(--do-wdr-progress-lg-height);
 }
 
-.wdr-progress__label {
+.do-wdr-progress__label {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--wdr-progress-label-font);
-  font-size: var(--wdr-progress-label-size);
-  font-weight: var(--wdr-weight-medium);
-  color: var(--wdr-progress-label-color);
+  font-family: var(--do-wdr-progress-label-font);
+  font-size: var(--do-wdr-progress-label-size);
+  font-weight: var(--do-wdr-weight-medium);
+  color: var(--do-wdr-progress-label-color);
   mix-blend-mode: difference;
   pointer-events: none;
 }
 
-.wdr-progress__segments {
+.do-wdr-progress__segments {
   display: flex;
   height: 100%;
   width: 100%;
-  gap: var(--wdr-progress-segment-gap);
+  gap: var(--do-wdr-progress-segment-gap);
 }
 
-.wdr-progress__segment {
+.do-wdr-progress__segment {
   height: 100%;
-  background: var(--wdr-progress-track-bg);
+  background: var(--do-wdr-progress-track-bg);
   border-radius: inherit;
-  transition: background var(--wdr-progress-transition);
+  transition: background var(--do-wdr-progress-transition);
   flex: 1;
 }
 
-.wdr-progress__segment--complete {
-  background: var(--wdr-progress-fill-bg);
+.do-wdr-progress__segment--complete {
+  background: var(--do-wdr-progress-fill-bg);
 }
 
-.wdr-progress__segment--running {
-  background: var(--wdr-progress-fill-bg);
-  animation: wdr-progress-stripe 0.5s linear infinite;
+.do-wdr-progress__segment--running {
+  background: var(--do-wdr-progress-fill-bg);
+  animation: do-wdr-progress-stripe 0.5s linear infinite;
   background-image: repeating-linear-gradient(
     45deg,
     transparent,
@@ -126,23 +126,23 @@
   background-size: 1rem 100%;
 }
 
-.wdr-progress__segment--success { background: var(--wdr-progress-success-bg); }
-.wdr-progress__segment--warning { background: var(--wdr-progress-warning-bg); }
-.wdr-progress__segment--error   { background: var(--wdr-progress-error-bg); }
+.do-wdr-progress__segment--success { background: var(--do-wdr-progress-success-bg); }
+.do-wdr-progress__segment--warning { background: var(--do-wdr-progress-warning-bg); }
+.do-wdr-progress__segment--error   { background: var(--do-wdr-progress-error-bg); }
 
 @media (prefers-reduced-motion: reduce) {
-  .wdr-progress__fill,
-  .wdr-progress--indeterminate .wdr-progress__fill,
-  .wdr-progress--indeterminate .wdr-progress__fill::after,
-  .wdr-progress__segment--running {
+  .do-wdr-progress__fill,
+  .do-wdr-progress--indeterminate .do-wdr-progress__fill,
+  .do-wdr-progress--indeterminate .do-wdr-progress__fill::after,
+  .do-wdr-progress__segment--running {
     animation: none;
   }
 
-  .wdr-progress__fill {
+  .do-wdr-progress__fill {
     transition: none;
   }
 
-  .wdr-progress--indeterminate .wdr-progress__fill {
+  .do-wdr-progress--indeterminate .do-wdr-progress__fill {
     width: 100%;
     transform: none;
   }

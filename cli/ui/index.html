@@ -44,60 +44,60 @@
   <link rel="stylesheet" href="layouts/accessibility.css" />
 </head>
 <body>
-  <a href="#main" style="position:absolute;left:-9999px;top:0;z-index:999;padding:8px;background:var(--wdr-interactive-bg);color:var(--wdr-interactive-text)">Skip to content</a>
+  <a href="#main" style="position:absolute;left:-9999px;top:0;z-index:999;padding:8px;background:var(--do-wdr-interactive-bg);color:var(--do-wdr-interactive-text)">Skip to content</a>
 
   <div id="main">
-    <h1 style="padding:2rem;font-family:var(--wdr-font-sans)">web-doc-resolver — Component Catalog</h1>
+    <h1 style="padding:2rem;font-family:var(--do-wdr-font-sans)">web-doc-resolver — Component Catalog</h1>
 
     <section style="padding:2rem">
       <h2>Buttons</h2>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem">
-        <button class="wdr-button wdr-button--primary">Primary</button>
-        <button class="wdr-button wdr-button--secondary">Secondary</button>
-        <button class="wdr-button wdr-button--ghost">Ghost</button>
-        <button class="wdr-button wdr-button--danger">Danger</button>
-        <button class="wdr-button wdr-button--sm wdr-button--primary">Small</button>
-        <button class="wdr-button wdr-button--lg wdr-button--primary">Large</button>
-        <button class="wdr-button wdr-button--primary" disabled>Disabled</button>
-        <button class="wdr-button wdr-button--loading wdr-button--primary">Loading</button>
+        <button class="do-wdr-button do-wdr-button--primary">Primary</button>
+        <button class="do-wdr-button do-wdr-button--secondary">Secondary</button>
+        <button class="do-wdr-button do-wdr-button--ghost">Ghost</button>
+        <button class="do-wdr-button do-wdr-button--danger">Danger</button>
+        <button class="do-wdr-button do-wdr-button--sm do-wdr-button--primary">Small</button>
+        <button class="do-wdr-button do-wdr-button--lg do-wdr-button--primary">Large</button>
+        <button class="do-wdr-button do-wdr-button--primary" disabled>Disabled</button>
+        <button class="do-wdr-button do-wdr-button--loading do-wdr-button--primary">Loading</button>
       </div>
     </section>
 
     <section style="padding:2rem">
       <h2>Badges</h2>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem">
-        <span class="wdr-badge wdr-badge--default">Default</span>
-        <span class="wdr-badge wdr-badge--success">Success</span>
-        <span class="wdr-badge wdr-badge--warning">Warning</span>
-        <span class="wdr-badge wdr-badge--error">Error</span>
-        <span class="wdr-badge wdr-badge--info">Info</span>
-        <span class="wdr-badge wdr-badge--dot wdr-badge--success"></span>
-        <span class="wdr-badge wdr-badge--pill wdr-badge--info">99+</span>
-        <span class="wdr-badge wdr-badge--provider-exa">Exa</span>
-        <span class="wdr-badge wdr-badge--provider-tavily">Tavily</span>
-        <span class="wdr-badge wdr-badge--provider-firecrawl">Firecrawl</span>
-        <span class="wdr-badge wdr-badge--provider-mistral">Mistral</span>
+        <span class="do-wdr-badge do-wdr-badge--default">Default</span>
+        <span class="do-wdr-badge do-wdr-badge--success">Success</span>
+        <span class="do-wdr-badge do-wdr-badge--warning">Warning</span>
+        <span class="do-wdr-badge do-wdr-badge--error">Error</span>
+        <span class="do-wdr-badge do-wdr-badge--info">Info</span>
+        <span class="do-wdr-badge do-wdr-badge--dot do-wdr-badge--success"></span>
+        <span class="do-wdr-badge do-wdr-badge--pill do-wdr-badge--info">99+</span>
+        <span class="do-wdr-badge do-wdr-badge--provider-exa">Exa</span>
+        <span class="do-wdr-badge do-wdr-badge--provider-tavily">Tavily</span>
+        <span class="do-wdr-badge do-wdr-badge--provider-firecrawl">Firecrawl</span>
+        <span class="do-wdr-badge do-wdr-badge--provider-mistral">Mistral</span>
       </div>
     </section>
 
     <section style="padding:2rem">
       <h2>Inputs</h2>
       <div style="max-width:400px;display:flex;flex-direction:column;gap:12px">
-        <fieldset class="wdr-input-group">
-          <label class="wdr-input-label" for="url-input">Target URL</label>
-          <input class="wdr-input wdr-input--md" id="url-input" type="url" placeholder="https://docs.python.org/3/" />
+        <fieldset class="do-wdr-input-group">
+          <label class="do-wdr-input-label" for="url-input">Target URL</label>
+          <input class="do-wdr-input do-wdr-input--md" id="url-input" type="url" placeholder="https://docs.python.org/3/" />
         </fieldset>
-        <fieldset class="wdr-input-group">
-          <label class="wdr-input-label wdr-input-label--required" for="search-input">Search</label>
-          <input class="wdr-input wdr-input--sm" id="search-input" type="text" placeholder="Search docs..." />
-          <span class="wdr-input-helper">Enter a query or URL</span>
+        <fieldset class="do-wdr-input-group">
+          <label class="do-wdr-input-label do-wdr-input-label--required" for="search-input">Search</label>
+          <input class="do-wdr-input do-wdr-input--sm" id="search-input" type="text" placeholder="Search docs..." />
+          <span class="do-wdr-input-helper">Enter a query or URL</span>
         </fieldset>
-        <fieldset class="wdr-input-group">
-          <label class="wdr-input-label" for="error-input">Error State</label>
-          <input class="wdr-input wdr-input--error" id="error-input" type="text" value="invalid" />
-          <span class="wdr-input-helper wdr-input-helper--error">Invalid URL format</span>
+        <fieldset class="do-wdr-input-group">
+          <label class="do-wdr-input-label" for="error-input">Error State</label>
+          <input class="do-wdr-input do-wdr-input--error" id="error-input" type="text" value="invalid" />
+          <span class="do-wdr-input-helper do-wdr-input-helper--error">Invalid URL format</span>
         </fieldset>
-        <select class="wdr-select wdr-input--md">
+        <select class="do-wdr-select do-wdr-input--md">
           <option>Fast</option>
           <option>Balanced</option>
           <option>Quality</option>
@@ -108,27 +108,27 @@
     <section style="padding:2rem">
       <h2>Cards</h2>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
-        <div class="wdr-card">
-          <div class="wdr-card__header">
-            <span class="wdr-card__title">Default Card</span>
+        <div class="do-wdr-card">
+          <div class="do-wdr-card__header">
+            <span class="do-wdr-card__title">Default Card</span>
           </div>
-          <div class="wdr-card__body">Card content goes here.</div>
-          <div class="wdr-card__footer">
-            <button class="wdr-button wdr-button--ghost wdr-button--sm">Cancel</button>
-            <button class="wdr-button wdr-button--primary wdr-button--sm">Confirm</button>
+          <div class="do-wdr-card__body">Card content goes here.</div>
+          <div class="do-wdr-card__footer">
+            <button class="do-wdr-button do-wdr-button--ghost do-wdr-button--sm">Cancel</button>
+            <button class="do-wdr-button do-wdr-button--primary do-wdr-button--sm">Confirm</button>
           </div>
         </div>
-        <div class="wdr-card wdr-card--status-success">
-          <div class="wdr-card__header">
-            <span class="wdr-card__title">Success Card</span>
+        <div class="do-wdr-card do-wdr-card--status-success">
+          <div class="do-wdr-card__header">
+            <span class="do-wdr-card__title">Success Card</span>
           </div>
-          <div class="wdr-card__body">Resolution completed successfully.</div>
+          <div class="do-wdr-card__body">Resolution completed successfully.</div>
         </div>
-        <div class="wdr-card wdr-card--interactive">
-          <div class="wdr-card__header">
-            <span class="wdr-card__title">Interactive Card</span>
+        <div class="do-wdr-card do-wdr-card--interactive">
+          <div class="do-wdr-card__header">
+            <span class="do-wdr-card__title">Interactive Card</span>
           </div>
-          <div class="wdr-card__body">Click me for details.</div>
+          <div class="do-wdr-card__body">Click me for details.</div>
         </div>
       </div>
     </section>
@@ -136,48 +136,48 @@
     <section style="padding:2rem">
       <h2>Progress Bars</h2>
       <div style="max-width:400px;display:flex;flex-direction:column;gap:16px">
-        <div class="wdr-progress" role="progressbar" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100">
-          <div class="wdr-progress__fill" style="width:45%"></div>
+        <div class="do-wdr-progress" role="progressbar" aria-valuenow="45" aria-valuemin="0" aria-valuemax="100">
+          <div class="do-wdr-progress__fill" style="width:45%"></div>
         </div>
-        <div class="wdr-progress wdr-progress--success" role="progressbar" aria-valuenow="100">
-          <div class="wdr-progress__fill" style="width:100%"></div>
+        <div class="do-wdr-progress do-wdr-progress--success" role="progressbar" aria-valuenow="100">
+          <div class="do-wdr-progress__fill" style="width:100%"></div>
         </div>
-        <div class="wdr-progress wdr-progress--indeterminate wdr-progress--warning" role="progressbar"></div>
-        <div class="wdr-progress wdr-progress--error" role="progressbar" aria-valuenow="75">
-          <div class="wdr-progress__fill" style="width:75%"></div>
+        <div class="do-wdr-progress do-wdr-progress--indeterminate do-wdr-progress--warning" role="progressbar"></div>
+        <div class="do-wdr-progress do-wdr-progress--error" role="progressbar" aria-valuenow="75">
+          <div class="do-wdr-progress__fill" style="width:75%"></div>
         </div>
       </div>
     </section>
 
     <section style="padding:2rem">
       <h2>Stepper</h2>
-      <div class="wdr-stepper" role="list">
-        <div class="wdr-stepper__step wdr-stepper__step--complete" role="listitem">
-          <div class="wdr-stepper__indicator">1</div>
-          <div class="wdr-stepper__content">
-            <div class="wdr-stepper__label">Cache Check</div>
-            <div class="wdr-stepper__detail">HIT — 12ms</div>
+      <div class="do-wdr-stepper" role="list">
+        <div class="do-wdr-stepper__step do-wdr-stepper__step--complete" role="listitem">
+          <div class="do-wdr-stepper__indicator">1</div>
+          <div class="do-wdr-stepper__content">
+            <div class="do-wdr-stepper__label">Cache Check</div>
+            <div class="do-wdr-stepper__detail">HIT — 12ms</div>
           </div>
         </div>
-        <div class="wdr-stepper__step wdr-stepper__step--complete" role="listitem">
-          <div class="wdr-stepper__indicator">2</div>
-          <div class="wdr-stepper__content">
-            <div class="wdr-stepper__label">Exa Fetch</div>
-            <div class="wdr-stepper__detail">234ms — 1.2K tokens</div>
+        <div class="do-wdr-stepper__step do-wdr-stepper__step--complete" role="listitem">
+          <div class="do-wdr-stepper__indicator">2</div>
+          <div class="do-wdr-stepper__content">
+            <div class="do-wdr-stepper__label">Exa Fetch</div>
+            <div class="do-wdr-stepper__detail">234ms — 1.2K tokens</div>
           </div>
         </div>
-        <div class="wdr-stepper__step wdr-stepper__step--running" role="listitem">
-          <div class="wdr-stepper__indicator">3</div>
-          <div class="wdr-stepper__content">
-            <div class="wdr-stepper__label">Synthesis</div>
-            <div class="wdr-stepper__detail">streaming...</div>
-            <div class="wdr-stepper__token-count">847 tokens/sec</div>
+        <div class="do-wdr-stepper__step do-wdr-stepper__step--running" role="listitem">
+          <div class="do-wdr-stepper__indicator">3</div>
+          <div class="do-wdr-stepper__content">
+            <div class="do-wdr-stepper__label">Synthesis</div>
+            <div class="do-wdr-stepper__detail">streaming...</div>
+            <div class="do-wdr-stepper__token-count">847 tokens/sec</div>
           </div>
         </div>
-        <div class="wdr-stepper__step wdr-stepper__step--pending" role="listitem">
-          <div class="wdr-stepper__indicator">4</div>
-          <div class="wdr-stepper__content">
-            <div class="wdr-stepper__label">Complete</div>
+        <div class="do-wdr-stepper__step do-wdr-stepper__step--pending" role="listitem">
+          <div class="do-wdr-stepper__indicator">4</div>
+          <div class="do-wdr-stepper__content">
+            <div class="do-wdr-stepper__label">Complete</div>
           </div>
         </div>
       </div>
@@ -185,8 +185,8 @@
 
     <section style="padding:2rem">
       <h2>Data Table</h2>
-      <div class="wdr-table-wrapper">
-        <table class="wdr-table" role="grid">
+      <div class="do-wdr-table-wrapper">
+        <table class="do-wdr-table" role="grid">
           <thead>
             <tr>
               <th role="columnheader" aria-sort="none">URL</th>
@@ -200,23 +200,23 @@
             <tr>
               <td>docs.python.org/3/</td>
               <td>2026-03-20</td>
-              <td class="wdr-table__latency wdr-table__latency--fast">142ms</td>
+              <td class="do-wdr-table__latency do-wdr-table__latency--fast">142ms</td>
               <td>Balanced</td>
-              <td><span class="wdr-table__status"><span class="wdr-table__status-dot wdr-table__status-dot--success"></span> HIT</span></td>
+              <td><span class="do-wdr-table__status"><span class="do-wdr-table__status-dot do-wdr-table__status-dot--success"></span> HIT</span></td>
             </tr>
             <tr>
               <td>react.dev/reference</td>
               <td>2026-03-20</td>
-              <td class="wdr-table__latency wdr-table__latency--medium">890ms</td>
+              <td class="do-wdr-table__latency do-wdr-table__latency--medium">890ms</td>
               <td>Quality</td>
-              <td><span class="wdr-table__status"><span class="wdr-table__status-dot wdr-table__status-dot--neutral"></span> MISS</span></td>
+              <td><span class="do-wdr-table__status"><span class="do-wdr-table__status-dot do-wdr-table__status-dot--neutral"></span> MISS</span></td>
             </tr>
             <tr>
               <td>rust-lang.org/book</td>
               <td>2026-03-19</td>
-              <td class="wdr-table__latency wdr-table__latency--slow">2.1s</td>
+              <td class="do-wdr-table__latency do-wdr-table__latency--slow">2.1s</td>
               <td>Quality</td>
-              <td><span class="wdr-table__status"><span class="wdr-table__status-dot wdr-table__status-dot--error"></span> ERR</span></td>
+              <td><span class="do-wdr-table__status"><span class="do-wdr-table__status-dot do-wdr-table__status-dot--error"></span> ERR</span></td>
             </tr>
           </tbody>
         </table>
@@ -225,18 +225,18 @@
 
     <section style="padding:2rem">
       <h2>Key-Value</h2>
-      <div class="wdr-keyvalue" style="max-width:500px">
-        <div class="wdr-keyvalue__row">
-          <dt class="wdr-keyvalue__key" role="term">Provider</dt>
-          <dd class="wdr-keyvalue__value" role="definition">Exa</dd>
+      <div class="do-wdr-keyvalue" style="max-width:500px">
+        <div class="do-wdr-keyvalue__row">
+          <dt class="do-wdr-keyvalue__key" role="term">Provider</dt>
+          <dd class="do-wdr-keyvalue__value" role="definition">Exa</dd>
         </div>
-        <div class="wdr-keyvalue__row">
-          <dt class="wdr-keyvalue__key" role="term">Latency</dt>
-          <dd class="wdr-keyvalue__value" role="definition">142ms</dd>
+        <div class="do-wdr-keyvalue__row">
+          <dt class="do-wdr-keyvalue__key" role="term">Latency</dt>
+          <dd class="do-wdr-keyvalue__value" role="definition">142ms</dd>
         </div>
-        <div class="wdr-keyvalue__row">
-          <dt class="wdr-keyvalue__key" role="term">Tokens</dt>
-          <dd class="wdr-keyvalue__value" role="definition">1,247</dd>
+        <div class="do-wdr-keyvalue__row">
+          <dt class="do-wdr-keyvalue__key" role="term">Tokens</dt>
+          <dd class="do-wdr-keyvalue__value" role="definition">1,247</dd>
         </div>
       </div>
     </section>
@@ -244,24 +244,24 @@
     <section style="padding:2rem">
       <h2>Stream Indicator</h2>
       <div style="display:flex;gap:16px;align-items:center">
-        <div class="wdr-streamindicator wdr-streamindicator--streaming" role="status" aria-live="polite">
-          <span class="wdr-streamindicator__dot"></span>
-          <span class="wdr-streamindicator__rate">847 tok/s</span>
+        <div class="do-wdr-streamindicator do-wdr-streamindicator--streaming" role="status" aria-live="polite">
+          <span class="do-wdr-streamindicator__dot"></span>
+          <span class="do-wdr-streamindicator__rate">847 tok/s</span>
         </div>
-        <div class="wdr-streamindicator wdr-streamindicator--complete" role="status">
-          <span class="wdr-streamindicator__dot"></span>
-          <span class="wdr-streamindicator__label">Complete</span>
+        <div class="do-wdr-streamindicator do-wdr-streamindicator--complete" role="status">
+          <span class="do-wdr-streamindicator__dot"></span>
+          <span class="do-wdr-streamindicator__label">Complete</span>
         </div>
-        <div class="wdr-streamindicator wdr-streamindicator--error" role="status">
-          <span class="wdr-streamindicator__dot"></span>
-          <span class="wdr-streamindicator__label">Disconnected</span>
+        <div class="do-wdr-streamindicator do-wdr-streamindicator--error" role="status">
+          <span class="do-wdr-streamindicator__dot"></span>
+          <span class="do-wdr-streamindicator__label">Disconnected</span>
         </div>
       </div>
     </section>
 
     <section style="padding:2rem">
       <h2>Markdown Viewer</h2>
-      <div class="wdr-markdown">
+      <div class="do-wdr-markdown">
         <h1>Heading 1</h1>
         <h2>Heading 2</h2>
         <p>This is a paragraph with <a href="#">a link</a> and <code>inline code</code>.</p>
@@ -287,13 +287,13 @@
     <section style="padding:2rem">
       <h2>Tooltips</h2>
       <div style="display:flex;gap:32px;padding:2rem 0">
-        <div class="wdr-tooltip wdr-tooltip--top">
-          <button class="wdr-button wdr-button--secondary wdr-tooltip__trigger" aria-describedby="tip-top">Hover Top</button>
-          <div class="wdr-tooltip__content" id="tip-top" role="tooltip">Tooltip on top</div>
+        <div class="do-wdr-tooltip do-wdr-tooltip--top">
+          <button class="do-wdr-button do-wdr-button--secondary do-wdr-tooltip__trigger" aria-describedby="tip-top">Hover Top</button>
+          <div class="do-wdr-tooltip__content" id="tip-top" role="tooltip">Tooltip on top</div>
         </div>
-        <div class="wdr-tooltip wdr-tooltip--bottom">
-          <button class="wdr-button wdr-button--secondary wdr-tooltip__trigger" aria-describedby="tip-bottom">Hover Bottom</button>
-          <div class="wdr-tooltip__content" id="tip-bottom" role="tooltip">Tooltip on bottom</div>
+        <div class="do-wdr-tooltip do-wdr-tooltip--bottom">
+          <button class="do-wdr-button do-wdr-button--secondary do-wdr-tooltip__trigger" aria-describedby="tip-bottom">Hover Bottom</button>
+          <div class="do-wdr-tooltip__content" id="tip-bottom" role="tooltip">Tooltip on bottom</div>
         </div>
       </div>
     </section>
@@ -301,31 +301,31 @@
     <section style="padding:2rem">
       <h2>Navigation</h2>
       <div style="display:flex;gap:16px">
-        <nav class="wdr-sidebar" style="height:300px;position:relative">
-          <div class="wdr-sidebar__header">
-            <span class="wdr-sidebar__title">web-doc-resolver</span>
+        <nav class="do-wdr-sidebar" style="height:300px;position:relative">
+          <div class="do-wdr-sidebar__header">
+            <span class="do-wdr-sidebar__title">web-doc-resolver</span>
           </div>
-          <div class="wdr-sidebar__body">
-            <div class="wdr-sidebar__section">
-              <div class="wdr-sidebar__section-label">Navigation</div>
-              <a class="wdr-sidebar__item wdr-sidebar__item--active" href="#" aria-current="page">
-                <span class="wdr-sidebar__item-label">Resolve</span>
+          <div class="do-wdr-sidebar__body">
+            <div class="do-wdr-sidebar__section">
+              <div class="do-wdr-sidebar__section-label">Navigation</div>
+              <a class="do-wdr-sidebar__item do-wdr-sidebar__item--active" href="#" aria-current="page">
+                <span class="do-wdr-sidebar__item-label">Resolve</span>
               </a>
-              <a class="wdr-sidebar__item" href="#">
-                <span class="wdr-sidebar__item-label">History</span>
-                <span class="wdr-sidebar__item-badge">12</span>
+              <a class="do-wdr-sidebar__item" href="#">
+                <span class="do-wdr-sidebar__item-label">History</span>
+                <span class="do-wdr-sidebar__item-badge">12</span>
               </a>
-              <a class="wdr-sidebar__item" href="#">
-                <span class="wdr-sidebar__item-label">Providers</span>
-                <span class="wdr-sidebar__status-dot wdr-sidebar__status-dot--online"></span>
+              <a class="do-wdr-sidebar__item" href="#">
+                <span class="do-wdr-sidebar__item-label">Providers</span>
+                <span class="do-wdr-sidebar__status-dot do-wdr-sidebar__status-dot--online"></span>
               </a>
-              <a class="wdr-sidebar__item" href="#">
-                <span class="wdr-sidebar__item-label">Settings</span>
+              <a class="do-wdr-sidebar__item" href="#">
+                <span class="do-wdr-sidebar__item-label">Settings</span>
               </a>
             </div>
           </div>
-          <div class="wdr-sidebar__footer">
-            <button class="wdr-sidebar__toggle" aria-label="Collapse sidebar">Toggle</button>
+          <div class="do-wdr-sidebar__footer">
+            <button class="do-wdr-sidebar__toggle" aria-label="Collapse sidebar">Toggle</button>
           </div>
         </nav>
       </div>
@@ -333,18 +333,18 @@
 
     <section style="padding:2rem">
       <h2>Telemetry</h2>
-      <div class="wdr-telemetry" style="max-width:500px">
-        <div class="wdr-telemetry__row">
-          <span class="wdr-telemetry__label">Total Latency</span>
-          <span class="wdr-telemetry__value wdr-telemetry__value--mono">1,247ms</span>
+      <div class="do-wdr-telemetry" style="max-width:500px">
+        <div class="do-wdr-telemetry__row">
+          <span class="do-wdr-telemetry__label">Total Latency</span>
+          <span class="do-wdr-telemetry__value do-wdr-telemetry__value--mono">1,247ms</span>
         </div>
-        <div class="wdr-telemetry__row">
-          <span class="wdr-telemetry__label">Tokens Used</span>
-          <span class="wdr-telemetry__value wdr-telemetry__value--mono">3,481</span>
+        <div class="do-wdr-telemetry__row">
+          <span class="do-wdr-telemetry__label">Tokens Used</span>
+          <span class="do-wdr-telemetry__value do-wdr-telemetry__value--mono">3,481</span>
         </div>
-        <div class="wdr-telemetry__row">
-          <span class="wdr-telemetry__label">Cache Hit Rate</span>
-          <span class="wdr-telemetry__value wdr-telemetry__value--mono">73%</span>
+        <div class="do-wdr-telemetry__row">
+          <span class="do-wdr-telemetry__label">Cache Hit Rate</span>
+          <span class="do-wdr-telemetry__value do-wdr-telemetry__value--mono">73%</span>
         </div>
       </div>
     </section>

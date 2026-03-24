@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Rust CLI (`wdr`) is a compiled binary for fast, dependency-free resolution. It implements the same cascade logic as the Python resolver but with better performance and portability.
+The Rust CLI (`do-wdr`) is a compiled binary for fast, dependency-free resolution. It implements the same cascade logic as the Python resolver but with better performance and portability.
 
 ## Building
 
@@ -11,8 +11,8 @@ cd cli
 cargo build --release
 
 # Binary location
-# Linux/macOS: cli/target/release/wdr
-# Windows: cli/target/release/wdr.exe
+# Linux/macOS: cli/target/release/do-wdr
+# Windows: cli/target/release/do-wdr.exe
 ```
 
 ### Build Requirements
@@ -72,23 +72,23 @@ cli/
 
 ```bash
 # Resolve URL
-wdr "https://docs.rs/tokio"
+do-wdr "https://docs.rs/tokio"
 
 # Resolve query
-wdr "Rust async runtime"
+do-wdr "Rust async runtime"
 
 # JSON output
-wdr "query" --json
+do-wdr "query" --json
 
 # With options
-wdr "query" --max-chars 5000 --profile quality
+do-wdr "query" --max-chars 5000 --profile quality
 ```
 
 ### CLI Options
 
 ```
 USAGE:
-    wdr [OPTIONS] <INPUT>
+    do-wdr [OPTIONS] <INPUT>
 
 ARGS:
     <INPUT>    URL or search query to resolve
@@ -110,30 +110,30 @@ OPTIONS:
 
 ```bash
 # Fast lookup
-wdr "React hooks tutorial" --profile fast
+do-wdr "React hooks tutorial" --profile fast
 
 # Deep research
-wdr "quantum computing algorithms" --profile quality --max-chars 10000
+do-wdr "quantum computing algorithms" --profile quality --max-chars 10000
 
 # Free only
-wdr "Python async" --profile free
+do-wdr "Python async" --profile free
 
 # Skip specific providers
-wdr "query" --skip exa --skip tavily
+do-wdr "query" --skip exa --skip tavily
 
 # Use only DuckDuckGo
-wdr "query" --provider duckduckgo
+do-wdr "query" --provider duckduckgo
 
 # Debug output
-wdr "query" --verbose --log-level debug
+do-wdr "query" --verbose --log-level debug
 ```
 
 ## Configuration
 
 ### Config File Location
 
-- Linux/macOS: `~/.config/wdr/config.toml`
-- Windows: `%APPDATA%\wdr\config.toml`
+- Linux/macOS: `~/.config/do-wdr/config.toml`
+- Windows: `%APPDATA%\do-wdr\config.toml`
 
 ### Example Configuration
 
@@ -146,7 +146,7 @@ profile = "balanced"
 [cache]
 enabled = true
 ttl_hours = 24
-path = "~/.cache/wdr"
+path = "~/.cache/do-wdr"
 
 [circuit_breaker]
 failure_threshold = 3
@@ -179,7 +179,7 @@ num_results = 5
 ### Optimization Tips
 
 1. **Use release builds**: `cargo build --release`
-2. **Strip binary**: `strip target/release/wdr`
+2. **Strip binary**: `strip target/release/do-wdr`
 3. **LTO**: Enable in `Cargo.toml`:
    ```toml
    [profile.release]

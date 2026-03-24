@@ -2,7 +2,7 @@
 
 ## Identity
 
-**Name:** do-web-doc-resolver (wdr)
+**Name:** do-web-doc-resolver (do-wdr)
 **Nature:** Developer tool — CLI + optional web frontend
 **Philosophy:** Deterministic, data-dense, anti-slop. No chat bubbles. No "how can I help you?" No decorative animation. Every pixel serves information or action.
 
@@ -23,16 +23,16 @@ OKLCH perceptually-uniform color space. All colors have consistent perceived lig
 
 | Role | Token | Light | Dark | Contrast (on bg) |
 |------|-------|-------|------|--------------------|
-| Primary interactive | `--wdr-interactive-bg` | ocean-600 `oklch(0.47 0.12 230)` | ocean-500 `oklch(0.57 0.10 230)` | 4.6:1 |
-| Primary hover | `--wdr-interactive-bg-hover` | ocean-700 | ocean-400 | 3.8:1 |
-| Text primary | `--wdr-text-primary` | neutral-900 | neutral-100 | 12.6:1 |
-| Text secondary | `--wdr-text-secondary` | neutral-600 | neutral-400 | 5.4:1 |
-| Text tertiary | `--wdr-text-tertiary` | neutral-400 | neutral-600 | 2.8:1 (decorative) |
-| Border | `--wdr-border-default` | neutral-200 | neutral-700 | — |
-| Focus ring | `--wdr-border-focus` | ocean-500 | ocean-400 | — |
-| Success | `--wdr-signal-success` | `oklch(0.65 0.18 155)` | same | 3.2:1 (AA Large) |
-| Warning | `--wdr-signal-warning` | `oklch(0.75 0.14 85)` | same | — |
-| Error | `--wdr-signal-error` | `oklch(0.60 0.20 25)` | same | 4.1:1 (AA Large) |
+| Primary interactive | `--do-wdr-interactive-bg` | ocean-600 `oklch(0.47 0.12 230)` | ocean-500 `oklch(0.57 0.10 230)` | 4.6:1 |
+| Primary hover | `--do-wdr-interactive-bg-hover` | ocean-700 | ocean-400 | 3.8:1 |
+| Text primary | `--do-wdr-text-primary` | neutral-900 | neutral-100 | 12.6:1 |
+| Text secondary | `--do-wdr-text-secondary` | neutral-600 | neutral-400 | 5.4:1 |
+| Text tertiary | `--do-wdr-text-tertiary` | neutral-400 | neutral-600 | 2.8:1 (decorative) |
+| Border | `--do-wdr-border-default` | neutral-200 | neutral-700 | — |
+| Focus ring | `--do-wdr-border-focus` | ocean-500 | ocean-400 | — |
+| Success | `--do-wdr-signal-success` | `oklch(0.65 0.18 155)` | same | 3.2:1 (AA Large) |
+| Warning | `--do-wdr-signal-warning` | `oklch(0.75 0.14 85)` | same | — |
+| Error | `--do-wdr-signal-error` | `oklch(0.60 0.20 25)` | same | 4.1:1 (AA Large) |
 
 ### Why OKLCH
 
@@ -45,15 +45,15 @@ OKLCH perceptually-uniform color space. All colors have consistent perceived lig
 
 ```
 Layer 1: Primitive (base)
-  --wdr-color-ocean-500: oklch(0.57 0.10 230)
+  --do-wdr-color-ocean-500: oklch(0.57 0.10 230)
   → Raw values. Never used directly in components.
 
 Layer 2: Semantic
-  --wdr-interactive-bg: var(--wdr-color-ocean-600)
+  --do-wdr-interactive-bg: var(--do-wdr-color-ocean-600)
   → Intent-based aliases. Components reference these.
 
 Layer 3: Component
-  --wdr-button-primary-bg: var(--wdr-interactive-bg)
+  --do-wdr-button-primary-bg: var(--do-wdr-interactive-bg)
   → Component-specific overrides. Override for per-component theming.
 ```
 
@@ -151,14 +151,14 @@ Shadows use `oklch(0 0 0 / opacity)` for dark-on-dark depth.
 
 | Token | Value | Use |
 |-------|-------|-----|
-| `--wdr-space-1` | 4px | Tight gaps, inline padding |
-| `--wdr-space-2` | 8px | Default gaps, cell padding |
-| `--wdr-space-3` | 12px | Input padding, card padding |
-| `--wdr-space-4` | 16px | Section padding, relaxed gaps |
-| `--wdr-space-6` | 24px | Stack spacing, loose gaps |
-| `--wdr-space-8` | 32px | Section dividers |
+| `--do-wdr-space-1` | 4px | Tight gaps, inline padding |
+| `--do-wdr-space-2` | 8px | Default gaps, cell padding |
+| `--do-wdr-space-3` | 12px | Input padding, card padding |
+| `--do-wdr-space-4` | 16px | Section padding, relaxed gaps |
+| `--do-wdr-space-6` | 24px | Stack spacing, loose gaps |
+| `--do-wdr-space-8` | 32px | Section dividers |
 
-Data-dense compact mode uses `--wdr-compact-padding` (6px) and `--wdr-dense-row` (20px).
+Data-dense compact mode uses `--do-wdr-compact-padding` (6px) and `--do-wdr-dense-row` (20px).
 
 ## Motion
 
@@ -204,7 +204,7 @@ cli/ui/
 ## Token Naming Convention
 
 ```
---wdr-{layer}-{category}-{property}-{variant}-{state}
+--do-wdr-{layer}-{category}-{property}-{variant}-{state}
 
 Layer:    color | text | space | radius | shadow | z
 Category: surface | text | border | interactive | signal | data | pipeline
@@ -214,10 +214,10 @@ State:    hover | active | focus | disabled | error | loading
 ```
 
 Examples:
-- `--wdr-surface-bg-elevated` — semantic layer, surface category, bg property, elevated variant
-- `--wdr-button-primary-bg-hover` — component layer, button, primary variant, bg property, hover state
-- `--wdr-interactive-bg` — semantic, interactive, bg
-- `--wdr-data-row-selected` — semantic, data category, row property, selected state
+- `--do-wdr-surface-bg-elevated` — semantic layer, surface category, bg property, elevated variant
+- `--do-wdr-button-primary-bg-hover` — component layer, button, primary variant, bg property, hover state
+- `--do-wdr-interactive-bg` — semantic, interactive, bg
+- `--do-wdr-data-row-selected` — semantic, data category, row property, selected state
 
 ## Anti-Patterns (Forbidden)
 

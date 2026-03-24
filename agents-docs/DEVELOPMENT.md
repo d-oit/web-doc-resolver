@@ -26,7 +26,7 @@ pip install pytest pytest-asyncio pytest-cov ruff black mypy
 ```bash
 cd cli
 cargo build --release
-# Binary: cli/target/release/wdr
+# Binary: cli/target/release/do-wdr
 ```
 
 ### Web UI
@@ -180,8 +180,8 @@ Edit `cli/config.toml` for default settings.
 
 ```bash
 # Enable debug logging
-export WDR_LOG_LEVEL=DEBUG
-export WDR_DEBUG=true
+export DO_WDR_LOG_LEVEL=DEBUG
+export DO_WDR_DEBUG=true
 
 # Run with verbose output
 python -m scripts.resolve "query" --log-level DEBUG
@@ -194,7 +194,7 @@ python -m scripts.resolve "query" --log-level DEBUG
 cargo build
 
 # Run with debug output
-RUST_LOG=debug ./target/debug/wdr resolve "query"
+RUST_LOG=debug ./target/debug/do-wdr resolve "query"
 ```
 
 ## Performance
@@ -213,7 +213,7 @@ snakeviz profile.prof
 
 ```bash
 # Use cargo flamegraph
-cargo flamegraph --bin wdr -- resolve "query"
+cargo flamegraph --bin do-wdr -- resolve "query"
 ```
 
 ## CI/CD
@@ -275,7 +275,7 @@ Do NOT use `rootDirectory` in a root `vercel.json` — it's not valid there. The
 ### Binary Name vs Crate Name
 Cargo.toml supports separate names:
 - `[package].name` = crate name on crates.io (e.g., `do-wdr`)
-- `[[bin]].name` = output binary name (e.g., `wdr`)
+- `[[bin]].name` = output binary name (e.g., `do-wdr`)
 This allows short command names while having unique crate names.
 
 ### Vercel Production Alias

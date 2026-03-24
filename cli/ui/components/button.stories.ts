@@ -61,7 +61,7 @@ export const Disabled: Story = {
 export const Loading: Story = {
   args: { loading: true, label: 'Loading' },
   render: (args) => `
-    <button class="wdr-button wdr-button--${args.variant} wdr-button--${args.size}${args.loading ? ' wdr-button--loading' : ''}"
+    <button class="do-wdr-button do-wdr-button--${args.variant} do-wdr-button--${args.size}${args.loading ? ' do-wdr-button--loading' : ''}"
             ${args.disabled ? 'disabled' : ''}>
       ${args.label}
     </button>
@@ -71,11 +71,11 @@ export const Loading: Story = {
 export const AllVariants: Story = {
   render: () => `
     <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
-      <button class="wdr-button wdr-button--primary wdr-button--md">Primary</button>
-      <button class="wdr-button wdr-button--secondary wdr-button--md">Secondary</button>
-      <button class="wdr-button wdr-button--ghost wdr-button--md">Ghost</button>
-      <button class="wdr-button wdr-button--danger wdr-button--md">Danger</button>
-      <button class="wdr-button wdr-button--primary wdr-button--md" disabled>Disabled</button>
+      <button class="do-wdr-button do-wdr-button--primary do-wdr-button--md">Primary</button>
+      <button class="do-wdr-button do-wdr-button--secondary do-wdr-button--md">Secondary</button>
+      <button class="do-wdr-button do-wdr-button--ghost do-wdr-button--md">Ghost</button>
+      <button class="do-wdr-button do-wdr-button--danger do-wdr-button--md">Danger</button>
+      <button class="do-wdr-button do-wdr-button--primary do-wdr-button--md" disabled>Disabled</button>
     </div>
   `,
 };
@@ -83,9 +83,9 @@ export const AllVariants: Story = {
 export const AllSizes: Story = {
   render: () => `
     <div style="display: flex; gap: 0.75rem; align-items: center;">
-      <button class="wdr-button wdr-button--primary wdr-button--sm">Small</button>
-      <button class="wdr-button wdr-button--primary wdr-button--md">Medium</button>
-      <button class="wdr-button wdr-button--primary wdr-button--lg">Large</button>
+      <button class="do-wdr-button do-wdr-button--primary do-wdr-button--sm">Small</button>
+      <button class="do-wdr-button do-wdr-button--primary do-wdr-button--md">Medium</button>
+      <button class="do-wdr-button do-wdr-button--primary do-wdr-button--lg">Large</button>
     </div>
   `,
 };

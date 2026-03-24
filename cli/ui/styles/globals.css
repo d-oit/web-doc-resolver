@@ -4,39 +4,39 @@
 
 @theme {
   /* Colors — reference CSS custom properties */
-  --color-interactive: var(--wdr-interactive-bg);
-  --color-interactive-hover: var(--wdr-interactive-bg-hover);
-  --color-interactive-active: var(--wdr-interactive-bg-active);
-  --color-interactive-disabled: var(--wdr-interactive-bg-disabled);
+  --color-interactive: var(--do-wdr-interactive-bg);
+  --color-interactive-hover: var(--do-wdr-interactive-bg-hover);
+  --color-interactive-active: var(--do-wdr-interactive-bg-active);
+  --color-interactive-disabled: var(--do-wdr-interactive-bg-disabled);
 
-  --color-surface: var(--wdr-surface-bg);
-  --color-surface-elevated: var(--wdr-surface-bg-elevated);
-  --color-surface-sunken: var(--wdr-surface-bg-sunken);
+  --color-surface: var(--do-wdr-surface-bg);
+  --color-surface-elevated: var(--do-wdr-surface-bg-elevated);
+  --color-surface-sunken: var(--do-wdr-surface-bg-sunken);
 
-  --color-text: var(--wdr-text-primary);
-  --color-text-secondary: var(--wdr-text-secondary);
-  --color-text-tertiary: var(--wdr-text-tertiary);
+  --color-text: var(--do-wdr-text-primary);
+  --color-text-secondary: var(--do-wdr-text-secondary);
+  --color-text-tertiary: var(--do-wdr-text-tertiary);
 
-  --color-border: var(--wdr-border-default);
-  --color-border-focus: var(--wdr-interactive-border-focus);
+  --color-border: var(--do-wdr-border-default);
+  --color-border-focus: var(--do-wdr-interactive-border-focus);
 
-  --color-success: var(--wdr-signal-success);
-  --color-warning: var(--wdr-signal-warning);
-  --color-error: var(--wdr-signal-error);
+  --color-success: var(--do-wdr-signal-success);
+  --color-warning: var(--do-wdr-signal-warning);
+  --color-error: var(--do-wdr-signal-error);
 
-  --color-pipeline-pending: var(--wdr-pipeline-pending);
-  --color-pipeline-running: var(--wdr-pipeline-running);
-  --color-pipeline-streaming: var(--wdr-pipeline-streaming);
-  --color-pipeline-complete: var(--wdr-pipeline-complete);
-  --color-pipeline-failed: var(--wdr-pipeline-failed);
+  --color-pipeline-pending: var(--do-wdr-pipeline-pending);
+  --color-pipeline-running: var(--do-wdr-pipeline-running);
+  --color-pipeline-streaming: var(--do-wdr-pipeline-streaming);
+  --color-pipeline-complete: var(--do-wdr-pipeline-complete);
+  --color-pipeline-failed: var(--do-wdr-pipeline-failed);
 
   /* Spacing */
-  --spacing-xs: var(--wdr-space-1);
-  --spacing-sm: var(--wdr-space-2);
-  --spacing-md: var(--wdr-space-3);
-  --spacing-lg: var(--wdr-space-4);
-  --spacing-xl: var(--wdr-space-6);
-  --spacing-2xl: var(--wdr-space-8);
+  --spacing-xs: var(--do-wdr-space-1);
+  --spacing-sm: var(--do-wdr-space-2);
+  --spacing-md: var(--do-wdr-space-3);
+  --spacing-lg: var(--do-wdr-space-4);
+  --spacing-xl: var(--do-wdr-space-6);
+  --spacing-2xl: var(--do-wdr-space-8);
 
   /* Typography */
   --font-sans: Inter, system-ui, -apple-system, sans-serif;

@@ -1,6 +1,6 @@
 # WDR CLI Configuration Reference
 
-Complete reference for wdr CLI configuration options.
+Complete reference for do-wdr CLI configuration options.
 
 ## Configuration Sources
 
@@ -15,7 +15,7 @@ Configuration is loaded in the following order (later overrides earlier):
 
 Default: `cli/config.toml`
 
-Override with: `WDR_CONFIG_FILE` environment variable
+Override with: `DO_WDR_CONFIG_FILE` environment variable
 
 ## Config File Structure
 
@@ -102,9 +102,9 @@ memory_size = 100
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `WDR_LOG_LEVEL` | Log level | `info` |
-| `WDR_CONFIG_FILE` | Config file path | `cli/config.toml` |
-| `WDR_CACHE_DIR` | Cache directory | `.cache/wdr` |
+| `DO_WDR_LOG_LEVEL` | Log level | `info` |
+| `DO_WDR_CONFIG_FILE` | Config file path | `cli/config.toml` |
+| `DO_WDR_CACHE_DIR` | Cache directory | `.cache/do-wdr` |
 
 ## CLI Options Override
 
@@ -112,16 +112,16 @@ CLI arguments override all other configuration:
 
 ```bash
 # Override max chars
-wdr resolve "query" --max-chars 10000
+do-wdr resolve "query" --max-chars 10000
 
 # Override profile
-wdr resolve "query" --profile quality
+do-wdr resolve "query" --profile quality
 
 # Skip providers
-wdr resolve "query" --skip tavily
+do-wdr resolve "query" --skip tavily
 
 # Custom provider order
-wdr resolve "query" --providers-order duckduckgo,exa_mcp
+do-wdr resolve "query" --providers-order duckduckgo,exa_mcp
 ```
 
 ## Execution Profiles
@@ -134,7 +134,7 @@ Uses only free providers:
 - exa_mcp, duckduckgo, llms_txt, jina, direct_fetch
 
 ```bash
-wdr resolve "query" --profile free
+do-wdr resolve "query" --profile free
 ```
 
 ### balanced
@@ -144,7 +144,7 @@ Balances speed and quality:
 - Default profile
 
 ```bash
-wdr resolve "query" --profile balanced
+do-wdr resolve "query" --profile balanced
 ```
 
 ### fast
@@ -155,7 +155,7 @@ Prioritizes speed:
 - Skip slow providers
 
 ```bash
-wdr resolve "query" --profile fast
+do-wdr resolve "query" --profile fast
 ```
 
 ### quality
@@ -166,7 +166,7 @@ Prioritizes quality:
 - Use synthesis
 
 ```bash
-wdr resolve "query" --profile quality
+do-wdr resolve "query" --profile quality
 ```
 
 ## Quality Settings
@@ -206,7 +206,7 @@ The routing memory learns which providers work best for different types of queri
 
 ```bash
 # Disable routing memory
-wdr resolve "query" --disable-routing-memory
+do-wdr resolve "query" --disable-routing-memory
 ```
 
 ## Examples

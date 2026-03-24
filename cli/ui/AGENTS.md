@@ -20,8 +20,8 @@
 ### Component Structure (CSS-only, no directories)
 
 Components are **single flat `.css` files** in `components/`, not directories with TSX. Each file is self-contained with:
-1. `:root {}` block defining `--wdr-{component}-*` tokens
-2. BEM classes: `.wdr-{component}`, `.wdr-{component}--variant`, `.wdr-{component}__element`
+1. `:root {}` block defining `--do-wdr-{component}-*` tokens
+2. BEM classes: `.do-wdr-{component}`, `.do-wdr-{component}--variant`, `.do-wdr-{component}__element`
 3. Max **200 lines** per file. Split into `{component}-variants.css` or `{component}-states.css` if exceeded.
 
 ```
@@ -67,7 +67,7 @@ cli/ui/
 │   ├── design_tokens.css      # 3-layer: primitive → semantic → component (incl. dark mode)
 │   ├── typography.css         # Fluid type scale, font stacks
 │   ├── spacing.css            # Spacing scale + semantic aliases
-│   ├── motion.css             # Durations, easings, keyframes (wdr-shimmer, wdr-pulse-stream)
+│   ├── motion.css             # Durations, easings, keyframes (do-wdr-shimmer, do-wdr-pulse-stream)
 │   └── build-tokens.sh        # Style Dictionary CLI: JSON → CSS custom properties
 ├── styles/
 │   ├── globals.css            # @theme block, Tailwind directives, token imports
@@ -150,48 +150,48 @@ Every component follows this exact structure:
 ```css
 /* Component tokens in :root */
 :root {
-  --wdr-{component}-{property}: var(--wdr-{semantic-token});
-  --wdr-{component}-{variant}-{property}: var(--wdr-{semantic-token});
+  --do-wdr-{component}-{property}: var(--do-wdr-{semantic-token});
+  --do-wdr-{component}-{variant}-{property}: var(--do-wdr-{semantic-token});
 }
 
 /* Base class */
-.wdr-{component} { ... }
+.do-wdr-{component} { ... }
 
 /* Size variants */
-.wdr-{component}--sm { ... }
-.wdr-{component}--md { ... }
-.wdr-{component}--lg { ... }
+.do-wdr-{component}--sm { ... }
+.do-wdr-{component}--md { ... }
+.do-wdr-{component}--lg { ... }
 
 /* Color variants */
-.wdr-{component}--success { ... }
-.wdr-{component}--error { ... }
+.do-wdr-{component}--success { ... }
+.do-wdr-{component}--error { ... }
 
 /* Sub-elements */
-.wdr-{component}__element { ... }
+.do-wdr-{component}__element { ... }
 
 /* States */
-.wdr-{component}:hover { ... }
-.wdr-{component}:focus-visible { outline: 2px solid var(--wdr-border-focus); outline-offset: 2px; }
+.do-wdr-{component}:hover { ... }
+.do-wdr-{component}:focus-visible { outline: 2px solid var(--do-wdr-border-focus); outline-offset: 2px; }
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .wdr-{component} { transition: none; animation: none; }
+  .do-wdr-{component} { transition: none; animation: none; }
 }
 ```
 
 ### Token Naming Convention
 
 ```
---wdr-{component}-{element}-{variant}-{state}
+--do-wdr-{component}-{element}-{variant}-{state}
 
 Examples:
---wdr-button-bg                    (component + element)
---wdr-button-bg-hover              (component + element + state)
---wdr-button-primary-bg            (component + variant + element)
---wdr-button-primary-bg-hover      (component + variant + element + state)
---wdr-badge-provider-exa-bg        (component + variant + sub-variant + element)
---wdr-kv-key-color                 (component + element + property)
---wdr-progress-track-bg            (component + element + property)
+--do-wdr-button-bg                    (component + element)
+--do-wdr-button-bg-hover              (component + element + state)
+--do-wdr-button-primary-bg            (component + variant + element)
+--do-wdr-button-primary-bg-hover      (component + variant + element + state)
+--do-wdr-badge-provider-exa-bg        (component + variant + sub-variant + element)
+--do-wdr-kv-key-color                 (component + element + property)
+--do-wdr-progress-track-bg            (component + element + property)
 ```
 
 ## GitHub Issue Implementation Strategy
@@ -360,7 +360,7 @@ The `BASE_URL` env var overrides the default `https://web-eight-ivory-29.vercel.
 | # | Title | Scope |
 |---|---|---|
 | #69 | [Epic] Next.js PWA Infrastructure & Vercel Setup | App scaffold, PWA manifest, deploy |
-| #70 | [Epic] Rust CLI wdr WebAssembly & Edge API Integration | Wasm bridge, worker API routes |
+| #70 | [Epic] Rust CLI do-wdr WebAssembly & Edge API Integration | Wasm bridge, worker API routes |
 | #71 | [Epic] Cross-Device App Shell & Navigation (Anti-Slop UI) | `AppShell`, `NavBar`, layout |
 | #72 | [Epic] Resolver Workspace Core View | `InputArea`, `DataTable`, `StatusBar` |
 | #73 | [Epic] BYOK API Key Management & Security | `KeyVault`, encrypted storage |

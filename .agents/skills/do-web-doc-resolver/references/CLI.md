@@ -66,30 +66,30 @@ python scripts/resolve.py "query" --provider duckduckgo
 python scripts/resolve.py "query" --providers-order "exa,jina,duckduckgo"
 ```
 
-## Rust CLI (`wdr` binary)
+## Rust CLI (`do-wdr` binary)
 
 ### Build
 
 ```bash
 cd cli
 cargo build --release
-# Binary: cli/target/release/wdr
+# Binary: cli/target/release/do-wdr
 ```
 
 ### Basic Usage
 
 ```bash
 # Resolve a URL
-wdr "https://docs.rs/tokio"
+do-wdr "https://docs.rs/tokio"
 
 # Resolve a query
-wdr "Rust async runtime comparison"
+do-wdr "Rust async runtime comparison"
 
 # JSON output
-wdr "query" --json
+do-wdr "query" --json
 
 # Specify max characters
-wdr "query" --max-chars 5000
+do-wdr "query" --max-chars 5000
 ```
 
 ### Options
@@ -110,7 +110,7 @@ wdr "query" --max-chars 5000
 The Rust CLI supports a `config.toml` file:
 
 ```toml
-# ~/.config/wdr/config.toml
+# ~/.config/do-wdr/config.toml
 
 [defaults]
 max_chars = 8000
@@ -120,7 +120,7 @@ profile = "balanced"
 [cache]
 enabled = true
 ttl_hours = 24
-path = "~/.cache/wdr"
+path = "~/.cache/do-wdr"
 
 [providers]
 # API keys can be set here or via environment variables

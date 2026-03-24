@@ -1,4 +1,4 @@
-import { cn } from "@wdr/utils";
+import { cn } from "@do-wdr/utils";
 
 export function Button(props: {
   children: React.ReactNode;

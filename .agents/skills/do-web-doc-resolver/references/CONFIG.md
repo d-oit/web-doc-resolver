@@ -34,7 +34,7 @@
 
 ## Rust CLI Configuration (`config.toml`)
 
-Location: `~/.config/wdr/config.toml`
+Location: `~/.config/do-wdr/config.toml`
 
 ```toml
 # Default settings
@@ -47,7 +47,7 @@ profile = "balanced"
 [cache]
 enabled = true
 ttl_hours = 24
-path = "~/.cache/wdr"
+path = "~/.cache/do-wdr"
 
 # Circuit breaker settings
 [circuit_breaker]

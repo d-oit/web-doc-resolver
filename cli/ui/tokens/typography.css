@@ -5,61 +5,61 @@
 
 :root {
   /* Font stacks */
-  --wdr-font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Cascadia Code',
+  --do-wdr-font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Cascadia Code',
                    'Source Code Pro', ui-monospace, 'Menlo', 'Consolas', monospace;
-  --wdr-font-sans: 'Inter', 'SF Pro', -apple-system, BlinkMacSystemFont,
+  --do-wdr-font-sans: 'Inter', 'SF Pro', -apple-system, BlinkMacSystemFont,
                    'Segoe UI', 'Helvetica Neue', sans-serif;
-  --wdr-font-display: 'Inter', var(--wdr-font-sans);
+  --do-wdr-font-display: 'Inter', var(--do-wdr-font-sans);
 
   /* Weights */
-  --wdr-weight-regular:  400;
-  --wdr-weight-medium:   500;
-  --wdr-weight-semibold: 600;
-  --wdr-weight-bold:     700;
+  --do-wdr-weight-regular:  400;
+  --do-wdr-weight-medium:   500;
+  --do-wdr-weight-semibold: 600;
+  --do-wdr-weight-bold:     700;
 
   /* Line heights */
-  --wdr-leading-tight:  1.2;
-  --wdr-leading-normal: 1.5;
-  --wdr-leading-loose:  1.7;
-  --wdr-leading-data:   1.4; /* optimized for tables/log output */
+  --do-wdr-leading-tight:  1.2;
+  --do-wdr-leading-normal: 1.5;
+  --do-wdr-leading-loose:  1.7;
+  --do-wdr-leading-data:   1.4; /* optimized for tables/log output */
 
   /* Letter spacing */
-  --wdr-tracking-tight:  -0.02em;
-  --wdr-tracking-normal:  0;
-  --wdr-tracking-wide:    0.025em;
-  --wdr-tracking-wider:   0.05em;
-  --wdr-tracking-mono:    0; /* monospace fonts manage their own spacing */
+  --do-wdr-tracking-tight:  -0.02em;
+  --do-wdr-tracking-normal:  0;
+  --do-wdr-tracking-wide:    0.025em;
+  --do-wdr-tracking-wider:   0.05em;
+  --do-wdr-tracking-mono:    0; /* monospace fonts manage their own spacing */
 
   /* -----------------------------------------------------------------------
      Fluid type scale — Major Third (1.25) with clamp()
      Minimum viewport: 320px, Preferred: responsive, Maximum: 1200px
      ----------------------------------------------------------------------- */
-  --wdr-text-xs:   clamp(0.694rem, 0.660rem + 0.17vw, 0.800rem);  /* 11.1–12.8px */
-  --wdr-text-sm:   clamp(0.800rem, 0.750rem + 0.25vw, 0.933rem);  /* 12.8–14.9px */
-  --wdr-text-base: clamp(0.900rem, 0.833rem + 0.33vw, 1.067rem);  /* 14.4–17.1px */
-  --wdr-text-md:   clamp(1.000rem, 0.910rem + 0.45vw, 1.250rem);  /* 16–20px */
-  --wdr-text-lg:   clamp(1.125rem, 1.000rem + 0.63vw, 1.500rem);  /* 18–24px */
-  --wdr-text-xl:   clamp(1.266rem, 1.090rem + 0.88vw, 1.800rem);  /* 20.3–28.8px */
-  --wdr-text-2xl:  clamp(1.424rem, 1.180rem + 1.22vw, 2.160rem);  /* 22.8–34.6px */
-  --wdr-text-3xl:  clamp(1.602rem, 1.270rem + 1.66vw, 2.592rem);  /* 25.6–41.5px */
+  --do-wdr-text-xs:   clamp(0.694rem, 0.660rem + 0.17vw, 0.800rem);  /* 11.1–12.8px */
+  --do-wdr-text-sm:   clamp(0.800rem, 0.750rem + 0.25vw, 0.933rem);  /* 12.8–14.9px */
+  --do-wdr-text-base: clamp(0.900rem, 0.833rem + 0.33vw, 1.067rem);  /* 14.4–17.1px */
+  --do-wdr-text-md:   clamp(1.000rem, 0.910rem + 0.45vw, 1.250rem);  /* 16–20px */
+  --do-wdr-text-lg:   clamp(1.125rem, 1.000rem + 0.63vw, 1.500rem);  /* 18–24px */
+  --do-wdr-text-xl:   clamp(1.266rem, 1.090rem + 0.88vw, 1.800rem);  /* 20.3–28.8px */
+  --do-wdr-text-2xl:  clamp(1.424rem, 1.180rem + 1.22vw, 2.160rem);  /* 22.8–34.6px */
+  --do-wdr-text-3xl:  clamp(1.602rem, 1.270rem + 1.66vw, 2.592rem);  /* 25.6–41.5px */
 
   /* Component-specific type */
-  --wdr-text-data:      var(--wdr-text-sm);
-  --wdr-text-data-lg:   var(--wdr-text-base);
-  --wdr-text-label:     var(--wdr-text-xs);
-  --wdr-text-caption:   var(--wdr-text-xs);
-  --wdr-text-button:    var(--wdr-text-sm);
-  --wdr-text-code:      var(--wdr-text-sm);
-  --wdr-text-table:     var(--wdr-text-xs);
-  --wdr-text-log:       var(--wdr-text-xs);
+  --do-wdr-text-data:      var(--do-wdr-text-sm);
+  --do-wdr-text-data-lg:   var(--do-wdr-text-base);
+  --do-wdr-text-label:     var(--do-wdr-text-xs);
+  --do-wdr-text-caption:   var(--do-wdr-text-xs);
+  --do-wdr-text-button:    var(--do-wdr-text-sm);
+  --do-wdr-text-code:      var(--do-wdr-text-sm);
+  --do-wdr-text-table:     var(--do-wdr-text-xs);
+  --do-wdr-text-log:       var(--do-wdr-text-xs);
 }
 
 /* Base type resets */
 body {
-  font-family: var(--wdr-font-sans);
-  font-size: var(--wdr-text-base);
-  line-height: var(--wdr-leading-normal);
-  font-weight: var(--wdr-weight-regular);
+  font-family: var(--do-wdr-font-sans);
+  font-size: var(--do-wdr-text-base);
+  line-height: var(--do-wdr-leading-normal);
+  font-weight: var(--do-wdr-weight-regular);
   font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -67,26 +67,26 @@ body {
 }
 
 code, pre, kbd, samp {
-  font-family: var(--wdr-font-mono);
-  font-size: var(--wdr-text-code);
-  letter-spacing: var(--wdr-tracking-mono);
+  font-family: var(--do-wdr-font-mono);
+  font-size: var(--do-wdr-text-code);
+  letter-spacing: var(--do-wdr-tracking-mono);
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--wdr-font-display);
-  font-weight: var(--wdr-weight-semibold);
-  line-height: var(--wdr-leading-tight);
-  letter-spacing: var(--wdr-tracking-tight);
+  font-family: var(--do-wdr-font-display);
+  font-weight: var(--do-wdr-weight-semibold);
+  line-height: var(--do-wdr-leading-tight);
+  letter-spacing: var(--do-wdr-tracking-tight);
 }
 
-h1 { font-size: var(--wdr-text-3xl); }
-h2 { font-size: var(--wdr-text-2xl); }
-h3 { font-size: var(--wdr-text-xl); }
-h4 { font-size: var(--wdr-text-lg); }
-h5 { font-size: var(--wdr-text-md); }
-h6 { font-size: var(--wdr-text-base); }
+h1 { font-size: var(--do-wdr-text-3xl); }
+h2 { font-size: var(--do-wdr-text-2xl); }
+h3 { font-size: var(--do-wdr-text-xl); }
+h4 { font-size: var(--do-wdr-text-lg); }
+h5 { font-size: var(--do-wdr-text-md); }
+h6 { font-size: var(--do-wdr-text-base); }
 
-small, .wdr-text-caption {
-  font-size: var(--wdr-text-caption);
-  letter-spacing: var(--wdr-tracking-wide);
+small, .do-wdr-text-caption {
+  font-size: var(--do-wdr-text-caption);
+  letter-spacing: var(--do-wdr-tracking-wide);
 }

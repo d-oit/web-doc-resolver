@@ -142,8 +142,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: wdr-linux-x86_64
-          path: cli/target/release/wdr
+          name: do-wdr-linux-x86_64
+          path: cli/target/release/do-wdr
           retention-days: 7
 
   web-build:
@@ -190,13 +190,13 @@ jobs:
           pip install -e .
 
       - name: Run sample query (no API keys)
-        run: wdr "Rust agent frameworks" --log-level INFO
+        run: do-wdr "Rust agent frameworks" --log-level INFO
 
       - name: Run sample URL (no API keys)
-        run: wdr "https://docs.rs/tokio" --log-level INFO
+        run: do-wdr "https://docs.rs/tokio" --log-level INFO
 
       - name: Test help output
-        run: wdr --help
+        run: do-wdr --help
 
   mistral-test:
     name: Mistral Integration Test

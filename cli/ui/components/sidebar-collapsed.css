@@ -1,15 +1,15 @@
-.wdr-sidebar--collapsed .wdr-sidebar__title,
-.wdr-sidebar--collapsed .wdr-sidebar__section-label,
-.wdr-sidebar--collapsed .wdr-sidebar__item-label,
-.wdr-sidebar--collapsed .wdr-sidebar__item-badge {
+.do-wdr-sidebar--collapsed .do-wdr-sidebar__title,
+.do-wdr-sidebar--collapsed .do-wdr-sidebar__section-label,
+.do-wdr-sidebar--collapsed .do-wdr-sidebar__item-label,
+.do-wdr-sidebar--collapsed .do-wdr-sidebar__item-badge {
   display: none;
 }
 
-.wdr-sidebar--collapsed .wdr-sidebar__item {
+.do-wdr-sidebar--collapsed .do-wdr-sidebar__item {
   justify-content: center;
   padding: 0;
 }
 
-.wdr-sidebar--collapsed .wdr-sidebar__body {
-  padding: var(--wdr-space-2) var(--wdr-space-1);
+.do-wdr-sidebar--collapsed .do-wdr-sidebar__body {
+  padding: var(--do-wdr-space-2) var(--do-wdr-space-1);
 }

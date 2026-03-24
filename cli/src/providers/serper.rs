@@ -45,7 +45,7 @@ impl SerperProvider {
 
     /// Load credits from state file
     fn load_credits() -> u32 {
-        let state_path = std::path::Path::new(".wdr_state.toml");
+        let state_path = std::path::Path::new(".do_wdr_state.toml");
         if let Ok(content) = std::fs::read_to_string(state_path) {
             if let Ok(state) = content.parse::<toml::Value>() {
                 if let Some(credits) = state
@@ -61,7 +61,7 @@ impl SerperProvider {
 
     /// Save credits to state file
     fn save_credits(credits: u32) {
-        let state_path = std::path::Path::new(".wdr_state.toml");
+        let state_path = std::path::Path::new(".do_wdr_state.toml");
         let mut state = if let Ok(content) = std::fs::read_to_string(state_path) {
             content
                 .parse::<toml::Value>()

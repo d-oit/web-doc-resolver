@@ -5,51 +5,51 @@
 
 :root {
   /* Duration */
-  --wdr-duration-instant:  0ms;
-  --wdr-duration-fast:     80ms;
-  --wdr-duration-normal:   150ms;
-  --wdr-duration-moderate: 250ms;
-  --wdr-duration-slow:     400ms;
-  --wdr-duration-slower:   600ms;
+  --do-wdr-duration-instant:  0ms;
+  --do-wdr-duration-fast:     80ms;
+  --do-wdr-duration-normal:   150ms;
+  --do-wdr-duration-moderate: 250ms;
+  --do-wdr-duration-slow:     400ms;
+  --do-wdr-duration-slower:   600ms;
 
   /* Easing */
-  --wdr-ease-default:   cubic-bezier(0.2, 0, 0, 1);
-  --wdr-ease-in:        cubic-bezier(0.4, 0, 1, 1);
-  --wdr-ease-out:       cubic-bezier(0, 0, 0.2, 1);
-  --wdr-ease-in-out:    cubic-bezier(0.4, 0, 0.2, 1);
-  --wdr-ease-spring:    cubic-bezier(0.34, 1.56, 0.64, 1);
-  --wdr-ease-decelerate:cubic-bezier(0, 0, 0, 1);
+  --do-wdr-ease-default:   cubic-bezier(0.2, 0, 0, 1);
+  --do-wdr-ease-in:        cubic-bezier(0.4, 0, 1, 1);
+  --do-wdr-ease-out:       cubic-bezier(0, 0, 0.2, 1);
+  --do-wdr-ease-in-out:    cubic-bezier(0.4, 0, 0.2, 1);
+  --do-wdr-ease-spring:    cubic-bezier(0.34, 1.56, 0.64, 1);
+  --do-wdr-ease-decelerate:cubic-bezier(0, 0, 0, 1);
 
   /* Shorthand transitions */
-  --wdr-transition-colors:  color var(--wdr-duration-fast) var(--wdr-ease-default),
-                            background-color var(--wdr-duration-fast) var(--wdr-ease-default),
-                            border-color var(--wdr-duration-fast) var(--wdr-ease-default);
+  --do-wdr-transition-colors:  color var(--do-wdr-duration-fast) var(--do-wdr-ease-default),
+                            background-color var(--do-wdr-duration-fast) var(--do-wdr-ease-default),
+                            border-color var(--do-wdr-duration-fast) var(--do-wdr-ease-default);
 
-  --wdr-transition-shadow:  box-shadow var(--wdr-duration-fast) var(--wdr-ease-default);
+  --do-wdr-transition-shadow:  box-shadow var(--do-wdr-duration-fast) var(--do-wdr-ease-default);
 
-  --wdr-transition-transform: transform var(--wdr-duration-normal) var(--wdr-ease-spring);
+  --do-wdr-transition-transform: transform var(--do-wdr-duration-normal) var(--do-wdr-ease-spring);
 
-  --wdr-transition-opacity:  opacity var(--wdr-duration-fast) var(--wdr-ease-default);
+  --do-wdr-transition-opacity:  opacity var(--do-wdr-duration-fast) var(--do-wdr-ease-default);
 
-  --wdr-transition-all:  all var(--wdr-duration-normal) var(--wdr-ease-default);
+  --do-wdr-transition-all:  all var(--do-wdr-duration-normal) var(--do-wdr-ease-default);
 
   /* Component-specific */
-  --wdr-transition-button:  var(--wdr-transition-colors), var(--wdr-transition-shadow);
-  --wdr-transition-dropdown: opacity var(--wdr-duration-fast) var(--wdr-ease-out),
-                             transform var(--wdr-duration-fast) var(--wdr-ease-out);
-  --wdr-transition-panel:   transform var(--wdr-duration-moderate) var(--wdr-ease-decelerate),
-                            opacity var(--wdr-duration-moderate) var(--wdr-ease-decelerate);
+  --do-wdr-transition-button:  var(--do-wdr-transition-colors), var(--do-wdr-transition-shadow);
+  --do-wdr-transition-dropdown: opacity var(--do-wdr-duration-fast) var(--do-wdr-ease-out),
+                             transform var(--do-wdr-duration-fast) var(--do-wdr-ease-out);
+  --do-wdr-transition-panel:   transform var(--do-wdr-duration-moderate) var(--do-wdr-ease-decelerate),
+                            opacity var(--do-wdr-duration-moderate) var(--do-wdr-ease-decelerate);
 }
 
 /* Disable all animations for reduced-motion preference */
 @media (prefers-reduced-motion: reduce) {
   :root {
-    --wdr-duration-instant:  0ms;
-    --wdr-duration-fast:     0ms;
-    --wdr-duration-normal:   0ms;
-    --wdr-duration-moderate: 0ms;
-    --wdr-duration-slow:     0ms;
-    --wdr-duration-slower:   0ms;
+    --do-wdr-duration-instant:  0ms;
+    --do-wdr-duration-fast:     0ms;
+    --do-wdr-duration-normal:   0ms;
+    --do-wdr-duration-moderate: 0ms;
+    --do-wdr-duration-slow:     0ms;
+    --do-wdr-duration-slower:   0ms;
   }
 
   *,
@@ -63,32 +63,32 @@
 }
 
 /* SSE streaming pulse animation keyframes */
-@keyframes wdr-pulse-stream {
+@keyframes do-wdr-pulse-stream {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.5; }
 }
 
-@keyframes wdr-shimmer {
+@keyframes do-wdr-shimmer {
   0%   { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 }
 
-@keyframes wdr-fade-in {
+@keyframes do-wdr-fade-in {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
 
-@keyframes wdr-slide-up {
+@keyframes do-wdr-slide-up {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes wdr-slide-in-right {
+@keyframes do-wdr-slide-in-right {
   from { opacity: 0; transform: translateX(16px); }
   to   { opacity: 1; transform: translateX(0); }
 }
 
-@keyframes wdr-progress-stripe {
+@keyframes do-wdr-progress-stripe {
   0%   { background-position: 1rem 0; }
   100% { background-position: 0 0; }
 }

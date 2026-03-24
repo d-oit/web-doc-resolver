@@ -117,7 +117,7 @@ test.describe('Command Bar', () => {
     if (await input.isVisible() && await submit.isVisible()) {
       await input.fill('');
       await submit.click();
-      const errorVisible = await page.locator('.wdr-input--error, [aria-invalid="true"]').isVisible().catch(() => false);
+      const errorVisible = await page.locator('.do-wdr-input--error, [aria-invalid="true"]').isVisible().catch(() => false);
       expect(errorVisible || true).toBeTruthy();
     }
   });
@@ -150,7 +150,7 @@ test.describe('Navigation', () => {
 
   test('active nav item has aria-current', async ({ page }) => {
     await page.goto('/');
-    const activeItem = page.locator('[aria-current="page"], .wdr-sidebar__item--active').first();
+    const activeItem = page.locator('[aria-current="page"], .do-wdr-sidebar__item--active').first();
     if (await activeItem.isVisible()) {
       const ariaCurrent = await activeItem.getAttribute('aria-current');
       expect(ariaCurrent).toBe('page');
@@ -159,12 +159,12 @@ test.describe('Navigation', () => {
 
   test('sidebar toggle works', async ({ page }) => {
     await page.goto('/');
-    const toggle = page.locator('.wdr-sidebar__toggle, button[aria-label*="collapse"], button[aria-label*="toggle"]').first();
+    const toggle = page.locator('.do-wdr-sidebar__toggle, button[aria-label*="collapse"], button[aria-label*="toggle"]').first();
     if (await toggle.isVisible()) {
       await toggle.click();
-      const sidebar = page.locator('.wdr-sidebar');
+      const sidebar = page.locator('.do-wdr-sidebar');
       const isCollapsed = await sidebar.evaluate(el =>
-        el.classList.contains('wdr-sidebar--collapsed')
+        el.classList.contains('do-wdr-sidebar--collapsed')
       );
       expect(isCollapsed).toBe(true);
     }
@@ -173,7 +173,7 @@ test.describe('Navigation', () => {
   test('bottom nav visible on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/');
-    const bottomNav = page.locator('.wdr-bottom-nav, [class*="bottom-nav"]').first();
+    const bottomNav = page.locator('.do-wdr-bottom-nav, [class*="bottom-nav"]').first();
     if (await bottomNav.isVisible()) {
       const position = await bottomNav.evaluate(el => {
         const style = window.getComputedStyle(el);
@@ -187,16 +187,16 @@ test.describe('Navigation', () => {
 test.describe('Badge Component', () => {
   test('badge has correct BEM class', async ({ page }) => {
     await page.goto('/');
-    const badge = page.locator('.wdr-badge').first();
+    const badge = page.locator('.do-wdr-badge').first();
     if (await badge.isVisible()) {
       const classes = await badge.getAttribute('class');
-      expect(classes).toContain('wdr-badge');
+      expect(classes).toContain('do-wdr-badge');
     }
   });
 
   test('status badges use semantic colors', async ({ page }) => {
     await page.goto('/');
-    const successBadge = page.locator('.wdr-badge--success').first();
+    const successBadge = page.locator('.do-wdr-badge--success').first();
     if (await successBadge.isVisible()) {
       const bg = await successBadge.evaluate(el =>
         window.getComputedStyle(el).backgroundColor
@@ -209,10 +209,10 @@ test.describe('Badge Component', () => {
 test.describe('Tooltip Component', () => {
   test('tooltip appears on hover', async ({ page }) => {
     await page.goto('/');
-    const trigger = page.locator('.wdr-tooltip__trigger').first();
+    const trigger = page.locator('.do-wdr-tooltip__trigger').first();
     if (await trigger.isVisible()) {
       await trigger.hover();
-      const content = page.locator('.wdr-tooltip__content').first();
+      const content = page.locator('.do-wdr-tooltip__content').first();
       const opacity = await content.evaluate(el =>
         window.getComputedStyle(el).opacity
       );
@@ -222,7 +222,7 @@ test.describe('Tooltip Component', () => {
 
   test('tooltip has aria-describedby', async ({ page }) => {
     await page.goto('/');
-    const trigger = page.locator('.wdr-tooltip__trigger[aria-describedby]').first();
+    const trigger = page.locator('.do-wdr-tooltip__trigger[aria-describedby]').first();
     if (await trigger.isVisible()) {
       const describedBy = await trigger.getAttribute('aria-describedby');
       expect(describedBy).toBeTruthy();
@@ -233,7 +233,7 @@ test.describe('Tooltip Component', () => {
 test.describe('Modal Component', () => {
   test('modal has role=dialog', async ({ page }) => {
     await page.goto('/');
-    const modal = page.locator('.wdr-modal[role="dialog"], [role="dialog"]').first();
+    const modal = page.locator('.do-wdr-modal[role="dialog"], [role="dialog"]').first();
     if (await modal.isVisible()) {
       await expect(modal).toHaveAttribute('role', 'dialog');
     }
@@ -249,7 +249,7 @@ test.describe('Modal Component', () => {
 
   test('Escape key closes modal', async ({ page }) => {
     await page.goto('/');
-    const modal = page.locator('.wdr-modal, [role="dialog"]').first();
+    const modal = page.locator('.do-wdr-modal, [role="dialog"]').first();
     if (await modal.isVisible()) {
       await page.keyboard.press('Escape');
       await expect(modal).toBeHidden();
@@ -269,7 +269,7 @@ test.describe('DataTable Component', () => {
 
   test('table rows are keyboard navigable', async ({ page }) => {
     await page.goto('/');
-    const table = page.locator('.wdr-table, table').first();
+    const table = page.locator('.do-wdr-table, table').first();
     if (await table.isVisible()) {
       const rows = table.locator('tbody tr');
       const count = await rows.count();
@@ -281,7 +281,7 @@ test.describe('DataTable Component', () => {
 test.describe('Progress Bar', () => {
   test('progress has role=progressbar', async ({ page }) => {
     await page.goto('/');
-    const progress = page.locator('.wdr-progress[role="progressbar"], [role="progressbar"]').first();
+    const progress = page.locator('.do-wdr-progress[role="progressbar"], [role="progressbar"]').first();
     if (await progress.isVisible()) {
       await expect(progress).toHaveAttribute('role', 'progressbar');
     }
@@ -300,9 +300,9 @@ test.describe('Progress Bar', () => {
 test.describe('Stepper Component', () => {
   test('stepper shows pipeline states', async ({ page }) => {
     await page.goto('/');
-    const stepper = page.locator('.wdr-stepper').first();
+    const stepper = page.locator('.do-wdr-stepper').first();
     if (await stepper.isVisible()) {
-      const steps = stepper.locator('.wdr-stepper__step');
+      const steps = stepper.locator('.do-wdr-stepper__step');
       const count = await steps.count();
       expect(count).toBeGreaterThan(0);
     }
@@ -310,9 +310,9 @@ test.describe('Stepper Component', () => {
 
   test('running step has animation', async ({ page }) => {
     await page.goto('/');
-    const runningStep = page.locator('.wdr-stepper__step--running').first();
+    const runningStep = page.locator('.do-wdr-stepper__step--running').first();
     if (await runningStep.isVisible()) {
-      const indicator = runningStep.locator('.wdr-stepper__indicator');
+      const indicator = runningStep.locator('.do-wdr-stepper__indicator');
       const animation = await indicator.evaluate(el =>
         window.getComputedStyle(el).animationName
       );
@@ -324,7 +324,7 @@ test.describe('Stepper Component', () => {
 test.describe('CodeBlock Component', () => {
   test('code blocks have proper language class', async ({ page }) => {
     await page.goto('/');
-    const codeBlock = page.locator('pre code, .wdr-codeblock').first();
+    const codeBlock = page.locator('pre code, .do-wdr-codeblock').first();
     if (await codeBlock.isVisible()) {
       const className = await codeBlock.getAttribute('class') || '';
       expect(className.length).toBeGreaterThanOrEqual(0);
@@ -333,7 +333,7 @@ test.describe('CodeBlock Component', () => {
 
   test('copy button is accessible', async ({ page }) => {
     await page.goto('/');
-    const copyBtn = page.locator('button:has-text("Copy"), .wdr-codeblock__copy').first();
+    const copyBtn = page.locator('button:has-text("Copy"), .do-wdr-codeblock__copy').first();
     if (await copyBtn.isVisible()) {
       await expect(copyBtn).toBeEnabled();
     }
@@ -343,7 +343,7 @@ test.describe('CodeBlock Component', () => {
 test.describe('KeyValue Component', () => {
   test('key-value uses definition list semantics', async ({ page }) => {
     await page.goto('/');
-    const kv = page.locator('.wdr-keyvalue, dl').first();
+    const kv = page.locator('.do-wdr-keyvalue, dl').first();
     if (await kv.isVisible()) {
       const role = await kv.getAttribute('role') || '';
       const tagName = await kv.evaluate(el => el.tagName);
@@ -377,7 +377,7 @@ test.describe('Responsive Layout', () => {
   test('container queries work at tablet breakpoint', async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 });
     await page.goto('/');
-    const sidebar = page.locator('.wdr-sidebar, .wdr-icon-rail').first();
+    const sidebar = page.locator('.do-wdr-sidebar, .do-wdr-icon-rail').first();
     if (await sidebar.isVisible()) {
       const width = await sidebar.evaluate(el => el.getBoundingClientRect().width);
       expect(width).toBeGreaterThan(0);
@@ -388,7 +388,7 @@ test.describe('Responsive Layout', () => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/');
     const body = await page.evaluate(() => {
-      const main = document.querySelector('main, [role="main"], .wdr-app');
+      const main = document.querySelector('main, [role="main"], .do-wdr-app');
       if (!main) return 'no-main';
       const style = window.getComputedStyle(main);
       return style.flexDirection || style.display;

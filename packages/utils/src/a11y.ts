@@ -12,7 +12,7 @@ export function srOnly(): Record<string, string> {
   };
 }
 
-export function useId(prefix = "wdr"): string {
+export function useId(prefix = "do-wdr"): string {
   const id = Math.random().toString(36).slice(2, 9);
   return `${prefix}-${id}`;
 }

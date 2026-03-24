@@ -1,188 +1,188 @@
 :root {
-  --wdr-crypto-font:       var(--wdr-font-sans);
-  --wdr-crypto-mono:       var(--wdr-font-mono);
-  --wdr-crypto-fs:         var(--wdr-text-sm);
-  --wdr-crypto-fs-xs:      var(--wdr-text-xs);
-  --wdr-crypto-bg:         var(--wdr-surface-bg);
-  --wdr-crypto-bg-el:      var(--wdr-surface-bg-elevated);
-  --wdr-crypto-border:     var(--wdr-border-default);
-  --wdr-crypto-sub:        var(--wdr-border-subtle);
-  --wdr-crypto-text:       var(--wdr-text-primary);
-  --wdr-crypto-muted:      var(--wdr-text-tertiary);
-  --wdr-crypto-r:          var(--wdr-radius-md);
-  --wdr-crypto-r-sm:       var(--wdr-radius-sm);
-  --wdr-crypto-px:         var(--wdr-space-3);
-  --wdr-crypto-py:         var(--wdr-space-2);
-  --wdr-crypto-gap:        var(--wdr-space-2);
-  --wdr-crypto-gap-xs:     var(--wdr-space-1);
-  --wdr-crypto-tr:         var(--wdr-transition-colors);
-  --wdr-crypto-ok:         var(--wdr-signal-success);
-  --wdr-crypto-warn:       var(--wdr-signal-warning);
-  --wdr-crypto-err:        var(--wdr-signal-error);
+  --do-wdr-crypto-font:       var(--do-wdr-font-sans);
+  --do-wdr-crypto-mono:       var(--do-wdr-font-mono);
+  --do-wdr-crypto-fs:         var(--do-wdr-text-sm);
+  --do-wdr-crypto-fs-xs:      var(--do-wdr-text-xs);
+  --do-wdr-crypto-bg:         var(--do-wdr-surface-bg);
+  --do-wdr-crypto-bg-el:      var(--do-wdr-surface-bg-elevated);
+  --do-wdr-crypto-border:     var(--do-wdr-border-default);
+  --do-wdr-crypto-sub:        var(--do-wdr-border-subtle);
+  --do-wdr-crypto-text:       var(--do-wdr-text-primary);
+  --do-wdr-crypto-muted:      var(--do-wdr-text-tertiary);
+  --do-wdr-crypto-r:          var(--do-wdr-radius-md);
+  --do-wdr-crypto-r-sm:       var(--do-wdr-radius-sm);
+  --do-wdr-crypto-px:         var(--do-wdr-space-3);
+  --do-wdr-crypto-py:         var(--do-wdr-space-2);
+  --do-wdr-crypto-gap:        var(--do-wdr-space-2);
+  --do-wdr-crypto-gap-xs:     var(--do-wdr-space-1);
+  --do-wdr-crypto-tr:         var(--do-wdr-transition-colors);
+  --do-wdr-crypto-ok:         var(--do-wdr-signal-success);
+  --do-wdr-crypto-warn:       var(--do-wdr-signal-warning);
+  --do-wdr-crypto-err:        var(--do-wdr-signal-error);
 }
 
-.wdr-crypto {
-  font-family: var(--wdr-crypto-font);
-  font-size: var(--wdr-crypto-fs);
-  color: var(--wdr-crypto-text);
-  background: var(--wdr-crypto-bg);
-  border: 1px solid var(--wdr-crypto-border);
-  border-radius: var(--wdr-crypto-r);
+.do-wdr-crypto {
+  font-family: var(--do-wdr-crypto-font);
+  font-size: var(--do-wdr-crypto-fs);
+  color: var(--do-wdr-crypto-text);
+  background: var(--do-wdr-crypto-bg);
+  border: 1px solid var(--do-wdr-crypto-border);
+  border-radius: var(--do-wdr-crypto-r);
   overflow: hidden;
 }
 
-.wdr-crypto:focus-visible { outline: 2px solid var(--wdr-border-focus); outline-offset: 2px; }
+.do-wdr-crypto:focus-visible { outline: 2px solid var(--do-wdr-border-focus); outline-offset: 2px; }
 
-.wdr-crypto__header {
+.do-wdr-crypto__header {
   display: flex;
   align-items: center;
-  gap: var(--wdr-crypto-gap);
-  padding: var(--wdr-crypto-py) var(--wdr-crypto-px);
-  background: var(--wdr-crypto-bg-el);
-  border-bottom: 1px solid var(--wdr-crypto-sub);
+  gap: var(--do-wdr-crypto-gap);
+  padding: var(--do-wdr-crypto-py) var(--do-wdr-crypto-px);
+  background: var(--do-wdr-crypto-bg-el);
+  border-bottom: 1px solid var(--do-wdr-crypto-sub);
 }
 
-.wdr-crypto__shield {
+.do-wdr-crypto__shield {
   width: 1.5rem;
   height: 1.5rem;
   flex-shrink: 0;
-  color: var(--wdr-crypto-ok);
-  transition: var(--wdr-crypto-tr);
+  color: var(--do-wdr-crypto-ok);
+  transition: var(--do-wdr-crypto-tr);
 }
 
-.wdr-crypto--rotating .wdr-crypto__shield { color: var(--wdr-crypto-warn); }
-.wdr-crypto--expired .wdr-crypto__shield { color: var(--wdr-crypto-err); }
+.do-wdr-crypto--rotating .do-wdr-crypto__shield { color: var(--do-wdr-crypto-warn); }
+.do-wdr-crypto--expired .do-wdr-crypto__shield { color: var(--do-wdr-crypto-err); }
 
-.wdr-crypto__title {
+.do-wdr-crypto__title {
   flex: 1;
   min-width: 0;
-  font-weight: var(--wdr-weight-semibold);
+  font-weight: var(--do-wdr-weight-semibold);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.wdr-crypto__badge {
+.do-wdr-crypto__badge {
   display: inline-flex;
   align-items: center;
-  gap: var(--wdr-crypto-gap-xs);
-  padding: 0 var(--wdr-crypto-gap-xs);
+  gap: var(--do-wdr-crypto-gap-xs);
+  padding: 0 var(--do-wdr-crypto-gap-xs);
   height: 1.25rem;
-  border-radius: var(--wdr-radius-full);
-  font-size: var(--wdr-crypto-fs-xs);
-  font-weight: var(--wdr-weight-medium);
+  border-radius: var(--do-wdr-radius-full);
+  font-size: var(--do-wdr-crypto-fs-xs);
+  font-weight: var(--do-wdr-weight-medium);
   line-height: 1;
   white-space: nowrap;
 }
 
-.wdr-crypto__badge--encrypted { background: oklch(0.95 0.04 155); color: var(--wdr-crypto-ok); }
-.wdr-crypto__badge--rotating  { background: oklch(0.96 0.04 85);  color: var(--wdr-crypto-warn); }
-.wdr-crypto__badge--expired   { background: oklch(0.95 0.04 25);  color: var(--wdr-crypto-err); }
+.do-wdr-crypto__badge--encrypted { background: oklch(0.95 0.04 155); color: var(--do-wdr-crypto-ok); }
+.do-wdr-crypto__badge--rotating  { background: oklch(0.96 0.04 85);  color: var(--do-wdr-crypto-warn); }
+.do-wdr-crypto__badge--expired   { background: oklch(0.95 0.04 25);  color: var(--do-wdr-crypto-err); }
 
-.wdr-crypto__body { display: flex; flex-direction: column; gap: var(--wdr-crypto-gap-xs); padding: var(--wdr-crypto-gap) var(--wdr-crypto-px); }
+.do-wdr-crypto__body { display: flex; flex-direction: column; gap: var(--do-wdr-crypto-gap-xs); padding: var(--do-wdr-crypto-gap) var(--do-wdr-crypto-px); }
 
-.wdr-crypto__row {
+.do-wdr-crypto__row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: var(--wdr-crypto-fs-xs);
+  font-size: var(--do-wdr-crypto-fs-xs);
 }
 
-.wdr-crypto__label {
-  color: var(--wdr-crypto-muted);
+.do-wdr-crypto__label {
+  color: var(--do-wdr-crypto-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  font-weight: var(--wdr-weight-medium);
+  font-weight: var(--do-wdr-weight-medium);
 }
 
-.wdr-crypto__value { font-family: var(--wdr-crypto-mono); font-variant-numeric: tabular-nums; }
+.do-wdr-crypto__value { font-family: var(--do-wdr-crypto-mono); font-variant-numeric: tabular-nums; }
 
-.wdr-crypto__dot {
+.do-wdr-crypto__dot {
   display: inline-block;
   width: 8px;
   height: 8px;
-  border-radius: var(--wdr-radius-full);
-  background: var(--wdr-crypto-ok);
+  border-radius: var(--do-wdr-radius-full);
+  background: var(--do-wdr-crypto-ok);
   flex-shrink: 0;
 }
 
-.wdr-crypto--rotating .wdr-crypto__dot { background: var(--wdr-crypto-warn); animation: wdr-crypto-pulse 1.2s ease-in-out infinite; }
-.wdr-crypto--expired .wdr-crypto__dot { background: var(--wdr-crypto-err); }
+.do-wdr-crypto--rotating .do-wdr-crypto__dot { background: var(--do-wdr-crypto-warn); animation: do-wdr-crypto-pulse 1.2s ease-in-out infinite; }
+.do-wdr-crypto--expired .do-wdr-crypto__dot { background: var(--do-wdr-crypto-err); }
 
-.wdr-crypto__section {
+.do-wdr-crypto__section {
   display: flex;
   flex-direction: column;
-  gap: var(--wdr-crypto-gap-xs);
-  padding: var(--wdr-crypto-py) var(--wdr-crypto-px);
-  border-top: 1px solid var(--wdr-crypto-sub);
+  gap: var(--do-wdr-crypto-gap-xs);
+  padding: var(--do-wdr-crypto-py) var(--do-wdr-crypto-px);
+  border-top: 1px solid var(--do-wdr-crypto-sub);
 }
 
-.wdr-crypto__section-header { display: flex; align-items: center; justify-content: space-between; }
+.do-wdr-crypto__section-header { display: flex; align-items: center; justify-content: space-between; }
 
-.wdr-crypto__track { height: 4px; background: var(--wdr-crypto-sub); border-radius: var(--wdr-radius-full); overflow: hidden; }
+.do-wdr-crypto__track { height: 4px; background: var(--do-wdr-crypto-sub); border-radius: var(--do-wdr-radius-full); overflow: hidden; }
 
-.wdr-crypto__fill {
+.do-wdr-crypto__fill {
   height: 100%;
-  background: var(--wdr-crypto-warn);
+  background: var(--do-wdr-crypto-warn);
   border-radius: inherit;
-  transition: width var(--wdr-duration-slow, 300ms) ease;
+  transition: width var(--do-wdr-duration-slow, 300ms) ease;
   will-change: width;
 }
 
-.wdr-crypto--rotating .wdr-crypto__fill {
+.do-wdr-crypto--rotating .do-wdr-crypto__fill {
   background-image: repeating-linear-gradient(45deg, transparent, transparent 4px, oklch(1 0 0 / 0.15) 4px, oklch(1 0 0 / 0.15) 8px);
   background-size: 1rem 100%;
-  animation: wdr-crypto-stripe 0.5s linear infinite;
+  animation: do-wdr-crypto-stripe 0.5s linear infinite;
 }
 
-.wdr-crypto__dashboard {
+.do-wdr-crypto__dashboard {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
-  gap: var(--wdr-crypto-gap);
-  padding: var(--wdr-crypto-py) var(--wdr-crypto-px);
-  border-top: 1px solid var(--wdr-crypto-sub);
+  gap: var(--do-wdr-crypto-gap);
+  padding: var(--do-wdr-crypto-py) var(--do-wdr-crypto-px);
+  border-top: 1px solid var(--do-wdr-crypto-sub);
 }
 
-.wdr-crypto__metric {
+.do-wdr-crypto__metric {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: var(--wdr-crypto-gap-xs);
-  background: var(--wdr-crypto-bg-el);
-  border-radius: var(--wdr-crypto-r-sm);
-  border: 1px solid var(--wdr-crypto-sub);
+  padding: var(--do-wdr-crypto-gap-xs);
+  background: var(--do-wdr-crypto-bg-el);
+  border-radius: var(--do-wdr-crypto-r-sm);
+  border: 1px solid var(--do-wdr-crypto-sub);
 }
 
-.wdr-crypto__metric-label { font-size: var(--wdr-crypto-fs-xs); color: var(--wdr-crypto-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.do-wdr-crypto__metric-label { font-size: var(--do-wdr-crypto-fs-xs); color: var(--do-wdr-crypto-muted); text-transform: uppercase; letter-spacing: 0.04em; }
 
-.wdr-crypto__metric-value {
-  font-family: var(--wdr-crypto-mono);
+.do-wdr-crypto__metric-value {
+  font-family: var(--do-wdr-crypto-mono);
   font-variant-numeric: tabular-nums;
-  font-weight: var(--wdr-weight-semibold);
+  font-weight: var(--do-wdr-weight-semibold);
 }
 
-.wdr-crypto__metric-value--ok   { color: var(--wdr-crypto-ok); }
-.wdr-crypto__metric-value--warn { color: var(--wdr-crypto-warn); }
-.wdr-crypto__metric-value--err  { color: var(--wdr-crypto-err); }
+.do-wdr-crypto__metric-value--ok   { color: var(--do-wdr-crypto-ok); }
+.do-wdr-crypto__metric-value--warn { color: var(--do-wdr-crypto-warn); }
+.do-wdr-crypto__metric-value--err  { color: var(--do-wdr-crypto-err); }
 
-.wdr-crypto__exposure {
+.do-wdr-crypto__exposure {
   display: flex;
   align-items: center;
-  gap: var(--wdr-crypto-gap-xs);
-  padding: var(--wdr-crypto-gap-xs) var(--wdr-crypto-px);
-  font-size: var(--wdr-crypto-fs-xs);
-  color: var(--wdr-crypto-ok);
+  gap: var(--do-wdr-crypto-gap-xs);
+  padding: var(--do-wdr-crypto-gap-xs) var(--do-wdr-crypto-px);
+  font-size: var(--do-wdr-crypto-fs-xs);
+  color: var(--do-wdr-crypto-ok);
   background: oklch(0.95 0.04 155);
-  border-top: 1px solid var(--wdr-crypto-sub);
+  border-top: 1px solid var(--do-wdr-crypto-sub);
 }
 
-.wdr-crypto__exposure-dot { width: 8px; height: 8px; border-radius: var(--wdr-radius-full); background: var(--wdr-crypto-ok); flex-shrink: 0; animation: wdr-crypto-pulse 2s ease-in-out infinite; }
+.do-wdr-crypto__exposure-dot { width: 8px; height: 8px; border-radius: var(--do-wdr-radius-full); background: var(--do-wdr-crypto-ok); flex-shrink: 0; animation: do-wdr-crypto-pulse 2s ease-in-out infinite; }
 
-@keyframes wdr-crypto-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+@keyframes do-wdr-crypto-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 
-@keyframes wdr-crypto-stripe { 0% { background-position: 0 0; } 100% { background-position: 1rem 0; } }
+@keyframes do-wdr-crypto-stripe { 0% { background-position: 0 0; } 100% { background-position: 1rem 0; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .wdr-crypto, .wdr-crypto__shield, .wdr-crypto__dot,
-  .wdr-crypto__fill, .wdr-crypto__exposure-dot { transition: none; animation: none; }
+  .do-wdr-crypto, .do-wdr-crypto__shield, .do-wdr-crypto__dot,
+  .do-wdr-crypto__fill, .do-wdr-crypto__exposure-dot { transition: none; animation: none; }
 }
