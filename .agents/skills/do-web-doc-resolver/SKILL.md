@@ -36,20 +36,23 @@ pip install -r requirements.txt
 ### CLI Usage
 
 ```bash
-# Resolve a URL
-python -m do_web_doc_resolver "https://docs.rs/tokio"
-
-# Resolve a query
-python -m do_web_doc_resolver "Rust async runtime comparison"
+# From the skill root directory
+cd .agents/skills/do-web-doc-resolver && python -m scripts.resolve "https://docs.rs/tokio"
+cd .agents/skills/do-web-doc-resolver && python -m scripts.resolve "Rust async runtime comparison"
 
 # With options
-python -m do_web_doc_resolver "query" --log-level INFO --max-chars 5000
+cd .agents/skills/do-web-doc-resolver && python -m scripts.resolve "query" --log-level INFO --max-chars 5000
+
+# Or via __main__.py (python -m <skill_folder>)
+cd .agents/skills && python -m do-web-doc-resolver "https://example.com"
 ```
 
 ### Python Module Usage
 
 ```python
-from do_web_doc_resolver import resolve, resolve_url, resolve_query
+import sys
+sys.path.insert(0, '/path/to/do-web-doc-resolver')  # path to skill root
+from scripts.resolve import resolve, resolve_url, resolve_query
 
 # Resolve URL
 result = resolve_url("https://docs.rs/tokio")
@@ -180,38 +183,37 @@ export WEB_RESOLVER_TIMEOUT=30
 ## Skill Structure
 
 ```
-.agents/skills/web-doc-resolver/
+do-web-doc-resolver/
 ├── SKILL.md              # This file
 ├── requirements.txt      # Python dependencies
 ├── pyproject.toml        # Package metadata & tool config
 ├── .gitignore            # Python artifacts, cache, .env
 ├── .env.example          # Environment variable template
-├── do_web_doc_resolver/  # Python package (wraps scripts/)
+├── __init__.py           # Package marker (re-exports resolve, resolve_url, resolve_query)
+├── __main__.py           # CLI entry point (python -m do-web-doc-resolver)
+├── scripts/
 │   ├── __init__.py
-│   ├── __main__.py       # python -m support
-│   ├── resolve.py        # Main resolver
+│   ├── resolve.py        # Main resolver orchestrator & CLI
 │   ├── models.py         # Data models & enums
 │   ├── providers_impl.py # Provider implementations
 │   ├── utils.py          # Utility functions
 │   ├── quality.py        # Content quality scoring
-│   ├── cascade.py        # Provider cascade logic
-│   ├── circuit_breaker.py
-│   ├── cache.py
-│   ├── routing.py
-│   ├── routing_memory.py
-│   ├── synthesis.py
-│   ├── cache_negative.py
-│   └── tests/
-│       ├── __init__.py
-│       ├── conftest.py
-│       └── test_resolve.py
+│   ├── routing.py        # Budget-aware routing
+│   ├── routing_memory.py # Learned provider preferences
+│   ├── synthesis.py      # LLM synthesis gate
+│   ├── circuit_breaker.py # Circuit breaker patterns
+│   └── cache_negative.py # Negative cache (failed results)
+├── tests/                # Test suite
+│   ├── __init__.py
+│   ├── conftest.py
+│   └── test_resolve.py
 └── references/           # Detailed documentation
-    ├── CASCADE.md        # Full cascade decision tree
-    ├── CLI.md            # CLI usage (Python + Rust)
-    ├── CONFIG.md         # Configuration reference
-    ├── PROVIDERS.md      # Provider details
-    ├── RUST_CLI.md       # Rust CLI architecture
-    └── TESTING.md        # Test structure and markers
+    ├── CASCADE.md
+    ├── CLI.md
+    ├── CONFIG.md
+    ├── PROVIDERS.md
+    ├── RUST_CLI.md
+    └── TESTING.md
 ```
 
 ## References

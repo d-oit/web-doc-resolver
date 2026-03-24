@@ -1,6 +1,10 @@
+import sys
+from pathlib import Path
+
 import pytest
 
-from do_web_doc_resolver.resolve import is_url, resolve, MAX_CHARS, MIN_CHARS
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from scripts.resolve import is_url, resolve, MAX_CHARS, MIN_CHARS
 
 
 def test_is_url_detects_url():

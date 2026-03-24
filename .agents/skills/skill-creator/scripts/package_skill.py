@@ -50,7 +50,7 @@ def package_skill(skill_path, output_dir=None):
         print(f"[x] Validation failed: {message}")
         print("   Please fix the validation errors before packaging.")
         return None
-    print(f"[OK] {message}\\n")
+    print(f"[OK] {message}\n")
 
     skill_name = skill_path.name
     if output_dir:
@@ -69,7 +69,7 @@ def package_skill(skill_path, output_dir=None):
                     zipf.write(file_path, arcname)
                     print(f"  Added: {arcname}")
 
-        print(f"\\n[OK] Successfully packaged skill to: {skill_filename}")
+        print(f"\n[OK] Successfully packaged skill to: {skill_filename}")
         return skill_filename
 
     except Exception as e:
@@ -80,7 +80,7 @@ def package_skill(skill_path, output_dir=None):
 def main():
     if len(sys.argv) < 2:
         print("Usage: python package_skill.py <path/to/skill-folder> [output-directory]")
-        print("\\nExample:")
+        print("\nExample:")
         print("  python package_skill.py skills/public/my-skill")
         print("  python package_skill.py skills/public/my-skill ./dist")
         sys.exit(1)

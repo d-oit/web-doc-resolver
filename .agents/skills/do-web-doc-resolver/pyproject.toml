@@ -50,7 +50,7 @@ warn_return_any = true
 warn_unused_configs = true
 
 [tool.pytest.ini_options]
-testpaths = ["do_web_doc_resolver/tests"]
+testpaths = ["tests"]
 markers = [
     "live: tests requiring live API keys (deselect with '-m \"not live\"')",
 ]

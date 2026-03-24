@@ -1,7 +1,7 @@
 # AGENTS.md
 
 > **do-web-doc-resolver** — resolves queries or URLs into compact, LLM-ready markdown via a low-cost provider cascade.
-> Full detail docs live in [`.agents/skills/web-doc-resolver/`](.agents/skills/web-doc-resolver/). See [agents.md](https://agents.md) for spec.
+> Full detail docs live in [`.agents/skills/do-web-doc-resolver/`](.agents/skills/do-web-doc-resolver/). See [agents.md](https://agents.md) for spec.
 
 ## Setup commands
 
@@ -98,7 +98,7 @@ do-web-doc-resolver/
 ├── assets/                # Visual assets
 │   └── screenshots/       # Screenshot images
 ├── .agents/skills/        # Canonical skill definitions
-│   ├── web-doc-resolver/  # Python resolver skill
+│   ├── do-web-doc-resolver/  # Python resolver skill
 │   ├── wdr-cli/           # Rust CLI skill
 │   └── wdr-assets/        # Screenshot/asset skill
 ├── .blackbox/skills/      # Skill symlinks (Blackbox)
@@ -110,14 +110,14 @@ do-web-doc-resolver/
 
 ## Cascade overview
 
-The resolver auto-detects URL vs query and runs a free-first cascade. See [`.agents/skills/web-doc-resolver/references/CASCADE.md`](.agents/skills/web-doc-resolver/references/CASCADE.md) for the full decision tree.
+The resolver auto-detects URL vs query and runs a free-first cascade. See [`.agents/skills/do-web-doc-resolver/references/CASCADE.md`](.agents/skills/do-web-doc-resolver/references/CASCADE.md) for the full decision tree.
 
 | Input type | Cascade order |
 |---|---|
 | **Query** | Exa MCP (free) → Exa SDK → Tavily → Serper → DuckDuckGo (free) → Mistral |
 | **URL** | llms.txt (free) → Jina (free) → Firecrawl → Direct fetch (free) → Mistral browser → DuckDuckGo |
 
-Skip providers: `--skip exa_mcp --skip exa` — see [`.agents/skills/web-doc-resolver/references/CLI.md`](.agents/skills/web-doc-resolver/references/CLI.md).
+Skip providers: `--skip exa_mcp --skip exa` — see [`.agents/skills/do-web-doc-resolver/references/CLI.md`](.agents/skills/do-web-doc-resolver/references/CLI.md).
 
 ## Environment variables (all optional)
 
@@ -130,7 +130,7 @@ Skip providers: `--skip exa_mcp --skip exa` — see [`.agents/skills/web-doc-res
 | `MISTRAL_API_KEY` | Mistral | Optional AI-powered fallback |
 
 Exa MCP, Jina Reader, DuckDuckGo, and direct fetch are always available — **no API key required**.
-See [`.agents/skills/web-doc-resolver/references/CONFIG.md`](.agents/skills/web-doc-resolver/references/CONFIG.md) for full config reference including `cli/config.toml`.
+See [`.agents/skills/do-web-doc-resolver/references/CONFIG.md`](.agents/skills/do-web-doc-resolver/references/CONFIG.md) for full config reference including `cli/config.toml`.
 
 ## Security
 
@@ -157,12 +157,12 @@ Manual check: `python scripts/validate_skill_symlink.py`
 
 | Topic | File |
 |---|---|
-| Full cascade logic | [`.agents/skills/web-doc-resolver/references/CASCADE.md`](.agents/skills/web-doc-resolver/references/CASCADE.md) |
-| All providers & rate limits | [`.agents/skills/web-doc-resolver/references/PROVIDERS.md`](.agents/skills/web-doc-resolver/references/PROVIDERS.md) |
-| CLI usage (Python + Rust) | [`.agents/skills/web-doc-resolver/references/CLI.md`](.agents/skills/web-doc-resolver/references/CLI.md) |
-| Rust CLI architecture | [`.agents/skills/web-doc-resolver/references/RUST_CLI.md`](.agents/skills/web-doc-resolver/references/RUST_CLI.md) |
-| Test structure & markers | [`.agents/skills/web-doc-resolver/references/TESTING.md`](.agents/skills/web-doc-resolver/references/TESTING.md) |
-| Config & env vars | [`.agents/skills/web-doc-resolver/references/CONFIG.md`](.agents/skills/web-doc-resolver/references/CONFIG.md) |
+| Full cascade logic | [`.agents/skills/do-web-doc-resolver/references/CASCADE.md`](.agents/skills/do-web-doc-resolver/references/CASCADE.md) |
+| All providers & rate limits | [`.agents/skills/do-web-doc-resolver/references/PROVIDERS.md`](.agents/skills/do-web-doc-resolver/references/PROVIDERS.md) |
+| CLI usage (Python + Rust) | [`.agents/skills/do-web-doc-resolver/references/CLI.md`](.agents/skills/do-web-doc-resolver/references/CLI.md) |
+| Rust CLI architecture | [`.agents/skills/do-web-doc-resolver/references/RUST_CLI.md`](.agents/skills/do-web-doc-resolver/references/RUST_CLI.md) |
+| Test structure & markers | [`.agents/skills/do-web-doc-resolver/references/TESTING.md`](.agents/skills/do-web-doc-resolver/references/TESTING.md) |
+| Config & env vars | [`.agents/skills/do-web-doc-resolver/references/CONFIG.md`](.agents/skills/do-web-doc-resolver/references/CONFIG.md) |
 
 ## Project Documentation
 
@@ -176,7 +176,7 @@ Manual check: `python scripts/validate_skill_symlink.py`
 
 | Skill | Location | Description |
 |---|---|---|
-| web-doc-resolver | `.agents/skills/web-doc-resolver/` | Python resolver with cascade |
+| do-web-doc-resolver | `.agents/skills/do-web-doc-resolver/` | Python resolver with cascade |
 | wdr-cli | `.agents/skills/wdr-cli/` | Rust CLI (wdr binary) |
 | wdr-assets | `.agents/skills/wdr-assets/` | Screenshots & visual assets |
 | wdr-release | `.agents/skills/wdr-release/` | Release management & Git/GitHub best practices |
