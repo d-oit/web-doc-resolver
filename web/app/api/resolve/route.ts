@@ -7,6 +7,8 @@ import {
 } from "@/lib/routing";
 import { CircuitBreakerRegistry } from "@/lib/circuit-breaker";
 import { scoreContent, QualityScore } from "@/lib/quality";
+import * as cache from "@/lib/cache";
+import { save as saveRecord } from "@/lib/records";
 
 // Allow up to 60 seconds for resolver operations
 export const maxDuration = 60;
@@ -517,6 +519,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const skipCache: boolean = body.skipCache || false;
+    const urlMode = isUrl(input);
+    const source = urlMode ? "url" : "query";
+
+    // Check cache first
+    if (!skipCache) {
+      const cached = await cache.get(input, source);
+      if (cached) {
+        return NextResponse.json({ ...(cached as object), cache_hit: true });
+      }
+    }
+
     const budget = new ResolutionBudget(profile);
 
     // Extract optional user-provided API keys from request body
@@ -528,7 +542,6 @@ export async function POST(request: NextRequest) {
       MISTRAL_API_KEY: body.mistral_api_key,
     };
 
-    const urlMode = isUrl(input);
     let markdown: string;
     let provider: string;
 
@@ -556,12 +569,32 @@ export async function POST(request: NextRequest) {
     const quality: QualityScore = scoreContent(markdown);
     const budgetState = budget.getState();
 
-    return NextResponse.json({
+    const response = {
+      markdown,
+      provider,
+      quality,
+      budget: budgetState,
+      cache_hit: false,
+    };
+
+    // Store successful result in cache
+    await cache.set(input, source, {
       markdown,
       provider,
       quality,
       budget: budgetState,
     });
+
+    // Auto-save as a record
+    saveRecord({
+      query: input,
+      url: urlMode ? input : null,
+      content: markdown,
+      source: provider,
+      score: quality.score,
+    });
+
+    return NextResponse.json(response);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Internal error";
     return NextResponse.json({ error: message }, { status: 500 });
