@@ -5,7 +5,7 @@ description = "Resolve queries or URLs into compact, LLM-ready markdown using a 
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
-    {name = "d-oit", email = "support@d-oit.com"}
+    {name = "d-oit"}
 ]
 requires-python = ">=3.10"
 classifiers = [
@@ -79,12 +79,17 @@ exclude = '''
     | build
     | dist
     | __pycache__
+    | \.agents/skills
+    | \.blackbox/skills
+    | \.claude/skills
+    | \.opencode/skills
 )/
 '''
 
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+exclude = [".agents/skills/", ".blackbox/skills/", ".claude/skills/", ".opencode/skills/"]
 
 [tool.ruff.lint]
 select = [
@@ -107,6 +112,7 @@ python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
 ignore_missing_imports = true
+exclude = ".(agents|blackbox|claude|opencode)/skills/"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

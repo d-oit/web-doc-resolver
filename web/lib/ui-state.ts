@@ -43,3 +43,27 @@ export function saveUiState(state: Partial<UiState>): void {
     // Ignore storage errors
   }
 }
+
+export async function saveStateToServer(state: Partial<UiState>): Promise<void> {
+  try {
+    await fetch("/api/ui-state", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(state),
+    });
+  } catch {
+    // Server unavailable — localStorage is the fallback
+  }
+}
+
+export async function loadStateFromServer(): Promise<UiState | null> {
+  try {
+    const res = await fetch("/api/ui-state");
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data || typeof data !== "object") return null;
+    return { ...DEFAULTS, ...data };
+  } catch {
+    return null;
+  }
+}

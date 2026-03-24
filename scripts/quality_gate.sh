@@ -18,6 +18,15 @@ echo "Validating skill symlinks..."
 cd "$REPO_ROOT"
 python scripts/validate_skill_symlink.py
 
+# Privacy check - no emails in codebase
+echo "Checking for email addresses..."
+EMAIL_PATTERN='[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
+EXCLUDE_PATTERN='example\.com|example\.org|example\.net|test\.com|localhost|\.git/|node_modules/|target/|\.claude/|\.opencode/|\.blackbox/|\.agents/skills/'
+if grep -rE "$EMAIL_PATTERN" --include="*.py" --include="*.toml" --include="*.yaml" --include="*.json" --include="*.md" . 2>/dev/null | grep -vE "$EXCLUDE_PATTERN"; then
+    echo "ERROR: Email address detected in codebase"
+    exit 1
+fi
+
 # Python checks
 echo "Running Python tests (unit only)..."
 cd "$REPO_ROOT"

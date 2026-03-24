@@ -477,39 +477,31 @@ test.describe("Navigation", () => {
 test.describe("Collapsible Sidebar", () => {
   test("sidebar is visible by default", async ({ page }) => {
     await page.goto("/");
-    // Configuration header should be visible
+    await expect(page.getByTestId("sidebar-toggle")).toBeVisible();
     await expect(page.locator("text=Configuration")).toBeVisible();
-    // Profile selector should be visible (sidebar expanded by default)
     await expect(page.locator("label").filter({ hasText: "Profile" })).toBeVisible();
   });
 
   test("sidebar collapses when clicking Configuration header", async ({ page }) => {
     await page.goto("/");
-    // Profile should be visible initially
     await expect(page.locator("label").filter({ hasText: "Profile" })).toBeVisible();
-    // Click the Configuration header to collapse
-    await page.locator("button").filter({ hasText: "Configuration" }).click();
-    // Profile should no longer be visible
+    await page.getByTestId("sidebar-toggle").click();
     await expect(page.locator("label").filter({ hasText: "Profile" })).not.toBeVisible();
   });
 
   test("sidebar expands when clicking Configuration header again", async ({ page }) => {
     await page.goto("/");
-    // Collapse
-    await page.locator("button").filter({ hasText: "Configuration" }).click();
+    await page.getByTestId("sidebar-toggle").click();
     await expect(page.locator("label").filter({ hasText: "Profile" })).not.toBeVisible();
-    // Expand
-    await page.locator("button").filter({ hasText: "Configuration" }).click();
+    await page.getByTestId("sidebar-toggle").click();
     await expect(page.locator("label").filter({ hasText: "Profile" })).toBeVisible();
   });
 
   test("toggle label shows correct text", async ({ page }) => {
     await page.goto("/");
-    // Expanded by default — should show "Hide"
-    await expect(page.locator("button").filter({ hasText: "Configuration" }).locator("text=Hide")).toBeVisible();
-    // Collapse
-    await page.locator("button").filter({ hasText: "Configuration" }).click();
-    await expect(page.locator("button").filter({ hasText: "Configuration" }).locator("text=Show")).toBeVisible();
+    await expect(page.getByTestId("sidebar-toggle").locator("text=Hide")).toBeVisible();
+    await page.getByTestId("sidebar-toggle").click();
+    await expect(page.getByTestId("sidebar-toggle").locator("text=Show")).toBeVisible();
   });
 
   test("Keys link is visible in sidebar header", async ({ page }) => {
@@ -529,27 +521,22 @@ test.describe("Collapsible Sidebar", () => {
 test.describe("Collapsible API Keys", () => {
   test("API Keys section is collapsed by default", async ({ page }) => {
     await page.goto("/");
-    // The API Keys toggle should be visible
-    await expect(page.locator("button").filter({ hasText: "API Keys" })).toBeVisible();
-    // But the key inputs should not be visible
+    await expect(page.getByTestId("api-keys-toggle")).toBeVisible();
     await expect(page.locator("label").filter({ hasText: "Serper" })).not.toBeVisible();
   });
 
   test("API Keys section expands on click", async ({ page }) => {
     await page.goto("/");
-    await page.locator("button").filter({ hasText: "API Keys" }).click();
-    // Key inputs should now be visible
+    await page.getByTestId("api-keys-toggle").click();
     await expect(page.locator("label").filter({ hasText: "Serper" })).toBeVisible();
     await expect(page.locator("label").filter({ hasText: "Tavily" })).toBeVisible();
   });
 
   test("API Keys section collapses on second click", async ({ page }) => {
     await page.goto("/");
-    // Expand
-    await page.locator("button").filter({ hasText: "API Keys" }).click();
+    await page.getByTestId("api-keys-toggle").click();
     await expect(page.locator("label").filter({ hasText: "Serper" })).toBeVisible();
-    // Collapse
-    await page.locator("button").filter({ hasText: "API Keys" }).click();
+    await page.getByTestId("api-keys-toggle").click();
     await expect(page.locator("label").filter({ hasText: "Serper" })).not.toBeVisible();
   });
 });
@@ -628,7 +615,7 @@ test.describe("Help Page", () => {
     await expect(page.getByRole("heading", { name: "FAQ", exact: true })).toBeVisible();
     await expect(page.locator("text=What is this?")).toBeVisible();
     await expect(page.locator("text=Do I need an API key?")).toBeVisible();
-    await expect(page.locator("text=How does the configuration panel work?")).toBeVisible();
+    await expect(page.locator("text=configuration panel")).toBeVisible();
   });
 
   test("has back link to home", async ({ page }) => {

@@ -1,9 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import {
+  ResolutionBudget,
+  planProviderOrder,
+  detectJsHeavy,
+  isPaidProvider,
+} from "@/lib/routing";
+import { CircuitBreakerRegistry } from "@/lib/circuit-breaker";
+import { scoreContent, QualityScore } from "@/lib/quality";
+import * as cache from "@/lib/cache";
+import { save as saveRecord } from "@/lib/records";
 
 // Allow up to 60 seconds for resolver operations
 export const maxDuration = 60;
 
 const DEFAULT_MAX_CHARS = parseInt(process.env.WEB_RESOLVER_MAX_CHARS || "8000");
+
+// Singleton circuit breaker registry (survives across warm invocations)
+const circuitBreakers = new CircuitBreakerRegistry();
 
 // Provider keys - can come from env vars or request body
 interface ProviderKeys {
@@ -373,112 +386,123 @@ const providerMap: Record<string, ProviderFn> = {
   },
 };
 
-// Run providers sequentially until one succeeds
+// Run providers sequentially with budget and circuit breaker
 async function runProvidersSequential(
   query: string,
   keys: ProviderKeys,
   providerNames: string[],
-  maxChars: number
-): Promise<string> {
+  maxChars: number,
+  budget: ResolutionBudget
+): Promise<{ content: string; provider: string }> {
   for (const name of providerNames) {
+    const paid = isPaidProvider(name);
+    if (!budget.canTry(paid)) break;
+    if (circuitBreakers.isOpen(name)) continue;
+
     const fn = providerMap[name];
     if (!fn) continue;
-    const result = await fn(query, keys, maxChars);
-    if (result) return result;
+
+    const start = Date.now();
+    try {
+      const result = await fn(query, keys, maxChars);
+      const latency = Date.now() - start;
+      budget.recordAttempt(paid, latency);
+      if (result) {
+        circuitBreakers.recordSuccess(name);
+        return { content: result, provider: name };
+      }
+      circuitBreakers.recordFailure(name);
+    } catch {
+      budget.recordAttempt(paid, Date.now() - start);
+      circuitBreakers.recordFailure(name);
+    }
   }
   throw new Error("No search results found for query. Try adding API keys for better results.");
 }
 
-// Run multiple providers in parallel and concatenate results
+// Run multiple providers in parallel with budget and circuit breaker
 async function runProvidersParallel(
   query: string,
   keys: ProviderKeys,
   providerNames: string[],
-  maxChars: number
-): Promise<string> {
+  maxChars: number,
+  budget: ResolutionBudget
+): Promise<{ content: string; provider: string }> {
+  const eligible = providerNames.filter((name) => {
+    if (!budget.canTry(isPaidProvider(name))) return false;
+    if (circuitBreakers.isOpen(name)) return false;
+    return !!providerMap[name];
+  });
+
   const results = await Promise.all(
-    providerNames.map(async (name) => {
-      const fn = providerMap[name];
-      if (!fn) return null;
+    eligible.map(async (name) => {
+      const start = Date.now();
       try {
-        return await fn(query, keys, maxChars);
+        const result = await providerMap[name]!(query, keys, maxChars);
+        budget.recordAttempt(isPaidProvider(name), Date.now() - start);
+        if (result) {
+          circuitBreakers.recordSuccess(name);
+          return { content: result, provider: name };
+        }
+        circuitBreakers.recordFailure(name);
+        return null;
       } catch {
+        budget.recordAttempt(isPaidProvider(name), Date.now() - start);
+        circuitBreakers.recordFailure(name);
         return null;
       }
     })
   );
-  const successful = results.filter((r): r is string => r !== null);
+
+  const successful = results.filter((r): r is { content: string; provider: string } => r !== null);
   if (successful.length === 0) {
     throw new Error("No search results found for query. Try adding API keys for better results.");
   }
-  // Combine results with provider headers
-  return successful
-    .map((content, idx) => `## Results from ${providerNames[idx]}\n\n${content}`)
+  const combined = successful
+    .map((r) => `## Results from ${r.provider}\n\n${r.content}`)
     .join("\n\n---\n\n");
+  return { content: combined, provider: successful.map((r) => r.provider).join("+") };
 }
 
-async function resolveUrl(url: string, keys: ProviderKeys, maxChars: number): Promise<string> {
-  // URL cascade: Jina (free) → Firecrawl (paid) → Direct fetch (free)
-  let result = await extractViaJina(url, maxChars);
-  if (result) return result;
+async function resolveUrl(url: string, keys: ProviderKeys, maxChars: number, budget: ResolutionBudget): Promise<string> {
+  const order = planProviderOrder({ isUrl: true, jsHeavy: detectJsHeavy(url) });
 
-  // Try Firecrawl if API key is available
-  const firecrawlKey = keys.FIRECRAWL_API_KEY || process.env.FIRECRAWL_API_KEY;
-  if (firecrawlKey) {
-    result = await extractViaFirecrawl(url, firecrawlKey, maxChars);
-    if (result) return result;
-  }
+  for (const name of order) {
+    const paid = isPaidProvider(name);
+    if (!budget.canTry(paid)) break;
+    if (circuitBreakers.isOpen(name)) continue;
 
-  result = await extractViaDirectFetch(url, maxChars);
-  if (result) return result;
-
-  // 4. Mistral browser fallback (paid)
-  const mistralKey = keys.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY;
-  if (mistralKey) {
-    result = await extractViaMistralBrowser(url, mistralKey, maxChars);
-    if (result) return result;
+    const start = Date.now();
+    let result: string | null = null;
+    try {
+      if (name === "jina") result = await extractViaJina(url, maxChars);
+      else if (name === "firecrawl") {
+        const fk = keys.FIRECRAWL_API_KEY || process.env.FIRECRAWL_API_KEY;
+        if (fk) result = await extractViaFirecrawl(url, fk, maxChars);
+      } else if (name === "direct_fetch") result = await extractViaDirectFetch(url, maxChars);
+      else if (name === "mistral_browser") {
+        const mk = keys.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY;
+        if (mk) result = await extractViaMistralBrowser(url, mk, maxChars);
+      }
+      budget.recordAttempt(paid, Date.now() - start);
+      if (result) {
+        circuitBreakers.recordSuccess(name);
+        return result;
+      }
+      circuitBreakers.recordFailure(name);
+    } catch {
+      budget.recordAttempt(paid, Date.now() - start);
+      circuitBreakers.recordFailure(name);
+    }
   }
 
   throw new Error("Failed to extract content from URL");
 }
 
-async function resolveQuery(query: string, keys: ProviderKeys, maxChars: number): Promise<string> {
-  // Query cascade: Exa MCP (free) → Serper → Tavily → DuckDuckGo (free)
-  let result: string | null = null;
-
-  // 1. Exa MCP (free, no API key required)
-  result = await searchViaExaMcp(query, maxChars);
-  if (result) return result;
-
-  // 2. Paid providers if keys are available
-  const serperKey = keys.SERPER_API_KEY || process.env.SERPER_API_KEY;
-  const tavilyKey = keys.TAVILY_API_KEY || process.env.TAVILY_API_KEY;
-
-  if (serperKey) {
-    result = await searchViaSerper(query, serperKey, maxChars);
-    if (result) return result;
-  }
-
-  if (tavilyKey) {
-    result = await searchViaTavily(query, tavilyKey, maxChars);
-    if (result) return result;
-  }
-
-  // 3. Free fallback: DuckDuckGo via Jina Reader
-  result = await searchViaDuckDuckGoLite(query, maxChars);
-  if (result) return result;
-
-  result = await searchViaDuckDuckGoFree(query, maxChars);
-  if (result) return result;
-
-  // 4. Mistral AI fallback (paid)
-  const mistralKey = keys.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY;
-  if (mistralKey) {
-    result = await searchViaMistralWeb(query, mistralKey, maxChars);
-    if (result) return result;
-  }
-
-  throw new Error("No search results found for query. Try adding API keys for better results.");
+async function resolveQuery(query: string, keys: ProviderKeys, maxChars: number, budget: ResolutionBudget): Promise<string> {
+  const order = planProviderOrder({ isUrl: false });
+  const result = await runProvidersSequential(query, keys, order, maxChars, budget);
+  return result.content;
 }
 
 export async function POST(request: NextRequest) {
@@ -486,6 +510,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const input = body.query?.trim() || body.url?.trim();
     const maxChars = parseInt(body.maxChars) || DEFAULT_MAX_CHARS;
+    const profile = body.profile || "balanced";
 
     if (!input) {
       return NextResponse.json(
@@ -493,6 +518,20 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const skipCache: boolean = body.skipCache || false;
+    const urlMode = isUrl(input);
+    const source = urlMode ? "url" : "query";
+
+    // Check cache first
+    if (!skipCache) {
+      const cached = await cache.get(input, source);
+      if (cached) {
+        return NextResponse.json({ ...(cached as object), cache_hit: true });
+      }
+    }
+
+    const budget = new ResolutionBudget(profile);
 
     // Extract optional user-provided API keys from request body
     const userKeys: ProviderKeys = {
@@ -503,34 +542,59 @@ export async function POST(request: NextRequest) {
       MISTRAL_API_KEY: body.mistral_api_key,
     };
 
-    const urlMode = isUrl(input);
     let markdown: string;
     let provider: string;
 
     if (urlMode) {
-      markdown = await resolveUrl(input, userKeys, maxChars);
-      provider = "jina";
+      markdown = await resolveUrl(input, userKeys, maxChars, budget);
+      provider = "cascade";
     } else {
-      // Query mode: check for provider selection and deep research
       const providers: string[] = body.providers || [];
       const deepResearch: boolean = body.deepResearch || false;
 
       if (providers.length === 0) {
-        // Default cascade
-        markdown = await resolveQuery(input, userKeys, maxChars);
+        markdown = await resolveQuery(input, userKeys, maxChars, budget);
         provider = "cascade";
       } else if (deepResearch) {
-        // Run selected providers in parallel
-        markdown = await runProvidersParallel(input, userKeys, providers, maxChars);
-        provider = providers.join("+");
+        const res = await runProvidersParallel(input, userKeys, providers, maxChars, budget);
+        markdown = res.content;
+        provider = res.provider;
       } else {
-        // Run selected providers sequentially in given order
-        markdown = await runProvidersSequential(input, userKeys, providers, maxChars);
-        provider = providers[0] || "unknown";
+        const res = await runProvidersSequential(input, userKeys, providers, maxChars, budget);
+        markdown = res.content;
+        provider = res.provider;
       }
     }
 
-    return NextResponse.json({ markdown, provider });
+    const quality: QualityScore = scoreContent(markdown);
+    const budgetState = budget.getState();
+
+    const response = {
+      markdown,
+      provider,
+      quality,
+      budget: budgetState,
+      cache_hit: false,
+    };
+
+    // Store successful result in cache
+    await cache.set(input, source, {
+      markdown,
+      provider,
+      quality,
+      budget: budgetState,
+    });
+
+    // Auto-save as a record
+    saveRecord({
+      query: input,
+      url: urlMode ? input : null,
+      content: markdown,
+      source: provider,
+      score: quality.score,
+    });
+
+    return NextResponse.json(response);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Internal error";
     return NextResponse.json({ error: message }, { status: 500 });

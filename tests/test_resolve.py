@@ -436,24 +436,17 @@ class TestSkillSymlink:
     def get_skill_locations(self):
         """Get all skill directory symlink locations to test."""
         root_dir = Path(__file__).parent.parent
-        canonical = root_dir / ".agents" / "skills" / "web-doc-resolver"
+        canonical = root_dir / ".agents" / "skills"
         return [
-            (
-                root_dir / ".blackbox" / "skills" / "web-doc-resolver",
-                ".blackbox/skills",
-                canonical,
-            ),
-            (
-                root_dir / ".opencode" / "skills" / "web-doc-resolver",
-                ".opencode/skills",
-                canonical,
-            ),
+            (root_dir / ".blackbox" / "skills", ".blackbox/skills", canonical),
+            (root_dir / ".claude" / "skills", ".claude/skills", canonical),
+            (root_dir / ".opencode" / "skills", ".opencode/skills", canonical),
         ]
 
     def test_all_skill_symlinks_exist(self):
         """Test that all skill directory symlinks exist."""
         for skill_link, name, _ in self.get_skill_locations():
-            assert skill_link.exists(), f"{name}: Skill symlink does not exist: {skill_link}"
+            assert skill_link.exists(), f"{name}: symlink does not exist: {skill_link}"
 
     def test_all_skill_symlinks_are_symlinks(self):
         """Test that all skill paths are directory symlinks."""
@@ -461,20 +454,21 @@ class TestSkillSymlink:
             assert skill_link.is_symlink(), f"{name}: {skill_link} is not a symlink"
 
     def test_all_skill_symlinks_point_to_canonical(self):
-        """Test that all symlinks point to .agents/skills/<name>."""
+        """Test that all symlinks point to .agents/skills/."""
         for skill_link, name, expected in self.get_skill_locations():
             resolved_target = skill_link.resolve()
             resolved_expected = expected.resolve()
-            assert resolved_target == resolved_expected, (
+            msg = (
                 f"{name}: Symlink points to wrong target.\n"
                 f"Expected: {resolved_expected}\n"
                 f"Got: {resolved_target}"
             )
+            assert resolved_target == resolved_expected, msg
 
     def test_skill_md_exists_in_canonical(self):
-        """Test that SKILL.md exists in the canonical .agents/skills/ directory."""
+        """Test that SKILL.md exists in canonical .agents/skills/ directory."""
         root_dir = Path(__file__).parent.parent
-        skill_md = root_dir / ".agents" / "skills" / "web-doc-resolver" / "SKILL.md"
+        skill_md = root_dir / ".agents" / "skills" / "do-web-doc-resolver" / "SKILL.md"
         assert skill_md.exists(), f"SKILL.md does not exist in canonical: {skill_md}"
         assert skill_md.is_file(), f"SKILL.md is not a file: {skill_md}"
 

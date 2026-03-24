@@ -24,10 +24,7 @@ mod semantic_cache_tests {
 
         // Create a concept with metadata
         let mut metadata = HashMap::new();
-        metadata.insert(
-            "query".to_string(),
-            Value::String("test query".to_string()),
-        );
+        metadata.insert("query".to_string(), Value::String("test query".to_string()));
         metadata.insert(
             "provider".to_string(),
             Value::String("test_provider".to_string()),
@@ -36,8 +33,14 @@ mod semantic_cache_tests {
             "results".to_string(),
             Value::Array(vec![Value::Object(
                 [
-                    ("url".to_string(), Value::String("https://example.com".to_string())),
-                    ("content".to_string(), Value::String("Test content".to_string())),
+                    (
+                        "url".to_string(),
+                        Value::String("https://example.com".to_string()),
+                    ),
+                    (
+                        "content".to_string(),
+                        Value::String("Test content".to_string()),
+                    ),
                     ("source".to_string(), Value::String("test".to_string())),
                 ]
                 .into_iter()
@@ -94,10 +97,7 @@ mod semantic_cache_tests {
         // Store multiple concepts
         for i in 0..3 {
             let mut metadata = HashMap::new();
-            metadata.insert(
-                "query".to_string(),
-                Value::String(format!("query {}", i)),
-            );
+            metadata.insert("query".to_string(), Value::String(format!("query {}", i)));
 
             let vector = HVec10240::from_bytes(format!("query {}", i).as_bytes());
             framework
@@ -156,7 +156,10 @@ mod semantic_cache_tests {
                 .expect("Failed to create framework after reload");
 
             // Load persisted state
-            framework.load().await.expect("Failed to load persisted state");
+            framework
+                .load()
+                .await
+                .expect("Failed to load persisted state");
 
             // Verify concept exists
             let concept = framework
