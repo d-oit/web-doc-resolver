@@ -37,19 +37,19 @@ pip install -r requirements.txt
 
 ```bash
 # Resolve a URL
-python scripts/resolve.py "https://docs.rs/tokio"
+python -m do_web_doc_resolver "https://docs.rs/tokio"
 
 # Resolve a query
-python scripts/resolve.py "Rust async runtime comparison"
+python -m do_web_doc_resolver "Rust async runtime comparison"
 
 # With options
-python scripts/resolve.py "query" --log-level INFO --max-chars 5000
+python -m do_web_doc_resolver "query" --log-level INFO --max-chars 5000
 ```
 
 ### Python Module Usage
 
 ```python
-from scripts.resolve import resolve, resolve_url, resolve_query
+from do_web_doc_resolver import resolve, resolve_url, resolve_query
 
 # Resolve URL
 result = resolve_url("https://docs.rs/tokio")
@@ -183,6 +183,28 @@ export WEB_RESOLVER_TIMEOUT=30
 .agents/skills/web-doc-resolver/
 ├── SKILL.md              # This file
 ├── requirements.txt      # Python dependencies
+├── pyproject.toml        # Package metadata & tool config
+├── .gitignore            # Python artifacts, cache, .env
+├── .env.example          # Environment variable template
+├── do_web_doc_resolver/  # Python package (wraps scripts/)
+│   ├── __init__.py
+│   ├── __main__.py       # python -m support
+│   ├── resolve.py        # Main resolver
+│   ├── models.py         # Data models & enums
+│   ├── providers_impl.py # Provider implementations
+│   ├── utils.py          # Utility functions
+│   ├── quality.py        # Content quality scoring
+│   ├── cascade.py        # Provider cascade logic
+│   ├── circuit_breaker.py
+│   ├── cache.py
+│   ├── routing.py
+│   ├── routing_memory.py
+│   ├── synthesis.py
+│   ├── cache_negative.py
+│   └── tests/
+│       ├── __init__.py
+│       ├── conftest.py
+│       └── test_resolve.py
 └── references/           # Detailed documentation
     ├── CASCADE.md        # Full cascade decision tree
     ├── CLI.md            # CLI usage (Python + Rust)
@@ -191,8 +213,6 @@ export WEB_RESOLVER_TIMEOUT=30
     ├── RUST_CLI.md       # Rust CLI architecture
     └── TESTING.md        # Test structure and markers
 ```
-
-**Note**: Python scripts are located in the main `scripts/` directory at the project root.
 
 ## References
 
