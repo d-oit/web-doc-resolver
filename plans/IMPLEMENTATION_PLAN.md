@@ -1,8 +1,8 @@
 # Web Doc Resolver: Implementation Plan
 
 **Created**: 2026-03-24  
-**Last Updated**: 2026-03-24 13:00 UTC
-**Status**: In Progress — PR #136 ready to merge, all CI passing  
+**Last Updated**: 2026-03-24 21:05 UTC
+**Status**: In Progress — PR #138 (do-wdr rename) open, all checks passing  
 **Scope**: Address GitHub issues #128, #130, #132, #133, #135, #131 + code quality improvements
 
 ---
@@ -22,7 +22,7 @@
 | Config paths | `~/.config/do-wdr/` | Established user API, no change |
 | npm scoped pkgs | `@do-wdr/*` | Already correct |
 
-**Action taken**: Changed `[[bin]] name = "do-wdr"` → `name = "do-wdr"` in `cli/Cargo.toml`.
+**Action taken**: Renamed `wdr` → `do-wdr` across CLI, UI, skills, CI, and docs (PR #138).
 
 ---
 
