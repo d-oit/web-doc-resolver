@@ -6,7 +6,7 @@ license: MIT
 
 # Skill Creator
 
-Create and improve skills for Claude Code. A skill extends Claude's capabilities with specialized knowledge, workflows, and tools.
+Create and improve skills. A skill extends capabilities with specialized knowledge, workflows, and tools.
 
 ## Core Loop
 
@@ -24,7 +24,7 @@ Create and improve skills for Claude Code. A skill extends Claude's capabilities
 skill-name/
 ├── SKILL.md (required)
 │   ├── YAML frontmatter (name, description required)
-│   └── Markdown instructions (<500 lines)
+│   └── Markdown instructions (<250 lines)
 └── Bundled Resources (optional)
     ├── scripts/    - Executable code for deterministic tasks
     ├── references/ - Docs loaded into context as needed
