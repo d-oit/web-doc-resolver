@@ -254,3 +254,33 @@ cargo flamegraph --bin wdr -- resolve "query"
 2. Enable debug mode
 3. Run tests to isolate issue
 4. Check provider status pages
+
+## Lessons Learned
+
+### Vercel Monorepo Setup
+When the Next.js app lives in a subdirectory (`web/`), set the Vercel project's `rootDirectory` via API:
+```bash
+curl -X PATCH "https://api.vercel.com/v9/projects/{PROJECT_ID}?teamId={TEAM_ID}" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"rootDirectory":"web"}'
+```
+Do NOT use `rootDirectory` in a root `vercel.json` — it's not valid there. The setting must be on the Vercel project.
+
+### E2E Test Reliability
+- Use `data-testid` attributes for Playwright selectors instead of text-based filters
+- Server-side state persistence (localStorage/server sync) can break tests that depend on initial UI state
+- E2E tests against stale production deployments will fail — always deploy first or use preview URLs
+
+### Binary Name vs Crate Name
+Cargo.toml supports separate names:
+- `[package].name` = crate name on crates.io (e.g., `do-wdr`)
+- `[[bin]].name` = output binary name (e.g., `wdr`)
+This allows short command names while having unique crate names.
+
+### Vercel Production Alias
+To point production URL to a specific deployment:
+```bash
+vercel alias set <deployment-url> <production-domain>
+```
+Useful when promoting preview deployments to production.
