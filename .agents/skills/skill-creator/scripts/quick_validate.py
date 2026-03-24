@@ -42,6 +42,7 @@ def validate_skill(skill_path):
         "allowed-tools",
         "metadata",
         "triggers",
+        "compatibility",
     }
 
     unexpected_keys = set(frontmatter.keys()) - ALLOWED_PROPERTIES
