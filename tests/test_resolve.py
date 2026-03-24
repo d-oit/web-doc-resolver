@@ -458,11 +458,8 @@ class TestSkillSymlink:
         for skill_link, name, expected in self.get_skill_locations():
             resolved_target = skill_link.resolve()
             resolved_expected = expected.resolve()
-            assert resolved_target == resolved_expected, (
-                f"{name}: Symlink points to wrong target.\n"
-                f"Expected: {resolved_expected}\n"
-                f"Got: {resolved_target}"
-            )
+            msg = f"{name}: Symlink points to wrong target.\nExpected: {resolved_expected}\nGot: {resolved_target}"
+            assert resolved_target == resolved_expected, msg
 
     def test_skill_md_exists_in_canonical(self):
         """Test that SKILL.md exists in the canonical .agents/skills/do-web-doc-resolver/ directory."""
