@@ -48,7 +48,7 @@ Make descriptions "pushy" to avoid undertriggering. Include specific triggers.
 2. **SKILL.md body** - When skill triggers (<500 lines)
 3. **Bundled resources** - As needed (scripts can execute without loading)
 
-Keep SKILL.md under 500 lines. Use references/ for additional detail.
+Keep SKILL.md under 250 lines. Use references/ for additional detail.
 
 ## Creating Test Cases
 

@@ -23,11 +23,7 @@ use crate::config::Config;
 use crate::types::ResolvedResult;
 
 #[cfg(feature = "semantic-cache")]
-use {
-    chaotic_semantic_memory::prelude::*,
-    serde_json::Value,
-    std::collections::HashMap,
-};
+use {chaotic_semantic_memory::prelude::*, serde_json::Value, std::collections::HashMap};
 
 /// Cache entry stored in semantic memory
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -211,19 +207,13 @@ impl SemanticCache {
 
         // Create metadata HashMap
         let mut metadata = HashMap::new();
-        metadata.insert(
-            "query".to_string(),
-            Value::String(query.to_string()),
-        );
+        metadata.insert("query".to_string(), Value::String(query.to_string()));
         metadata.insert(
             "results".to_string(),
             serde_json::to_value(results)
                 .map_err(|e| ResolverError::Cache(format!("serialize results: {}", e)))?,
         );
-        metadata.insert(
-            "provider".to_string(),
-            Value::String(provider.to_string()),
-        );
+        metadata.insert("provider".to_string(), Value::String(provider.to_string()));
         metadata.insert(
             "timestamp".to_string(),
             Value::String(chrono::Utc::now().to_rfc3339()),
