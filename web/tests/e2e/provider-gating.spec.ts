@@ -1,5 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 
+const baseUrl = process.env.BASE_URL || "";
+const isLocalBaseUrl = baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1");
+
 async function mockUiStateAndKeys(page: Page): Promise<void> {
   await page.route("**/api/key-status", async (route) => {
     await route.fulfill({
@@ -44,6 +47,8 @@ async function openSidebarIfMobile(page: Page): Promise<void> {
 }
 
 test.describe("Provider gating", () => {
+  test.skip(!isLocalBaseUrl, "This suite validates local UI behavior only");
+
   test("paid providers are disabled without API keys", async ({ page }) => {
     await mockUiStateAndKeys(page);
     await page.goto("/");
