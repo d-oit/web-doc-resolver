@@ -500,9 +500,19 @@ async function resolveUrl(url: string, keys: ProviderKeys, maxChars: number, bud
 }
 
 async function resolveQuery(query: string, keys: ProviderKeys, maxChars: number, budget: ResolutionBudget): Promise<string> {
-  const order = planProviderOrder({ isUrl: false });
+  const order = planProviderOrder({ isUrl: false, keys });
   const result = await runProvidersSequential(query, keys, order, maxChars, budget);
   return result.content;
+}
+
+function normalizeQueryProviders(providerIds: string[], keys: ProviderKeys): string[] {
+  const normalized = providerIds.map((id) => (id === "mistral" ? "mistral_websearch" : id));
+  const hasMistral = !!(keys.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY);
+  if (!hasMistral) return normalized;
+  if (normalized.includes("mistral_websearch")) {
+    return normalized.filter((id) => id !== "duckduckgo");
+  }
+  return normalized;
 }
 
 export async function POST(request: NextRequest) {
@@ -551,16 +561,17 @@ export async function POST(request: NextRequest) {
     } else {
       const providers: string[] = body.providers || [];
       const deepResearch: boolean = body.deepResearch || false;
+      const normalizedProviders = normalizeQueryProviders(providers, userKeys);
 
-      if (providers.length === 0) {
+      if (normalizedProviders.length === 0) {
         markdown = await resolveQuery(input, userKeys, maxChars, budget);
         provider = "cascade";
       } else if (deepResearch) {
-        const res = await runProvidersParallel(input, userKeys, providers, maxChars, budget);
+        const res = await runProvidersParallel(input, userKeys, normalizedProviders, maxChars, budget);
         markdown = res.content;
         provider = res.provider;
       } else {
-        const res = await runProvidersSequential(input, userKeys, providers, maxChars, budget);
+        const res = await runProvidersSequential(input, userKeys, normalizedProviders, maxChars, budget);
         markdown = res.content;
         provider = res.provider;
       }

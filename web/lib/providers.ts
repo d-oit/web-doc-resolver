@@ -17,7 +17,7 @@ export const PROVIDERS: ProviderDef[] = [
     description: "Free neural search via Model Context Protocol",
     type: "query",
     free: true,
-    alwaysActive: true,
+    alwaysActive: false,
   },
   {
     id: "duckduckgo",
@@ -25,7 +25,7 @@ export const PROVIDERS: ProviderDef[] = [
     description: "Free search via DDG Lite + Jina Reader",
     type: "query",
     free: true,
-    alwaysActive: true,
+    alwaysActive: false,
   },
   {
     id: "exa",
@@ -93,13 +93,24 @@ export function getProvidersForKeys(keys: Record<string, string>): ProviderDef[]
   });
 }
 
+export function hasMistralKey(keys: Record<string, string>): boolean {
+  return !!(keys.MISTRAL_API_KEY || keys.mistral_api_key);
+}
+
+export function getMistralActiveProviders(keys: Record<string, string>): string[] | null {
+  if (!hasMistralKey(keys)) return null;
+  return ["exa_mcp", "mistral_websearch"];
+}
+
 export function getFreeQueryProviders(): string[] {
   return PROVIDERS.filter((p) => p.free && (p.type === "query" || p.type === "both")).map((p) => p.id);
 }
 
 export function getAllQueryProviders(keys: Record<string, string>): string[] {
+  const mistralActive = hasMistralKey(keys);
   return getProvidersForKeys(keys)
     .filter((p) => p.type === "query" || p.type === "both")
+    .filter((p) => !(mistralActive && p.id === "duckduckgo"))
     .map((p) => p.id);
 }
 

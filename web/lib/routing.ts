@@ -62,7 +62,7 @@ export class ResolutionBudget {
   }
 }
 
-const QUERY_CASCADE = ["exa_mcp", "exa", "tavily", "duckduckgo", "mistral_websearch"] as const;
+const QUERY_CASCADE = ["exa_mcp", "exa", "tavily", "serper", "mistral_websearch", "duckduckgo"] as const;
 
 const URL_DEFAULT = ["jina", "firecrawl", "direct_fetch", "mistral_browser"];
 const URL_JS_HEAVY = ["firecrawl", "mistral_browser", "jina", "direct_fetch"];
@@ -78,6 +78,7 @@ export function planProviderOrder(opts: {
   jsHeavy?: boolean;
   customOrder?: string[];
   skipProviders?: Set<string>;
+  keys?: { MISTRAL_API_KEY?: string; mistral_api_key?: string };
 }): string[] {
   let base: string[];
   if (opts.customOrder?.length) {
@@ -86,6 +87,14 @@ export function planProviderOrder(opts: {
     base = opts.jsHeavy ? [...URL_JS_HEAVY] : [...URL_DEFAULT];
   } else {
     base = [...QUERY_CASCADE];
+    if (opts.keys && (opts.keys.MISTRAL_API_KEY || opts.keys.mistral_api_key)) {
+      base = base.filter((p) => p !== "duckduckgo");
+      const mistralIdx = base.indexOf("mistral_websearch");
+      if (mistralIdx > -1) {
+        const mistral = base.splice(mistralIdx, 1)[0];
+        if (mistral) base.unshift(mistral);
+      }
+    }
   }
   if (opts.skipProviders?.size) {
     base = base.filter((p) => !opts.skipProviders!.has(p));
