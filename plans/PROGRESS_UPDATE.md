@@ -10,6 +10,8 @@
 | Performance | ✅ COMPLETE | LRU cache eviction, records size limits |
 | Unit Tests | ✅ COMPLETE | 80 tests for validation, rate-limit, cache, records |
 | E2E Tests Fix | ✅ COMPLETE | Fixed loading state aria-label, CI runs local build |
+| CLI Testing | ✅ COMPLETE | URL cascade verified, bugs documented |
+| Bug Documentation | ✅ COMPLETE | All pre-existing bugs documented with solutions |
 
 ## Completed Actions
 
@@ -51,6 +53,76 @@
 - Skip security headers tests when running against localhost
 - Fixed provider gating tests for Mistral availability
 
+**PR #150 Merged**: docs: update plans folder with analysis and progress
+
+#### CLI Verification
+- Built release binary (`do-wdr 0.3.0`)
+- Verified URL cascade works correctly (Jina, llms.txt, direct_fetch)
+- Tested with real URLs: `docs.rs/tokio`, `anthropic.com` — successful extraction
+- Documented pre-existing bugs with solutions
+
+#### Bug Documentation
+- Created `plans/BUGS_AND_ISSUES.md` with 7 documented bugs
+- Each bug includes: severity, file location, problem description, solution code
+- Prioritized fix order: exa_mcp → quality gate → duckduckgo
+
+## Pre-Existing Bugs Summary
+
+See [BUGS_AND_ISSUES.md](./BUGS_AND_ISSUES.md) for full details.
+
+| Bug ID | Severity | Component | Issue |
+|--------|----------|-----------|-------|
+| BUG-1 | CRITICAL | `exa_mcp` | Wrong MCP protocol (missing Accept header, wrong method) |
+| BUG-2 | CRITICAL | `duckduckgo` | HTML parser returns 0 results |
+| BUG-3 | CRITICAL | Quality Gate | Rejects valid search results (too strict) |
+| BUG-4 | HIGH | `mistral_*` | API key unauthorized (user-specific) |
+| BUG-5 | MEDIUM | `exa` SDK | Quota exhausted (user-specific) |
+| BUG-6 | LOW | `--synthesize` | Fails with invalid response format |
+| BUG-7 | MEDIUM | `duckduckgo` | Redirect URLs not decoded |
+
+### Impact
+
+**All query resolution is broken in the default cascade** because:
+1. `exa_mcp` (primary free) — wrong MCP protocol
+2. `duckduckgo` (fallback free) — HTML parser broken
+3. `tavily`/`serper` (working paid) — quality gate rejects snippets
+
+**Only URL resolution works reliably** (llms_txt, jina, firecrawl).
+
+### Recommended Fix Priority
+
+1. **Fix exa_mcp MCP protocol** — restores primary free query provider
+2. **Fix quality gate** for search results — allows tavily/serper to succeed
+3. **Fix duckduckgo parser** — restores fallback free query provider
+4. **Add serper to default query cascade** — 2500 free credits available
+
+## CLI Test Results
+
+### Working Features
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| URL cascade | ✅ Working | Jina Reader extracts content correctly |
+| Providers list | ✅ Working | Shows all query/URL providers |
+| Config display | ✅ Working | Shows default settings |
+| Cache stats | ✅ Working | Reports semantic cache disabled |
+| `--json` output | ✅ Working | Correct JSON format |
+| `--providers-order` | ✅ Working | Custom ordering works |
+
+### URL Extraction Tests
+
+| URL | Status | Provider | Latency |
+|-----|--------|----------|---------|
+| `https://docs.rs/tokio` | ✅ Pass | jina | 1.7s |
+| `https://anthropic.com` | ✅ Pass | jina | 1.5s |
+
+### Query Cascade Tests
+
+| Query | Status | Error |
+|-------|--------|-------|
+| "Rust async frameworks" | ❌ Fail | "No query resolution method available" |
+| "what is rust" | ❌ Fail | Same (all providers fail) |
+
 ## Implementation Summary
 
 ### New Files
@@ -62,6 +134,7 @@
 - `web/tests/rate-limit.test.ts` - Rate limit tests
 - `web/tests/cache.test.ts` - Cache tests
 - `web/tests/records.test.ts` - Records tests
+- `plans/BUGS_AND_ISSUES.md` - Bug documentation with solutions
 
 ### Modified Files
 - `web/app/page.tsx` - Provider order, clear button, history, keyboard shortcuts, ARIA labels, dynamic loading aria-label
@@ -73,7 +146,8 @@
 
 ## Final State
 
-- Main branch: `f2c6ea7` (includes all changes)
+- Main branch: `7136848` (includes all changes)
 - All CI checks passing
 - PR #148 merged
 - PR #149 merged
+- PR #150 merged
