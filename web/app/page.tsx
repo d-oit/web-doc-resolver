@@ -14,20 +14,22 @@ interface UiProvider {
   sourceKey?: string;
 }
 
+// Providers in CLI cascade order (see web/lib/routing.ts QUERY_CASCADE)
 const PROVIDERS: UiProvider[] = [
   { id: "exa_mcp", label: "Exa MCP", free: true },
-  { id: "duckduckgo", label: "DuckDuckGo", free: true },
   { id: "exa", label: "Exa SDK", free: false, sourceKey: "exa" },
-  { id: "serper", label: "Serper", free: false },
   { id: "tavily", label: "Tavily", free: false },
+  { id: "serper", label: "Serper", free: false },
   { id: "mistral", label: "Mistral", free: false, sourceKey: "mistral" },
+  { id: "duckduckgo", label: "DuckDuckGo", free: true },
 ];
 
+// Profiles with providers in cascade order
 const PROFILES: Array<{ id: ProfileId; label: string; providers: string[] }> = [
   { id: "free", label: "Free", providers: ["exa_mcp", "duckduckgo"] },
-  { id: "balanced", label: "Balanced", providers: ["exa_mcp", "serper", "duckduckgo"] },
-  { id: "fast", label: "Fast", providers: ["serper", "exa_mcp"] },
-  { id: "quality", label: "Quality", providers: ["tavily", "serper", "exa_mcp", "mistral"] },
+  { id: "fast", label: "Fast", providers: ["exa_mcp", "serper"] },
+  { id: "balanced", label: "Balanced", providers: ["exa_mcp", "tavily", "serper", "duckduckgo"] },
+  { id: "quality", label: "Quality", providers: ["exa_mcp", "exa", "tavily", "serper", "mistral", "duckduckgo"] },
   { id: "custom", label: "Custom", providers: [] },
 ];
 
@@ -236,6 +238,10 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#0c0c0c] text-[#e8e6e3] font-mono flex flex-col lg:flex-row">
+      {/* Skip to content link for accessibility */}
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-[#0c0c0c] focus:text-[#00ff41] focus:px-2 focus:py-1 focus:border-2 focus:border-[#00ff41]">
+        Skip to main content
+      </a>
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
         <div
@@ -315,6 +321,8 @@ export default function Home() {
                       onClick={() => available && handleProviderToggle(provider.id)}
                       disabled={!available}
                       title={needsKey ? `${provider.label} needs API key` : undefined}
+                      aria-pressed={isManual}
+                      aria-label={`${provider.label} provider ${isManual ? 'selected' : available ? 'available' : 'unavailable'}`}
                       className={`px-2 py-2 text-[11px] border-2 min-h-[44px] ${
                         isManual
                           ? "bg-[#00ff41] text-[#0c0c0c] border-[#00ff41]"
@@ -416,7 +424,7 @@ export default function Home() {
       </aside>
 
       {/* Center - Input/Output */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div id="main-content" className="flex-1 flex flex-col min-h-0">
         {/* Header */}
         <div className="border-b-2 border-[#333] p-2 flex items-center justify-between min-h-[44px]">
           <div className="flex items-center gap-2">
@@ -450,13 +458,30 @@ export default function Home() {
               className="flex-1 bg-transparent text-[20px] sm:text-[24px] text-[#e8e6e3] placeholder:text-[#444] focus:outline-none tracking-tight"
             />
             {query.trim() && (
-              <button
-                onClick={() => handleSubmit()}
-                disabled={loading}
-                className="bg-[#00ff41] text-[#0c0c0c] px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50 min-w-[60px] min-h-[44px]"
-              >
-                {loading ? "..." : "Fetch"}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleSubmit()}
+                  disabled={loading}
+                  aria-label="Fetch results"
+                  className="bg-[#00ff41] text-[#0c0c0c] px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50 min-w-[60px] min-h-[44px]"
+                >
+                  {loading ? "..." : "Fetch"}
+                </button>
+                <button
+                  onClick={() => {
+                    setQuery("");
+                    setResult("");
+                    setError("");
+                    setProviderStatus(null);
+                    setResolveTime(null);
+                    setSourceProvider(null);
+                  }}
+                  aria-label="Clear input and results"
+                  className="bg-transparent text-[#888] px-4 py-2 text-[13px] border-2 border-[#333] hover:border-[#00ff41] hover:text-[#00ff41] min-h-[44px]"
+                >
+                  Clear
+                </button>
+              </div>
             )}
           </div>
           {query.trim() && (
@@ -493,6 +518,8 @@ export default function Home() {
                 </div>
                 <button
                   onClick={handleCopy}
+                  aria-label={copied ? "Copied to clipboard" : "Copy to clipboard"}
+                  aria-live="polite"
                   className="hover:text-[#e8e6e3] transition-colors min-h-[44px] px-2"
                 >
                   {copied ? "Copied" : "Copy"}
