@@ -19,7 +19,11 @@ export default defineConfig({
     },
     {
       name: "mobile",
-      use: { ...devices["iPhone 14"] },
+      use: { ...devices["Pixel 7"], browserName: "chromium" },
+    },
+    {
+      name: "tablet",
+      use: { ...devices["iPad Pro 11"], browserName: "chromium" },
     },
     {
       name: "dark-mode",

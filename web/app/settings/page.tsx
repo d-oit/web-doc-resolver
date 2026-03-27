@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { loadApiKeys, saveApiKeys, ApiKeys } from "@/lib/keys";
+import { loadStateFromServer, saveStateToServer } from "@/lib/ui-state";
 
 const KEY_FIELDS = [
   {
@@ -47,12 +48,26 @@ export default function SettingsPage() {
       .then((res) => res.json())
       .then(setKeyStatus)
       .catch(() => {});
+
+    loadStateFromServer()
+      .then((serverState) => {
+        if (serverState?.apiKeys) {
+          setApiKeys(serverState.apiKeys);
+          saveApiKeys(serverState.apiKeys);
+        }
+      })
+      .catch(() => {});
   }, []);
+
+  const persistKeys = (newKeys: ApiKeys) => {
+    saveApiKeys(newKeys);
+    saveStateToServer({ apiKeys: newKeys });
+  };
 
   const handleKeyChange = (key: keyof ApiKeys, value: string) => {
     const newKeys = { ...apiKeys, [key]: value || undefined };
     setApiKeys(newKeys);
-    saveApiKeys(newKeys);
+    persistKeys(newKeys);
     setSaved(true);
     setTimeout(() => setSaved(false), 1000);
   };
@@ -61,7 +76,7 @@ export default function SettingsPage() {
     const newKeys = { ...apiKeys };
     delete newKeys[key];
     setApiKeys(newKeys);
-    saveApiKeys(newKeys);
+    persistKeys(newKeys);
   };
 
   return (
@@ -75,7 +90,7 @@ export default function SettingsPage() {
 
         <h1 className="text-[24px] font-bold tracking-tight mb-2">Settings</h1>
         <p className="text-[11px] text-[#666] mb-8">
-          Configure API keys. Stored in localStorage. Requests execute client-side.
+          Configure API keys. Persisted via server-backed UI state on Vercel.
         </p>
 
         <div className="flex flex-col gap-4">

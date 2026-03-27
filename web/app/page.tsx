@@ -2,25 +2,39 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { loadApiKeys, ApiKeys, resolveKeySource, KeySource } from "@/lib/keys";
-import { loadUiState, saveUiState, loadStateFromServer, saveStateToServer } from "@/lib/ui-state";
+import { loadApiKeys, saveApiKeys, ApiKeys, resolveKeySource, KeySource } from "@/lib/keys";
+import { loadUiState, saveUiState, loadStateFromServer, saveStateToServer, resolveUiState } from "@/lib/ui-state";
 
-const PROVIDERS = [
+type ProfileId = "free" | "balanced" | "fast" | "quality" | "custom";
+
+interface UiProvider {
+  id: string;
+  label: string;
+  free: boolean;
+  sourceKey?: string;
+}
+
+const PROVIDERS: UiProvider[] = [
   { id: "exa_mcp", label: "Exa MCP", free: true },
-  { id: "jina", label: "Jina", free: true },
   { id: "duckduckgo", label: "DuckDuckGo", free: true },
+  { id: "exa", label: "Exa SDK", free: false, sourceKey: "exa" },
   { id: "serper", label: "Serper", free: false },
   { id: "tavily", label: "Tavily", free: false },
-  { id: "firecrawl", label: "Firecrawl", free: false },
-  { id: "mistral", label: "Mistral", free: false },
+  { id: "mistral", label: "Mistral", free: false, sourceKey: "mistral" },
 ];
 
-const PROFILES = [
-  { id: "free", label: "Free", providers: ["exa_mcp", "jina", "duckduckgo"] },
-  { id: "balanced", label: "Balanced", providers: ["exa_mcp", "serper", "jina", "duckduckgo"] },
+const PROFILES: Array<{ id: ProfileId; label: string; providers: string[] }> = [
+  { id: "free", label: "Free", providers: ["exa_mcp", "duckduckgo"] },
+  { id: "balanced", label: "Balanced", providers: ["exa_mcp", "serper", "duckduckgo"] },
   { id: "fast", label: "Fast", providers: ["serper", "exa_mcp"] },
-  { id: "quality", label: "Quality", providers: ["tavily", "serper", "exa_mcp", "jina", "mistral"] },
+  { id: "quality", label: "Quality", providers: ["tavily", "serper", "exa_mcp", "mistral"] },
+  { id: "custom", label: "Custom", providers: [] },
 ];
+
+function toApiProviderId(providerId: string): string {
+  if (providerId === "mistral") return "mistral_websearch";
+  return providerId;
+}
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -29,6 +43,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [apiKeys, setApiKeys] = useState<ApiKeys>({});
   const [keySource, setKeySource] = useState<Record<string, KeySource>>({});
+  const [serverKeyStatus, setServerKeyStatus] = useState<Record<string, boolean>>({});
   const [copied, setCopied] = useState(false);
   const [providerStatus, setProviderStatus] = useState<string | null>(null);
   const [resolveTime, setResolveTime] = useState<number | null>(null);
@@ -40,7 +55,7 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // CLI parity options
-  const [profile, setProfile] = useState("free");
+  const [profile, setProfile] = useState<ProfileId>("free");
   const [selectedProviders, setSelectedProviders] = useState<string[]>([]);
   const [maxChars, setMaxChars] = useState(8000);
   const [skipCache, setSkipCache] = useState(false);
@@ -53,25 +68,40 @@ export default function Home() {
     setApiKeys(keys);
     fetch("/api/key-status")
       .then((r) => r.json())
-      .then((status) => setKeySource(resolveKeySource(keys, status)))
+      .then((status) => {
+        setServerKeyStatus(status);
+        setKeySource(resolveKeySource(keys, status));
+      })
       .catch(() => {});
 
     // Try server state first, fallback to localStorage
     loadStateFromServer()
       .then((serverState) => {
-        const ui = serverState || loadUiState();
+        const localState = loadUiState();
+        const ui = resolveUiState(serverState, localState);
         setSidebarOpen(ui.sidebarOpen);
         setApiKeysOpen(ui.apiKeysOpen);
         setShowAdvanced(ui.showAdvanced);
-        setProfile(ui.profile);
+        const savedProfile = PROFILES.some((p) => p.id === ui.profile) ? (ui.profile as ProfileId) : "free";
+        setProfile(savedProfile);
         setSelectedProviders(ui.selectedProviders);
         setMaxChars(ui.maxChars);
         setSkipCache(ui.skipCache);
         setDeepResearch(ui.deepResearch);
+        if (ui.apiKeys && typeof ui.apiKeys === "object") {
+          const mergedKeys = { ...keys, ...ui.apiKeys } as ApiKeys;
+          setApiKeys(mergedKeys);
+          saveApiKeys(mergedKeys);
+        }
         setLoaded(true);
         inputRef.current?.focus();
       });
   }, []);
+
+  useEffect(() => {
+    if (Object.keys(serverKeyStatus).length === 0) return;
+    setKeySource(resolveKeySource(apiKeys, serverKeyStatus));
+  }, [apiKeys, serverKeyStatus]);
 
   // Persist UI state changes (skip before first load)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -87,9 +117,11 @@ export default function Home() {
       maxChars,
       skipCache,
       deepResearch,
+      apiKeys,
     };
     // localStorage: immediate
     saveUiState(state);
+    saveApiKeys(apiKeys);
     // Server: debounced 2s
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -98,14 +130,17 @@ export default function Home() {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [loaded, sidebarOpen, apiKeysOpen, showAdvanced, profile, selectedProviders, maxChars, skipCache, deepResearch]);
+  }, [loaded, sidebarOpen, apiKeysOpen, showAdvanced, profile, selectedProviders, maxChars, skipCache, deepResearch, apiKeys]);
 
   const handleProviderToggle = (providerId: string) => {
-    setSelectedProviders(prev =>
-      prev.includes(providerId)
-        ? prev.filter(p => p !== providerId)
-        : [...prev, providerId]
-    );
+    setProfile("custom");
+    setSelectedProviders((prev) => {
+      const profileDefaults = PROFILES.find((p) => p.id === profile)?.providers || [];
+      const base = prev.length > 0 ? prev : profileDefaults;
+      return base.includes(providerId)
+        ? base.filter((p) => p !== providerId)
+        : [...base, providerId];
+    });
   };
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -124,7 +159,7 @@ export default function Home() {
         body: JSON.stringify({
           query: query.trim(),
           ...apiKeys,
-          providers: activeProviders,
+          providers: requestProviders,
           deepResearch,
           maxChars,
           skipCache,
@@ -173,17 +208,28 @@ export default function Home() {
   const handleKeyChange = (key: keyof ApiKeys, value: string) => {
     const updated = { ...apiKeys, [key]: value || undefined };
     setApiKeys(updated);
-    try {
-      localStorage.setItem("web-resolver-api-keys", JSON.stringify(updated));
-    } catch {}
+    saveApiKeys(updated);
   };
 
   const charCount = result.length;
   const isUrl = query.trim().startsWith("http");
+  const mistralActive = keySource.mistral === "local" || keySource.mistral === "server";
+
+  const isProviderAvailable = (providerId: string): boolean => {
+    if (providerId === "duckduckgo" && mistralActive) return false;
+    const provider = PROVIDERS.find((p) => p.id === providerId);
+    if (!provider) return false;
+    if (provider.free) return true;
+    const sourceId = provider.sourceKey || provider.id;
+    const source = keySource[sourceId];
+    return source === "local" || source === "server";
+  };
 
   // Providers from current profile (used as visual default when no manual selection)
   const profileProviders = PROFILES.find(p => p.id === profile)?.providers || [];
-  const activeProviders = selectedProviders.length > 0 ? selectedProviders : profileProviders;
+  const baseProviders = profile === "custom" ? selectedProviders : selectedProviders.length > 0 ? selectedProviders : profileProviders;
+  const activeProviders = baseProviders.filter((id) => isProviderAvailable(id));
+  const requestProviders = activeProviders.map((id) => toApiProviderId(id));
   const isCustomSelection = selectedProviders.length > 0;
 
   if (!loaded) return null;
@@ -239,7 +285,13 @@ export default function Home() {
               <label className="text-[11px] text-[#888]">Profile</label>
               <select
                 value={profile}
-                onChange={(e) => setProfile(e.target.value)}
+                onChange={(e) => {
+                  const nextProfile = e.target.value as ProfileId;
+                  setProfile(nextProfile);
+                  if (nextProfile !== "custom") {
+                    setSelectedProviders([]);
+                  }
+                }}
                 className="bg-[#141414] border-2 border-[#333] px-2 py-2 text-[13px] text-[#e8e6e3] focus:border-[#00ff41] focus:outline-none min-h-[44px]"
               >
                 {PROFILES.map((p) => (
@@ -253,15 +305,16 @@ export default function Home() {
               <div className="text-[11px] text-[#888]">Providers</div>
               <div className="flex flex-wrap gap-1">
                 {PROVIDERS.map((provider) => {
-                  const source = keySource[provider.id];
-                  const available = provider.free || source === "local" || source === "server";
+                  const available = isProviderAvailable(provider.id);
                   const isActive = activeProviders.includes(provider.id);
                   const isManual = selectedProviders.includes(provider.id);
+                  const needsKey = !provider.free && !available;
                   return (
                     <button
                       key={provider.id}
                       onClick={() => available && handleProviderToggle(provider.id)}
                       disabled={!available}
+                      title={needsKey ? `${provider.label} needs API key` : undefined}
                       className={`px-2 py-2 text-[11px] border-2 min-h-[44px] ${
                         isManual
                           ? "bg-[#00ff41] text-[#0c0c0c] border-[#00ff41]"
@@ -272,7 +325,8 @@ export default function Home() {
                           : "bg-transparent text-[#444] border-[#222] cursor-not-allowed"
                       }`}
                     >
-                      {provider.label}
+                      <span>{provider.label}</span>
+                      {needsKey && <span className="ml-1 text-[9px]">(needs key)</span>}
                     </button>
                   );
                 })}
@@ -339,7 +393,7 @@ export default function Home() {
                   {PROVIDERS.filter((p) => !p.free).map((provider) => {
                     const key = `${provider.id}_api_key` as keyof ApiKeys;
                     const value = apiKeys[key] || "";
-                    const source = keySource[provider.id];
+                    const source = keySource[provider.sourceKey || provider.id];
                     const hasServer = source === "server";
                     return (
                       <div key={provider.id} className="flex flex-col gap-1">

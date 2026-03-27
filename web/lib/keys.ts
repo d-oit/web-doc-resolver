@@ -6,25 +6,14 @@ export interface ApiKeys {
   mistral_api_key?: string;
 }
 
-const STORAGE_KEY = "web-resolver-api-keys";
+let inMemoryKeys: ApiKeys = {};
 
 export function loadApiKeys(): ApiKeys {
-  if (typeof window === "undefined") return {};
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : {};
-  } catch {
-    return {};
-  }
+  return { ...inMemoryKeys };
 }
 
 export function saveApiKeys(keys: ApiKeys): void {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(keys));
-  } catch {
-    // Ignore storage errors
-  }
+  inMemoryKeys = { ...keys };
 }
 
 export type KeySource = "local" | "server" | "free" | "none";

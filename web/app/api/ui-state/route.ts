@@ -1,46 +1,49 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// In-memory store keyed by session ID
-const store = new Map<string, Record<string, unknown>>();
+const STATE_COOKIE = "wdr-ui-state";
+const MAX_COOKIE_BYTES = 3800;
 
-// Generate a session ID from cookies or create one
-function getSessionId(request: NextRequest): string {
-  const existing = request.cookies.get("ui-session")?.value;
-  if (existing) return existing;
-  // Generate a random session ID
-  return crypto.randomUUID();
+function decodeState(value: string | undefined): Record<string, unknown> {
+  if (!value) return {};
+  try {
+    const json = Buffer.from(value, "base64url").toString("utf8");
+    const parsed = JSON.parse(json);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    return parsed as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
+
+function encodeState(state: Record<string, unknown>): string {
+  return Buffer.from(JSON.stringify(state), "utf8").toString("base64url");
 }
 
 export async function GET(request: NextRequest) {
-  const sessionId = getSessionId(request);
-  const state = store.get(sessionId) || {};
-  const response = NextResponse.json(state);
-  // Set cookie if new session
-  if (!request.cookies.get("ui-session")?.value) {
-    response.cookies.set("ui-session", sessionId, {
-      httpOnly: true,
-      sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 365, // 1 year
-      path: "/",
-    });
-  }
-  return response;
+  const state = decodeState(request.cookies.get(STATE_COOKIE)?.value);
+  return NextResponse.json(state);
 }
 
 export async function POST(request: NextRequest) {
-  const sessionId = getSessionId(request);
   try {
     const body = await request.json();
-    store.set(sessionId, body);
-    const response = NextResponse.json({ ok: true });
-    if (!request.cookies.get("ui-session")?.value) {
-      response.cookies.set("ui-session", sessionId, {
-        httpOnly: true,
-        sameSite: "lax",
-        maxAge: 60 * 60 * 24 * 365,
-        path: "/",
-      });
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      return NextResponse.json({ error: "Invalid state payload" }, { status: 400 });
     }
+
+    const encoded = encodeState(body as Record<string, unknown>);
+    if (encoded.length > MAX_COOKIE_BYTES) {
+      return NextResponse.json({ error: "State payload too large" }, { status: 413 });
+    }
+
+    const response = NextResponse.json({ ok: true });
+    response.cookies.set(STATE_COOKIE, encoded, {
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 365,
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+    });
     return response;
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });

@@ -330,6 +330,47 @@ async function searchViaMistralWeb(query: string, apiKey: string, maxChars: numb
   }
 }
 
+async function searchViaExaMcpWithMistral(query: string, apiKey: string, maxChars: number): Promise<string | null> {
+  if (!apiKey) return null;
+  const exaContext = await searchViaExaMcp(query, Math.min(maxChars * 2, 16000));
+  if (!exaContext) return null;
+
+  try {
+    const res = await fetchWithTimeout(
+      "https://api.mistral.ai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "mistral-small-latest",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are a documentation research assistant. Use only the supplied Exa MCP context. Produce concise markdown with accurate bullets and include source links that appear in the context.",
+            },
+            {
+              role: "user",
+              content: `User query: ${query}\n\nExa MCP context:\n${exaContext.slice(0, 12000)}`,
+            },
+          ],
+          max_tokens: 4000,
+        }),
+      },
+      25000
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const content = data?.choices?.[0]?.message?.content;
+    return content && content.length > 50 ? content.slice(0, maxChars) : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * AI-powered browser extraction via Mistral API
  */
@@ -383,6 +424,10 @@ const providerMap: Record<string, ProviderFn> = {
   mistral_browser: async (query, keys, maxChars) => {
     const key = keys.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY;
     return key ? extractViaMistralBrowser(query, key, maxChars) : null;
+  },
+  exa_mcp_mistral: async (query, keys, maxChars) => {
+    const key = keys.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY;
+    return key ? searchViaExaMcpWithMistral(query, key, maxChars) : null;
   },
 };
 
@@ -500,9 +545,24 @@ async function resolveUrl(url: string, keys: ProviderKeys, maxChars: number, bud
 }
 
 async function resolveQuery(query: string, keys: ProviderKeys, maxChars: number, budget: ResolutionBudget): Promise<string> {
-  const order = planProviderOrder({ isUrl: false });
+  const order = planProviderOrder({ isUrl: false, keys });
   const result = await runProvidersSequential(query, keys, order, maxChars, budget);
   return result.content;
+}
+
+function normalizeQueryProviders(providerIds: string[], keys: ProviderKeys): string[] {
+  const normalized = providerIds.map((id) => (id === "mistral" ? "mistral_websearch" : id));
+  const hasMistral = !!(keys.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY);
+  if (hasMistral && normalized.includes("exa_mcp") && normalized.includes("mistral_websearch")) {
+    return normalized
+      .filter((id) => id !== "mistral_websearch")
+      .map((id) => (id === "exa_mcp" ? "exa_mcp_mistral" : id));
+  }
+  if (!hasMistral) return normalized;
+  if (normalized.includes("mistral_websearch")) {
+    return normalized.filter((id) => id !== "duckduckgo");
+  }
+  return normalized;
 }
 
 export async function POST(request: NextRequest) {
@@ -551,16 +611,17 @@ export async function POST(request: NextRequest) {
     } else {
       const providers: string[] = body.providers || [];
       const deepResearch: boolean = body.deepResearch || false;
+      const normalizedProviders = normalizeQueryProviders(providers, userKeys);
 
-      if (providers.length === 0) {
+      if (normalizedProviders.length === 0) {
         markdown = await resolveQuery(input, userKeys, maxChars, budget);
         provider = "cascade";
       } else if (deepResearch) {
-        const res = await runProvidersParallel(input, userKeys, providers, maxChars, budget);
+        const res = await runProvidersParallel(input, userKeys, normalizedProviders, maxChars, budget);
         markdown = res.content;
         provider = res.provider;
       } else {
-        const res = await runProvidersSequential(input, userKeys, providers, maxChars, budget);
+        const res = await runProvidersSequential(input, userKeys, normalizedProviders, maxChars, budget);
         markdown = res.content;
         provider = res.provider;
       }

@@ -272,6 +272,12 @@ Do NOT use `rootDirectory` in a root `vercel.json` — it's not valid there. The
 - Server-side state persistence (localStorage/server sync) can break tests that depend on initial UI state
 - E2E tests against stale production deployments will fail — always deploy first or use preview URLs
 
+### UI State + Provider Behavior
+- Treat `/api/ui-state` as server-backed persistence (cookie-based) and `localStorage` as fallback; tests should mock both when asserting startup state
+- Custom provider selections persist via `selectedProviders` and reload as `profile=custom`; avoid tests that assume profile defaults after a manual provider toggle
+- If `exa_mcp` and `mistral` are both selected and a Mistral key exists, query normalization combines them into `exa_mcp_mistral` (not two independent provider runs)
+- Automated browser validation can fail on protected Vercel preview links (auth gate/interstitial); use production URL or an unprotected preview URL for CI and scripted checks
+
 ### Binary Name vs Crate Name
 Cargo.toml supports separate names:
 - `[package].name` = crate name on crates.io (e.g., `do-wdr`)
