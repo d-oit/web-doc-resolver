@@ -544,18 +544,14 @@ test.describe("Collapsible API Keys", () => {
 test.describe("Profile Provider Indicators", () => {
   test("profile providers are shown as active by default", async ({ page }) => {
     await page.goto("/");
-    // Free profile is default: exa_mcp, jina, duckduckgo
+    // Free profile is default: exa_mcp, duckduckgo
     // These providers should have the active style (green border)
     const exaButton = page.locator("button").filter({ hasText: "Exa MCP" });
-    const jinaButton = page.locator("button").filter({ hasText: "Jina" });
     const ddgButton = page.locator("button").filter({ hasText: "DuckDuckGo" });
 
     // Check green border color (rgb(0, 255, 65) = #00ff41)
     const exaBorder = await exaButton.evaluate((el) => getComputedStyle(el).borderColor);
     expect(exaBorder).toContain("rgb(0, 255, 65)");
-
-    const jinaBorder = await jinaButton.evaluate((el) => getComputedStyle(el).borderColor);
-    expect(jinaBorder).toContain("rgb(0, 255, 65)");
 
     const ddgBorder = await ddgButton.evaluate((el) => getComputedStyle(el).borderColor);
     expect(ddgBorder).toContain("rgb(0, 255, 65)");
@@ -564,7 +560,7 @@ test.describe("Profile Provider Indicators", () => {
   test("profile status text shows provider count", async ({ page }) => {
     await page.goto("/");
     await expect(page.locator("text=Using free profile")).toBeVisible();
-    await expect(page.locator("text=3 providers")).toBeVisible();
+    await expect(page.locator("text=2 providers")).toBeVisible();
   });
 
   test("clicking a provider switches to custom selection", async ({ page }) => {
