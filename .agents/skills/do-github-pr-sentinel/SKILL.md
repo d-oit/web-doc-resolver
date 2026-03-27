@@ -1,7 +1,6 @@
 ---
 name: do-github-pr-sentinel
 description: Monitor a GitHub pull request until it's merged, green, or blocked. Polls CI checks, review comments, and mergeability state continuously. Diagnoses failures, retries flaky checks up to 3 times, auto-fixes branch-related issues when possible, and stops only when user help is required. Use when asked to "monitor a PR", "watch CI", "handle review comments", "sentinel a PR", or keep an eye on failures and feedback.
-allowed-tools: Bash(git:*), Bash(gh:*), Bash(python3:*), Read, Write, Edit, Glob, Task
 compatibility: Any CLI agent (OpenCode, Claude, Codex, Cursor, etc.)
 metadata:
   source: https://github.com/openai/codex/tree/main/.codex/skills/babysit-pr

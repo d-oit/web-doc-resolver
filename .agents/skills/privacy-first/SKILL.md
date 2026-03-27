@@ -11,7 +11,6 @@ metadata:
   version: "1.0"
   project: do-web-doc-resolver
   tags: privacy security email lint quality personal-data
-allowed-tools: Bash(grep:*) Bash(find:*) Read Write Edit
 ---
 
 # Privacy First

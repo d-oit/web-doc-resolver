@@ -188,6 +188,15 @@ Manual check: `python scripts/validate_skill_symlink.py`
 | do-wdr-cli | `.agents/skills/do-wdr-cli/` | Rust CLI (do-wdr binary) |
 | do-wdr-assets | `.agents/skills/do-wdr-assets/` | Screenshots & visual assets |
 | do-wdr-release | `.agents/skills/do-wdr-release/` | Release management & Git/GitHub best practices |
+| do-wdr-ui-component | `.agents/skills/do-wdr-ui-component/` | CSS-only UI components for design system |
+| do-wdr-issue-swarm | `.agents/skills/do-wdr-issue-swarm/` | Parallel GitHub issue implementation |
+| do-github-pr-sentinel | `.agents/skills/do-github-pr-sentinel/` | Monitor PRs until merged/blocked |
+| agent-browser | `.agents/skills/agent-browser/` | Browser automation for AI agents |
+| privacy-first | `.agents/skills/privacy-first/` | Prevent email/personal data in codebase |
+| skill-creator | `.agents/skills/skill-creator/` | Create and optimize skills |
+| readme-best-practices | `.agents/skills/readme-best-practices/` | GitHub README best practices |
+| anti-ai-slop | `.agents/skills/anti-ai-slop/` | Avoid generic AI aesthetic |
+| vercel-cli | `.agents/skills/vercel-cli/` | Vercel CLI deployment |
 
 ## Assets
 

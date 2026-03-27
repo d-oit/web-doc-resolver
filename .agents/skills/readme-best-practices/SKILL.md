@@ -12,7 +12,6 @@ metadata:
   version: "1.0"
   project: do-web-doc-resolver
   tags: readme documentation github badges svg-logo markdown
-allowed-tools: Bash(cat:*) Bash(find:*) Bash(ls:*) Read Write
 ---
 
 # README Best Practices (2026)
