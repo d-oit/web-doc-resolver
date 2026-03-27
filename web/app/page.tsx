@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { loadApiKeys, saveApiKeys, ApiKeys, resolveKeySource, KeySource } from "@/lib/keys";
 import { loadUiState, saveUiState, loadStateFromServer, saveStateToServer, resolveUiState } from "@/lib/ui-state";
+import History, { HistoryEntry } from "@/app/components/History";
 
 type ProfileId = "free" | "balanced" | "fast" | "quality" | "custom";
 
@@ -14,20 +15,22 @@ interface UiProvider {
   sourceKey?: string;
 }
 
+// Providers in CLI cascade order (see web/lib/routing.ts QUERY_CASCADE)
 const PROVIDERS: UiProvider[] = [
   { id: "exa_mcp", label: "Exa MCP", free: true },
-  { id: "duckduckgo", label: "DuckDuckGo", free: true },
   { id: "exa", label: "Exa SDK", free: false, sourceKey: "exa" },
-  { id: "serper", label: "Serper", free: false },
   { id: "tavily", label: "Tavily", free: false },
+  { id: "serper", label: "Serper", free: false },
   { id: "mistral", label: "Mistral", free: false, sourceKey: "mistral" },
+  { id: "duckduckgo", label: "DuckDuckGo", free: true },
 ];
 
+// Profiles with providers in cascade order
 const PROFILES: Array<{ id: ProfileId; label: string; providers: string[] }> = [
   { id: "free", label: "Free", providers: ["exa_mcp", "duckduckgo"] },
-  { id: "balanced", label: "Balanced", providers: ["exa_mcp", "serper", "duckduckgo"] },
-  { id: "fast", label: "Fast", providers: ["serper", "exa_mcp"] },
-  { id: "quality", label: "Quality", providers: ["tavily", "serper", "exa_mcp", "mistral"] },
+  { id: "fast", label: "Fast", providers: ["exa_mcp", "serper"] },
+  { id: "balanced", label: "Balanced", providers: ["exa_mcp", "tavily", "serper", "duckduckgo"] },
+  { id: "quality", label: "Quality", providers: ["exa_mcp", "exa", "tavily", "serper", "mistral", "duckduckgo"] },
   { id: "custom", label: "Custom", providers: [] },
 ];
 
@@ -60,8 +63,36 @@ export default function Home() {
   const [maxChars, setMaxChars] = useState(8000);
   const [skipCache, setSkipCache] = useState(false);
   const [deepResearch, setDeepResearch] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + K: Focus input
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+      // Ctrl/Cmd + /: Show shortcuts
+      if ((e.ctrlKey || e.metaKey) && e.key === "/") {
+        e.preventDefault();
+        setShowShortcuts((prev) => !prev);
+      }
+      // Escape: Clear input or close modals
+      if (e.key === "Escape") {
+        if (showShortcuts) {
+          setShowShortcuts(false);
+        } else if (document.activeElement === inputRef.current) {
+          setQuery("");
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showShortcuts]);
 
   useEffect(() => {
     const keys = loadApiKeys();
@@ -177,8 +208,18 @@ export default function Home() {
 
       setResult(data.markdown || data.result || "");
       setSourceProvider(data.provider || (activeProviders.length > 0 ? activeProviders.join(", ") : profile));
-      setResolveTime(Date.now() - startTime);
+      const elapsed = Date.now() - startTime;
+      setResolveTime(elapsed);
       setProviderStatus(null);
+
+      // Save to history
+      saveToHistory({
+        query: query.trim(),
+        result: data.markdown || data.result || "",
+        provider: data.provider || activeProviders.join(", "),
+        charCount: (data.markdown || data.result || "").length,
+        resolveTime: elapsed,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Request failed");
       setProviderStatus(null);
@@ -203,6 +244,32 @@ export default function Home() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1000);
     }
+  };
+
+  const saveToHistory = async (data: {
+    query: string;
+    result: string;
+    provider: string;
+    charCount: number;
+    resolveTime: number;
+  }) => {
+    try {
+      await fetch("/api/history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+    } catch {
+      // Silent fail
+    }
+  };
+
+  const handleHistoryLoad = (entry: HistoryEntry) => {
+    setQuery(entry.query);
+    setResult(entry.result);
+    setSourceProvider(entry.provider);
+    setResolveTime(entry.resolveTime);
+    inputRef.current?.focus();
   };
 
   const handleKeyChange = (key: keyof ApiKeys, value: string) => {
@@ -236,6 +303,10 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#0c0c0c] text-[#e8e6e3] font-mono flex flex-col lg:flex-row">
+      {/* Skip to content link for accessibility */}
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-[#0c0c0c] focus:text-[#00ff41] focus:px-2 focus:py-1 focus:border-2 focus:border-[#00ff41]">
+        Skip to main content
+      </a>
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
         <div
@@ -315,6 +386,8 @@ export default function Home() {
                       onClick={() => available && handleProviderToggle(provider.id)}
                       disabled={!available}
                       title={needsKey ? `${provider.label} needs API key` : undefined}
+                      aria-pressed={isManual}
+                      aria-label={`${provider.label} provider ${isManual ? 'selected' : available ? 'available' : 'unavailable'}`}
                       className={`px-2 py-2 text-[11px] border-2 min-h-[44px] ${
                         isManual
                           ? "bg-[#00ff41] text-[#0c0c0c] border-[#00ff41]"
@@ -411,12 +484,15 @@ export default function Home() {
                 </div>
               )}
             </div>
+
+            {/* History */}
+            <History onLoad={handleHistoryLoad} />
           </div>
         )}
       </aside>
 
       {/* Center - Input/Output */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div id="main-content" className="flex-1 flex flex-col min-h-0">
         {/* Header */}
         <div className="border-b-2 border-[#333] p-2 flex items-center justify-between min-h-[44px]">
           <div className="flex items-center gap-2">
@@ -450,13 +526,30 @@ export default function Home() {
               className="flex-1 bg-transparent text-[20px] sm:text-[24px] text-[#e8e6e3] placeholder:text-[#444] focus:outline-none tracking-tight"
             />
             {query.trim() && (
-              <button
-                onClick={() => handleSubmit()}
-                disabled={loading}
-                className="bg-[#00ff41] text-[#0c0c0c] px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50 min-w-[60px] min-h-[44px]"
-              >
-                {loading ? "..." : "Fetch"}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleSubmit()}
+                  disabled={loading}
+                  aria-label="Fetch results"
+                  className="bg-[#00ff41] text-[#0c0c0c] px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50 min-w-[60px] min-h-[44px]"
+                >
+                  {loading ? "..." : "Fetch"}
+                </button>
+                <button
+                  onClick={() => {
+                    setQuery("");
+                    setResult("");
+                    setError("");
+                    setProviderStatus(null);
+                    setResolveTime(null);
+                    setSourceProvider(null);
+                  }}
+                  aria-label="Clear input and results"
+                  className="bg-transparent text-[#888] px-4 py-2 text-[13px] border-2 border-[#333] hover:border-[#00ff41] hover:text-[#00ff41] min-h-[44px]"
+                >
+                  Clear
+                </button>
+              </div>
             )}
           </div>
           {query.trim() && (
@@ -493,6 +586,8 @@ export default function Home() {
                 </div>
                 <button
                   onClick={handleCopy}
+                  aria-label={copied ? "Copied to clipboard" : "Copy to clipboard"}
+                  aria-live="polite"
                   className="hover:text-[#e8e6e3] transition-colors min-h-[44px] px-2"
                 >
                   {copied ? "Copied" : "Copy"}
@@ -512,6 +607,43 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      {/* Keyboard Shortcuts Modal */}
+      {showShortcuts && (
+        <div
+          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center"
+          onClick={() => setShowShortcuts(false)}
+        >
+          <div
+            className="bg-[#0c0c0c] border-2 border-[#333] p-6 max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between mb-4">
+              <h2 className="text-[13px] font-bold text-[#e8e6e3]">Keyboard Shortcuts</h2>
+              <button
+                onClick={() => setShowShortcuts(false)}
+                className="text-[#666] hover:text-[#e8e6e3] text-[18px] leading-none"
+                aria-label="Close shortcuts"
+              >
+                ×
+              </button>
+            </div>
+            <div className="space-y-2">
+              {[
+                { key: "Ctrl/Cmd + K", action: "Focus input" },
+                { key: "Ctrl/Cmd + /", action: "Show/hide shortcuts" },
+                { key: "Enter", action: "Submit query" },
+                { key: "Escape", action: "Clear input or close modal" },
+              ].map(({ key, action }) => (
+                <div key={key} className="flex justify-between text-[11px]">
+                  <span className="text-[#888]">{action}</span>
+                  <kbd className="bg-[#222] px-2 py-1 text-[#e8e6e3] border border-[#333]">{key}</kbd>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
