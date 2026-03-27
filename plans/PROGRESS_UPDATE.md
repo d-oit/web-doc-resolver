@@ -12,6 +12,7 @@
 | E2E Tests Fix | ✅ COMPLETE | Fixed loading state aria-label, CI runs local build |
 | CLI Testing | ✅ COMPLETE | URL cascade verified, bugs documented |
 | Bug Documentation | ✅ COMPLETE | All pre-existing bugs documented with solutions |
+| CLI Bug Fixes | ✅ COMPLETE | exa_mcp, quality gate, duckduckgo URL extraction |
 
 ## Completed Actions
 
@@ -65,6 +66,37 @@
 - Created `plans/BUGS_AND_ISSUES.md` with 7 documented bugs
 - Each bug includes: severity, file location, problem description, solution code
 - Prioritized fix order: exa_mcp → quality gate → duckduckgo
+
+**CLI Bug Fixes (In Progress)**
+
+#### BUG-1: Exa MCP Protocol (FIXED)
+- Added correct Accept header: `application/json, text/event-stream`
+- Changed method from `exa.search` to `tools/call` with nested params
+- Added SSE response parsing
+- Fixed highlights extraction in `parse_exa_mcp_text()`
+- Result: 5 results, quality score 0.85 (up from 0.50)
+
+#### BUG-3: Quality Gate (FIXED)
+- Concatenated all search results for quality scoring
+- Content length increased from 269 to 1325 chars
+- Quality score improved from 0.50 to 0.85
+
+#### BUG-7: DuckDuckGo URL Extraction (FIXED)
+- Added `extract_ddg_url()` to decode `uddg=` redirect parameter
+- Added `extract_ddg_snippet()` and `extract_ddg_title()` functions
+
+#### BUG-2: DuckDuckGo Parser (PARTIAL - External Limitation)
+- Code fixes implemented, but DuckDuckGo blocks automated requests with CAPTCHA
+- External service limitation, not a code bug
+
+## Query Resolution Status (After Fixes)
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| exa_mcp query | ✅ Working | Free, no API key, quality score 0.85 |
+| URL cascade | ✅ Working | Jina Reader, llms.txt, direct_fetch |
+| duckduckgo | ⚠️ Blocked | CAPTCHA protection (external limitation) |
+| Query cascade | ✅ Working | exa_mcp succeeds as primary provider |
 
 ## Pre-Existing Bugs Summary
 

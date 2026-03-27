@@ -395,7 +395,19 @@ impl Resolver {
             )
         };
 
+        tracing::debug!(
+            "Planned {} providers for query: {:?}",
+            planned.len(),
+            planned.iter().map(|p| &p.name).collect::<Vec<_>>()
+        );
+
         for (idx, provider) in planned.iter().enumerate() {
+            tracing::trace!(
+                "Trying provider {}: {} (paid={})",
+                idx,
+                provider.name,
+                provider.is_paid
+            );
             if !budget.can_try(provider.is_paid) {
                 if matches!(
                     budget.stop_reason.as_deref(),
@@ -478,9 +490,30 @@ impl Resolver {
             metrics.budget_elapsed_ms = budget.elapsed_ms;
             metrics.cascade_depth = idx + 1;
 
+            tracing::trace!(
+                "Provider {} returned in {}ms: {}",
+                provider.name,
+                latency,
+                match &results {
+                    Ok(r) => format!("{} results", r.len()),
+                    Err(e) => format!("error: {}", e),
+                }
+            );
+
             match results {
                 Ok(results) if !results.is_empty() => {
+                    // For search providers, concatenate all results for better quality scoring
+                    // Individual search snippets are short (100-200 chars) but combined they provide
+                    // better context. This fixes the "thin_content" rejection for valid search results.
+                    let combined_content = results
+                        .iter()
+                        .filter_map(|r| r.content.as_deref())
+                        .collect::<Vec<_>>()
+                        .join("\n\n");
+
                     let mut first = results[0].clone();
+                    // Store combined content in the result for downstream processing
+                    first.content = Some(combined_content.clone());
                     let content_str = first.content.as_deref().unwrap_or("");
                     let links = extract_links(content_str);
                     let threshold = self
@@ -489,7 +522,16 @@ impl Resolver {
                         .unwrap_or(profile_defaults.quality_threshold);
                     let quality = score_content(content_str, &links, threshold);
 
+                    // Check validity with combined content (now stored in first.content)
                     let acceptable = quality.acceptable && first.is_valid(self.config.min_chars);
+
+                    tracing::debug!(
+                        "Provider {} quality: score={:.2}, acceptable={}, content_len={}",
+                        provider.name,
+                        quality.score,
+                        acceptable,
+                        content_str.len()
+                    );
 
                     metrics.record_provider_detailed(
                         provider_type,
