@@ -9,6 +9,7 @@
 | Accessibility | ✅ COMPLETE | ARIA labels, keyboard shortcuts, skip link |
 | Performance | ✅ COMPLETE | LRU cache eviction, records size limits |
 | Unit Tests | ✅ COMPLETE | 80 tests for validation, rate-limit, cache, records |
+| E2E Tests Fix | ✅ COMPLETE | Fixed loading state aria-label, CI runs local build |
 
 ## Completed Actions
 
@@ -40,6 +41,16 @@
 - All 80 tests pass
 - All CI checks pass
 
+**PR #149 Merged**: fix: update aria-label to reflect loading state
+
+#### E2E Tests Fix
+- Fixed Fetch button aria-label to dynamically show "..." when loading
+- Updated CI workflow to run E2E tests against local build instead of deployed URL
+- Added wait-on dependency for server readiness check
+- Updated profile provider tests to use Exa MCP instead of DuckDuckGo
+- Skip security headers tests when running against localhost
+- Fixed provider gating tests for Mistral availability
+
 ## Implementation Summary
 
 ### New Files
@@ -53,12 +64,16 @@
 - `web/tests/records.test.ts` - Records tests
 
 ### Modified Files
-- `web/app/page.tsx` - Provider order, clear button, history, keyboard shortcuts, ARIA labels
+- `web/app/page.tsx` - Provider order, clear button, history, keyboard shortcuts, ARIA labels, dynamic loading aria-label
 - `web/lib/cache.ts` - LRU eviction
 - `web/lib/records.ts` - FIFO eviction
+- `.github/workflows/ci-ui.yml` - E2E tests run against local build
+- `web/tests/e2e/app.spec.ts` - Updated tests for local CI and provider gating
+- `web/tests/e2e/provider-gating.spec.ts` - Updated tests for provider availability
 
 ## Final State
 
-- Main branch: `2d20b7e` (includes all changes)
+- Main branch: `f2c6ea7` (includes all changes)
 - All CI checks passing
 - PR #148 merged
+- PR #149 merged
