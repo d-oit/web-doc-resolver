@@ -530,7 +530,7 @@ export default function Home() {
                 <button
                   onClick={() => handleSubmit()}
                   disabled={loading}
-                  aria-label="Fetch results"
+                  aria-label={loading ? "..." : "Fetch results"}
                   className="bg-[#00ff41] text-[#0c0c0c] px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50 min-w-[60px] min-h-[44px]"
                 >
                   {loading ? "..." : "Fetch"}
