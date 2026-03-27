@@ -72,60 +72,71 @@ cli/
 
 ```bash
 # Resolve URL
-do-wdr "https://docs.rs/tokio"
+do-wdr resolve "https://docs.rs/tokio"
 
 # Resolve query
-do-wdr "Rust async runtime"
+do-wdr resolve "Rust async runtime"
 
 # JSON output
-do-wdr "query" --json
+do-wdr resolve "query" --json
 
 # With options
-do-wdr "query" --max-chars 5000 --profile quality
+do-wdr resolve "query" --max-chars 5000 --profile quality
 ```
 
 ### CLI Options
 
 ```
 USAGE:
-    do-wdr [OPTIONS] <INPUT>
+    do-wdr [OPTIONS] <COMMAND>
 
-ARGS:
-    <INPUT>    URL or search query to resolve
+COMMANDS:
+    resolve      Resolve a URL or query to markdown documentation
+    providers    List available providers
+    config       Show configuration
+    cache-stats  Show cache statistics
 
 OPTIONS:
-    -m, --max-chars <NUM>    Maximum characters in output [default: 8000]
-    -j, --json               Output as JSON
-    -p, --profile <PROFILE>  Execution profile [default: balanced]
-                             [possible: free, fast, balanced, quality]
-    -s, --skip <PROVIDER>    Skip provider (can be used multiple times)
-        --provider <NAME>    Use specific provider only
-    -t, --timeout <SECS>     Request timeout [default: 30]
-    -v, --verbose            Verbose output
-    -h, --help               Print help
-    -V, --version            Print version
+    -v, --verbose...     Enable verbose logging (-v, -vv, -vvv)
+    -h, --help           Print help
+    -V, --version        Print version
+
+RESOLVE OPTIONS:
+        --max-chars <NUM>     Maximum characters in output [default: 8000]
+        --json                Output as JSON
+    -p, --profile <PROFILE>   Execution profile [default: balanced]
+                              [possible: free, fast, balanced, quality]
+        --skip <PROVIDERS>    Skip providers (comma-separated)
+        --provider <NAME>     Use specific provider only
+    -o, --output <FILE>       Output file (stdout if not specified)
+        --min-chars <NUM>     Minimum characters for valid content
+        --skip-cache          Skip semantic cache
+        --synthesize          Synthesize multiple results using AI
+        --quality-threshold <F>  Quality threshold for content scoring
+        --metrics-json        Output metrics as JSON
+        --metrics-file <FILE> Save metrics to file
 ```
 
 ### Examples
 
 ```bash
 # Fast lookup
-do-wdr "React hooks tutorial" --profile fast
+do-wdr resolve "React hooks tutorial" --profile fast
 
 # Deep research
-do-wdr "quantum computing algorithms" --profile quality --max-chars 10000
+do-wdr resolve "quantum computing algorithms" --profile quality --max-chars 10000
 
 # Free only
-do-wdr "Python async" --profile free
+do-wdr resolve "Python async" --profile free
 
 # Skip specific providers
-do-wdr "query" --skip exa --skip tavily
+do-wdr resolve "query" --skip exa,tavily
 
 # Use only DuckDuckGo
-do-wdr "query" --provider duckduckgo
+do-wdr resolve "query" --provider duckduckgo
 
 # Debug output
-do-wdr "query" --verbose --log-level debug
+do-wdr -vv resolve "query"
 ```
 
 ## Configuration

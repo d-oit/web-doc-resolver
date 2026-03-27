@@ -80,30 +80,43 @@ cargo build --release
 
 ```bash
 # Resolve a URL
-do-wdr "https://docs.rs/tokio"
+do-wdr resolve "https://docs.rs/tokio"
 
 # Resolve a query
-do-wdr "Rust async runtime comparison"
+do-wdr resolve "Rust async runtime comparison"
 
 # JSON output
-do-wdr "query" --json
+do-wdr resolve "query" --json
 
 # Specify max characters
-do-wdr "query" --max-chars 5000
+do-wdr resolve "query" --max-chars 5000
 ```
 
 ### Options
 
-| Option | Short | Type | Default | Description |
-|--------|-------|------|---------|-------------|
-| `--max-chars` | `-m` | int | 8000 | Maximum characters in output |
-| `--json` | `-j` | flag | false | Output as JSON |
-| `--profile` | `-p` | string | balanced | Execution profile |
-| `--skip` | `-s` | string[] | none | Provider(s) to skip |
-| `--provider` | none | string | none | Use specific provider |
-| `--timeout` | `-t` | int | 30 | Request timeout in seconds |
-| `--verbose` | `-v` | flag | false | Verbose output |
-| `--help` | `-h` | flag | false | Show help |
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `--max-chars` | int | 8000 | Maximum characters in output |
+| `--json` | flag | false | Output as JSON |
+| `-p, --profile` | string | balanced | Execution profile |
+| `--skip` | string | none | Skip providers (comma-separated) |
+| `--provider` | string | none | Use specific provider |
+| `-o, --output` | string | none | Output file |
+| `-v, --verbose` | flag | false | Verbose output (-v, -vv, -vvv) |
+| `-h, --help` | flag | false | Show help |
+
+### Utility Commands
+
+```bash
+# List providers
+do-wdr providers
+
+# Show config
+do-wdr config
+
+# Cache statistics
+do-wdr cache-stats
+```
 
 ### Configuration File
 

@@ -202,12 +202,9 @@ Requires semantic cache to be enabled (feature `semantic-cache`).
 | Code | Description |
 |------|-------------|
 | 0 | Success |
-| 1 | General error |
-| 2 | Invalid arguments |
-| 3 | Network error |
-| 4 | Rate limit exceeded |
-| 5 | Authentication error |
-| 6 | Cache error |
+| 1 | Failure (any error) |
+
+Note: The CLI currently uses exit code 1 for all error conditions.
 
 ## Environment Variables
 
@@ -220,18 +217,3 @@ Requires semantic cache to be enabled (feature `semantic-cache`).
 | `MISTRAL_API_KEY` | Mistral API key |
 | `DO_WDR_LOG_LEVEL` | Log level (trace, debug, info, warn, error) |
 | `DO_WDR_CONFIG_FILE` | Path to config file |
-
-## Shell Completions
-
-Generate shell completions:
-
-```bash
-# Bash
-do-wdr completions bash > ~/.bash_completion
-
-# Zsh
-do-wdr completions zsh > ~/.zsh/_do-wdr
-
-# Fish
-do-wdr completions fish > ~/.config/fish/completions/do-wdr.fish
-```

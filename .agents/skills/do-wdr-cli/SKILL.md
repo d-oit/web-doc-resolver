@@ -164,7 +164,7 @@ do-wdr resolve "query" --metrics-file metrics.json
 | Provider | Type | Free | Description |
 |----------|------|------|-------------|
 | `exa_mcp` | Query | Yes | Exa MCP (free, no key) |
-| `exa_sdk` | Query | No | Exa SDK (requires API key) |
+| `exa` | Query | No | Exa SDK (requires API key) |
 | `tavily` | Query | No | Tavily comprehensive search |
 | `serper` | Query | No | Google search via Serper |
 | `duckduckgo` | Query | Yes | DuckDuckGo search |
