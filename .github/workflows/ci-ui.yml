@@ -144,10 +144,36 @@ jobs:
       - run: npx playwright install chromium
         working-directory: web
 
+      - name: Get Vercel preview URL
+        id: vercel
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            # Wait for Vercel deployment to complete
+            echo "Waiting for Vercel preview deployment..."
+            sleep 45
+
+            # Get deployment URL from GitHub deployments API
+            DEPLOYMENT_URL=$(curl -s -H "Accept: application/vnd.github.v3+json" \
+              -H "Authorization: token ${{ github.token }}" \
+              "https://api.github.com/repos/${{ github.repository }}/deployments?ref=${{ github.head_ref }}" \
+              | jq -r '.[0].payload.environment_url // empty' 2>/dev/null || echo "")
+
+            if [[ -n "$DEPLOYMENT_URL" && "$DEPLOYMENT_URL" != "null" ]]; then
+              echo "base_url=${DEPLOYMENT_URL}" >> $GITHUB_OUTPUT
+              echo "Using preview URL: ${DEPLOYMENT_URL}"
+            else
+              # Fallback: try to get from latest deployment on main
+              echo "Could not get preview URL, falling back to production"
+              echo "base_url=https://web-eight-ivory-29.vercel.app/" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "base_url=https://web-eight-ivory-29.vercel.app/" >> $GITHUB_OUTPUT
+          fi
+
       - run: npx playwright test --project=desktop
         working-directory: web
         env:
-          BASE_URL: https://web-eight-ivory-29.vercel.app/
+          BASE_URL: ${{ steps.vercel.outputs.base_url }}
 
   quality-gate:
     name: Quality Gate
