@@ -64,20 +64,26 @@ impl crate::providers::QueryProvider for ExaMcpProvider {
             ));
         }
 
+        // Use correct MCP protocol: tools/call with nested arguments
         let mcp_request = ExaMcpRequest {
             jsonrpc: "2.0".to_string(),
             id: 1,
-            method: "exa.search".to_string(),
-            params: Some(ExaMcpParams {
-                query: query.to_string(),
-                num_results: limit,
-                highlights: true,
-            }),
+            method: "tools/call".to_string(),
+            params: ExaMcpParams {
+                name: "web_search_exa".to_string(),
+                arguments: ExaMcpArguments {
+                    query: query.to_string(),
+                    num_results: limit,
+                },
+            },
         };
 
         let response = self
             .client
             .post("https://mcp.exa.ai/mcp")
+            .header("Content-Type", "application/json")
+            // Required: accept both JSON and SSE
+            .header("Accept", "application/json, text/event-stream")
             .json(&mcp_request)
             .send()
             .await
@@ -95,20 +101,93 @@ impl crate::providers::QueryProvider for ExaMcpProvider {
             return Err(detect_error_type(&error_text));
         }
 
-        let mcp_response: ExaMcpResponse = response
-            .json()
+        // Response is SSE format: "event: message\ndata: {...}\n\n"
+        let text = response
+            .text()
             .await
             .map_err(|e| ResolverError::ParseError(e.to_string()))?;
 
-        let results = mcp_response
-            .results
-            .unwrap_or_default()
-            .into_iter()
-            .map(|r| ResolvedResult::new(r.url, r.highlight.or(r.text), "exa_mcp", r.score))
-            .collect();
+        // Extract JSON from SSE data line
+        let json_str = text
+            .lines()
+            .find(|l| l.starts_with("data: "))
+            .map(|l| &l[6..])
+            .unwrap_or("");
+
+        let mcp_response: ExaMcpResponse = serde_json::from_str(json_str).map_err(|e| {
+            ResolverError::ParseError(format!("Failed to parse MCP response: {}", e))
+        })?;
+
+        // Parse the formatted text content into results
+        let results = parse_exa_mcp_text(&mcp_response);
 
         Ok(results)
     }
+}
+
+/// Parse Exa MCP formatted text response into results
+fn parse_exa_mcp_text(response: &ExaMcpResponse) -> Vec<ResolvedResult> {
+    let mut results = Vec::new();
+
+    for content in &response.result.content {
+        if content.type_name == "text" {
+            // Parse formatted text: Title: ... URL: ... Published: ... Highlights: ...
+            let text = &content.text;
+            let lines: Vec<&str> = text.lines().collect();
+            let mut i = 0;
+
+            while i < lines.len() {
+                let line = lines[i];
+
+                if let Some(title) = line.strip_prefix("Title: ") {
+                    let mut url: Option<String> = None;
+                    let mut highlights = String::new();
+
+                    // Look for URL and Highlights in next lines
+                    for j in (i + 1)..std::cmp::min(i + 15, lines.len()) {
+                        if lines[j].starts_with("Title: ") {
+                            // Next result starts, stop looking
+                            break;
+                        }
+                        if let Some(url_str) = lines[j].strip_prefix("URL: ") {
+                            url = Some(url_str.to_string());
+                        } else if lines[j].starts_with("Highlights:") {
+                            // Collect highlight lines until --- or next Title
+                            for highlight_line in lines.iter().skip(j + 1).take(30) {
+                                if highlight_line.starts_with("---")
+                                    || highlight_line.starts_with("Title: ")
+                                {
+                                    break;
+                                }
+                                if !highlight_line.is_empty() {
+                                    if !highlights.is_empty() {
+                                        highlights.push(' ');
+                                    }
+                                    highlights.push_str(highlight_line.trim());
+                                }
+                            }
+                            break;
+                        } else if lines[j].starts_with("---") {
+                            break;
+                        }
+                    }
+
+                    if let Some(url) = url {
+                        let content = if highlights.is_empty() {
+                            Some(title.to_string())
+                        } else {
+                            Some(highlights)
+                        };
+                        results.push(ResolvedResult::new(url, content, "exa_mcp", 0.7));
+                    }
+                }
+
+                i += 1;
+            }
+        }
+    }
+
+    results
 }
 
 #[derive(Debug, Serialize)]
@@ -116,31 +195,37 @@ struct ExaMcpRequest {
     jsonrpc: String,
     id: i32,
     method: String,
-    params: Option<ExaMcpParams>,
+    params: ExaMcpParams,
 }
 
 #[derive(Debug, Serialize)]
 struct ExaMcpParams {
+    name: String,
+    arguments: ExaMcpArguments,
+}
+
+#[derive(Debug, Serialize)]
+struct ExaMcpArguments {
     query: String,
+    #[serde(rename = "numResults")]
     num_results: usize,
-    highlights: bool,
 }
 
 #[derive(Debug, Deserialize)]
 struct ExaMcpResponse {
-    #[serde(default)]
-    results: Option<Vec<ExaMcpResult>>,
+    result: ExaMcpResult,
 }
 
 #[derive(Debug, Deserialize)]
 struct ExaMcpResult {
-    url: String,
-    #[serde(default)]
-    text: Option<String>,
-    #[serde(default)]
-    highlight: Option<String>,
-    #[serde(default)]
-    score: f64,
+    content: Vec<ExaMcpContent>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ExaMcpContent {
+    #[serde(rename = "type")]
+    type_name: String,
+    text: String,
 }
 
 #[cfg(test)]
@@ -158,5 +243,34 @@ mod tests {
     fn test_provider_availability() {
         let provider = ExaMcpProvider::new();
         assert!(provider.is_available());
+    }
+
+    #[test]
+    fn test_parse_exa_mcp_text() {
+        let text = r#"Title: Test Result
+URL: https://example.com
+Published: 2025-01-01
+Author: Test
+
+Highlights:
+This is a test highlight.
+Another line of highlight.
+
+---
+
+Title: Second Result
+URL: https://example2.com
+"#;
+        let response = ExaMcpResponse {
+            result: ExaMcpResult {
+                content: vec![ExaMcpContent {
+                    type_name: "text".to_string(),
+                    text: text.to_string(),
+                }],
+            },
+        };
+        let results = parse_exa_mcp_text(&response);
+        assert!(!results.is_empty());
+        assert_eq!(results[0].url, "https://example.com");
     }
 }

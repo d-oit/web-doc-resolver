@@ -1,7 +1,7 @@
 # Pre-Existing Bugs and Issues — CLI/Web
 
 **Last Updated**: 2026-03-27
-**Status**: Documented for future fixes
+**Status**: Multiple bugs fixed, remaining are config-dependent or blocked
 
 ---
 
@@ -9,17 +9,23 @@
 
 | Bug ID | Severity | Component | Status | Effort |
 |--------|----------|-----------|--------|--------|
-| BUG-1 | CRITICAL | CLI `exa_mcp` | Open | Medium |
-| BUG-2 | CRITICAL | CLI `duckduckgo` | Open | Medium |
-| BUG-3 | CRITICAL | CLI Quality Gate | Open | Small |
+| BUG-1 | CRITICAL | CLI `exa_mcp` | **FIXED** | Medium |
+| BUG-2 | CRITICAL | CLI `duckduckgo` | **PARTIAL** | Medium |
+| BUG-3 | CRITICAL | CLI Quality Gate | **FIXED** | Small |
 | BUG-4 | HIGH | CLI `mistral_*` | Config | N/A |
 | BUG-5 | MEDIUM | CLI `exa` SDK | Config | N/A |
 | BUG-6 | LOW | CLI `--synthesize` | Blocked | Small |
-| BUG-7 | MEDIUM | CLI `duckduckgo` URLs | Open | Small |
+| BUG-7 | MEDIUM | CLI `duckduckgo` URLs | **FIXED** | Small |
+
+**2026-03-27 Fix Summary**:
+- BUG-1: Fixed MCP protocol (Accept header, tools/call method, SSE parsing)
+- BUG-3: Fixed quality gate to concatenate search results for scoring
+- BUG-7: Fixed URL extraction to decode `uddg=` redirect parameter
+- BUG-2: Parser logic fixed, but DuckDuckGo blocks automated requests with CAPTCHA (external limitation, not code bug)
 
 ---
 
-## BUG-1: Exa MCP — Wrong MCP Protocol Implementation
+## BUG-1: Exa MCP — Wrong MCP Protocol Implementation ✅ FIXED
 
 **Severity**: CRITICAL
 **File**: `cli/src/providers/exa_mcp.rs`
@@ -39,7 +45,7 @@ Three separate issues:
 Not Acceptable: Client must accept both application/json and text/event-stream
 ```
 
-### Solution
+### Solution (IMPLEMENTED)
 
 Update `cli/src/providers/exa_mcp.rs`:
 
@@ -98,121 +104,42 @@ curl -X POST "https://mcp.exa.ai/mcp" \
 
 ---
 
-## BUG-2: DuckDuckGo — HTML Parser Returns Zero Results
+## BUG-2: DuckDuckGo — HTML Parser Returns Zero Results ⚠️ PARTIAL FIX
 
 **Severity**: CRITICAL
 **File**: `cli/src/providers/duckduckgo.rs`
-**Impact**: Fallback free query provider is completely broken
+**Impact**: Fallback free query provider has external limitation
 
 ### Problem
 
 Two issues:
 
-1. **Naive line-by-line parsing**: The `parse_ddg_results` function looks for `result__url` and `result__snippet` on the same line, but DuckDuckGo's HTML has these on separate lines/elements
-2. **Redirect URLs not decoded**: DuckDuckGo uses redirect URLs (`//duckduckgo.com/l/?uddg=ENCODED_URL`) but the parser expects direct URLs
+1. **Naive line-by-line parsing**: The `parse_ddg_results` function looked for `result__url` and `result__snippet` on the same line, but DuckDuckGo's HTML has these on separate lines/elements
+2. **Redirect URLs not decoded**: DuckDuckGo uses redirect URLs (`//duckduckgo.com/l/?uddg=ENCODED_URL`) but the parser expected direct URLs
 
-### Current (Broken) Code
+### Status (2026-03-27)
 
-```rust
-fn parse_ddg_results(html: &str, limit: usize) -> Result<Vec<ResolvedResult>, ResolverError> {
-    for line in html.lines() {
-        if line.contains("result__url") || line.contains("result__snippet") {
-            if let Some(url) = extract_ddg_url(line) {
-                // This fails because:
-                // 1. URL is a redirect: //duckduckgo.com/l/?uddg=https%3A%2F%2F...
-                // 2. Result snippets are on different lines
-            }
-        }
-    }
-}
+**Code fixes implemented**:
+- Added `extract_ddg_url()` function to decode `uddg=` parameter
+- Added `extract_ddg_snippet()` and `extract_ddg_title()` functions
+- Improved line-by-line parsing logic
+
+**External limitation discovered**: DuckDuckGo blocks automated requests with a CAPTCHA challenge ("Select all squares containing a duck"). This is DuckDuckGo's bot protection, not a bug in our code.
+
+```html
+<div class="anomaly-modal__title">Unfortunately, bots use DuckDuckGo too.</div>
+<div class="anomaly-modal__description">Please complete the following challenge to confirm this search was made by a human.</div>
 ```
 
-### Solution Option A: Decode Redirect URLs
+### Workaround Options
 
-```rust
-fn extract_ddg_url(line: &str) -> Option<String> {
-    // Look for DuckDuckGo redirect URL
-    if let Some(start) = line.find("uddg=") {
-        let start = start + 5;
-        if let Some(end) = line[start..].find('&') {
-            let encoded = &line[start..start + end];
-            if let Ok(decoded) = urlencoding::decode(encoded) {
-                return Some(decoded.to_string());
-            }
-        }
-    }
-    None
-}
-
-fn parse_ddg_results(html: &str, limit: usize) -> Result<Vec<ResolvedResult>, ResolverError> {
-    let mut results = Vec::new();
-    let mut current_url: Option<String> = None;
-    let mut current_snippet: Option<String> = None;
-
-    for line in html.lines() {
-        // Extract URL from redirect link
-        if line.contains("result__url") || line.contains("result__a") {
-            current_url = extract_ddg_url(line);
-        }
-        // Extract snippet (may be on different line)
-        if line.contains("result__snippet") {
-            current_snippet = extract_ddg_snippet(line);
-        }
-        // Combine when we have both
-        if let (Some(url), Some(snippet)) = (&current_url, &current_snippet) {
-            results.push(ResolvedResult::new(
-                url.clone(),
-                Some(snippet.clone()),
-                "duckduckgo",
-                0.5,
-            ));
-            current_url = None;
-            current_snippet = None;
-            if results.len() >= limit {
-                break;
-            }
-        }
-    }
-    Ok(results)
-}
-```
-
-### Solution Option B: Use Jina Reader (Recommended)
-
-Use the same approach as the web UI — delegate HTML parsing to Jina Reader:
-
-```rust
-async fn search(&self, query: &str, limit: usize) -> Result<Vec<ResolvedResult>, ResolverError> {
-    let ddg_url = format!(
-        "https://html.duckduckgo.com/html/?q={}",
-        urlencoding::encode(query)
-    );
-    let jina_url = format!("https://r.jina.ai/{}", ddg_url);
-
-    let response = self.client
-        .get(&jina_url)
-        .header("Accept", "text/markdown")
-        .send()
-        .await?;
-
-    let markdown = response.text().await?;
-    // Parse Jina's markdown output for URLs and snippets
-    let results = self.parse_jina_results(&markdown, limit);
-    Ok(results)
-}
-```
-
-### Verification
-
-```bash
-# Test DuckDuckGo HTML structure
-curl -s "https://html.duckduckgo.com/html/?q=Rust+async" | grep "result__url" | head -3
-# Shows: //duckduckgo.com/l/?uddg=https%3A%2F%2Fdoc.rust-lang.org%2F...
-```
+1. Use exa_mcp as primary free query provider (works, no CAPTCHA)
+2. Add a browser-based approach (headless browser can solve CAPTCHA)
+3. Consider DuckDuckGo Lite API if available
 
 ---
 
-## BUG-3: Quality Gate Rejects Valid Search Results
+## BUG-3: Quality Gate Rejects Valid Search Results ✅ FIXED
 
 **Severity**: CRITICAL
 **File**: `cli/src/resolver.rs` (lines 482-492)
@@ -233,7 +160,9 @@ But results[0].content is only ~160 chars
 → Eventually: "No query resolution method available"
 ```
 
-### Solution Option A: Concatenate Results for Search Providers
+### Solution (IMPLEMENTED: Option A)
+
+Concatenate all search results for quality scoring:
 
 ```rust
 // In resolve_query(), when handling search results:
@@ -251,30 +180,12 @@ if results.len() > 1 {
 }
 ```
 
-### Solution Option B: Lower Threshold for Query Providers
+### Verification
 
-```rust
-// In score_content(), adjust thresholds for search snippets:
-let min_chars = if is_query_result {
-    100  // Search snippets are naturally short
-} else {
-    self.config.min_chars  // Default 200
-};
 ```
-
-### Solution Option C: Skip Quality Gate for Multi-Result Searches
-
-```rust
-// If provider returns multiple results, accept without quality gate
-if results.len() >= 3 {
-    // Multiple search results = good coverage
-    return Ok(results[0]);
-}
+Before fix: score=0.50, content_len=269, acceptable=false
+After fix:  score=0.85, content_len=1325, acceptable=true
 ```
-
-### Recommended
-
-**Option A** — provides best user experience by giving LLMs more context from multiple search results.
 
 ---
 
@@ -356,11 +267,11 @@ Depends on Mistral API key (BUG-4). Synthesis requires:
 
 ---
 
-## BUG-7: DuckDuckGo Redirect URLs Not Decoded
+## BUG-7: DuckDuckGo Redirect URLs Not Decoded ✅ FIXED
 
 **Severity**: MEDIUM
 **File**: `cli/src/providers/duckduckgo.rs`
-**Impact**: Even if parser finds URLs, they're redirect URLs
+**Impact**: URL extraction now works correctly
 
 ### Problem
 
@@ -369,34 +280,58 @@ DuckDuckGo uses redirect URLs in format:
 //duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com&rut=...
 ```
 
-The `extract_ddg_url` function returns this redirect URL as-is, which:
+The old `extract_ddg_url` function returned this redirect URL as-is, which:
 1. Is not a valid HTTP URL (starts with `//`)
 2. Would require following the redirect to get the actual target
 3. The actual URL is URL-encoded in the `uddg` parameter
 
-### Solution
+### Solution (IMPLEMENTED)
 
-See BUG-2 Solution A — extract and decode the `uddg` parameter.
+Added `extract_ddg_url()` function to decode the `uddg` parameter:
+
+```rust
+fn extract_ddg_url(line: &str) -> Option<String> {
+    if let Some(start) = line.find("uddg=") {
+        let start = start + 5;
+        let end = line[start..]
+            .find('&')
+            .or_else(|| line[start..].find('"'))
+            .or_else(|| line[start..].find("'"))
+            .unwrap_or_else(|| line[start..].len().min(500));
+        let encoded = &line[start..start + end];
+        if let Ok(decoded) = urlencoding::decode(encoded) {
+            let url = decoded.to_string();
+            if url.starts_with("http://") || url.starts_with("https://") {
+                return Some(url);
+            }
+        }
+    }
+    None
+}
+```
 
 ---
 
 ## Testing Verification
 
-After fixes, run this test matrix:
+**2026-03-27 Test Results**:
 
 ```bash
-# Build release binary
-cd cli && cargo build --release
-
-# Test free providers (should work with no API keys)
+# Test exa_mcp (FIXED - now works!)
 ./target/release/do-wdr resolve "Rust async frameworks" --provider exa_mcp
+# Result: 5 results, quality score 0.85, accepted
+
+# Test cascade (FIXED - now succeeds!)
+./target/release/do-wdr resolve "Rust async frameworks"
+# Result: exa_mcp succeeds with quality score 0.85
+
+# Test DuckDuckGo (external limitation - CAPTCHA)
 ./target/release/do-wdr resolve "Rust async frameworks" --provider duckduckgo
+# Result: No results (DuckDuckGo blocks with CAPTCHA)
 
-# Test cascade (should succeed with free providers)
-./target/release/do-wdr resolve "Rust async frameworks" --profile free
-
-# Test URL cascade (should still work)
+# Test URL cascade (still works)
 ./target/release/do-wdr resolve "https://docs.rs/tokio"
+# Result: Jina Reader extracts content correctly
 ```
 
 ---
