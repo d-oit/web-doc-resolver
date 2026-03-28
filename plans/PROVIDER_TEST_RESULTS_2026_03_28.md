@@ -5,7 +5,8 @@
 The CLI does **not** automatically load `.env` files. You must source it manually:
 
 ```bash
-set -a && source /home/doit/projects/web-doc-resolver/.env && set +a
+# From the repository root directory
+set -a && source .env && set +a
 ```
 
 Or export variables directly:
@@ -29,7 +30,9 @@ export SERPER_API_KEY="your_key"
 
 ### Test Command
 ```bash
+# From the repository root directory
 set -a && source .env && set +a
+cd cli && cargo build --release
 ./target/release/do-wdr resolve "rust async" --provider <provider> --json
 ```
 
@@ -45,9 +48,10 @@ set -a && source .env && set +a
 
 ## URL Provider Test Results
 
-### Test Command
+### Test Command (URL Providers)
 ```bash
-./target/release/do-wdr resolve "https://docs.rs/tokio" --provider <provider> --json
+# From cli directory (after building)
+cd cli && ./target/release/do-wdr resolve "https://docs.rs/tokio" --provider <provider> --json
 ```
 
 ### Results
@@ -63,7 +67,8 @@ set -a && source .env && set +a
 ### How Cascade Works
 
 ```bash
-RUST_LOG=do_wdr_lib=trace ./target/release/do-wdr resolve "rust web frameworks"
+# From repo root
+cd cli && RUST_LOG=do_wdr_lib=trace ./target/release/do-wdr resolve "rust web frameworks"
 ```
 
 **Output:**
@@ -109,7 +114,8 @@ Proxy URL:     https://r.jina.ai/https://html.duckduckgo.com/html/?q=rust+async
 ### Debug Trace
 
 ```bash
-RUST_LOG=trace ./target/release/do-wdr resolve "rust web frameworks" --provider duckduckgo
+# From repo root
+cd cli && RUST_LOG=trace ./target/release/do-wdr resolve "rust web frameworks" --provider duckduckgo
 ```
 
 **Output:**
@@ -134,9 +140,10 @@ DEBUG hyper_util::client::legacy::connect::http: connected to 104.26.11.242:443
 Use `--provider` flag to test a specific provider:
 
 ```bash
-./target/release/do-wdr resolve "query" --provider exa_mcp
-./target/release/do-wdr resolve "query" --provider tavily
-./target/release/do-wdr resolve "https://url" --provider jina
+# From cli directory
+cd cli && ./target/release/do-wdr resolve "query" --provider exa_mcp
+cd cli && ./target/release/do-wdr resolve "query" --provider tavily
+cd cli && ./target/release/do-wdr resolve "https://url" --provider jina
 ```
 
 ## Cascade Mode (Default)
@@ -144,7 +151,8 @@ Use `--provider` flag to test a specific provider:
 Without `--provider` flag, the resolver uses the cascade:
 
 ```bash
-./target/release/do-wdr resolve "rust async frameworks"
+# From cli directory
+cd cli && ./target/release/do-wdr resolve "rust async frameworks"
 ```
 
 **Flow:**
@@ -171,23 +179,23 @@ Without `--provider` flag, the resolver uses the cascade:
 ## Logging Levels
 
 ```bash
-# Basic info
-RUST_LOG=info ./target/release/do-wdr resolve "query"
+# From cli directory
+cd cli && RUST_LOG=info ./target/release/do-wdr resolve "query"
 
 # Provider decisions
-RUST_LOG=do_wdr_lib=debug ./target/release/do-wdr resolve "query"
+cd cli && RUST_LOG=do_wdr_lib=debug ./target/release/do-wdr resolve "query"
 
 # Full trace (including HTTP)
-RUST_LOG=trace ./target/release/do-wdr resolve "query"
+cd cli && RUST_LOG=trace ./target/release/do-wdr resolve "query"
 
 # Only resolver logic
-RUST_LOG=do_wdr_lib::resolver=trace ./target/release/do-wdr resolve "query"
+cd cli && RUST_LOG=do_wdr_lib::resolver=trace ./target/release/do-wdr resolve "query"
 ```
 
 ## Test Commands Summary
 
 ```bash
-# Load environment
+# Load environment (from repo root)
 set -a && source .env && set +a
 
 # Build release binary
@@ -207,7 +215,7 @@ cd cli && cargo build --release
 ./target/release/do-wdr resolve "https://docs.rs/tokio" --provider jina --json
 ./target/release/do-wdr resolve "https://docs.rs/tokio" --provider firecrawl --json
 
-# Debug cascade decisions
+# Debug cascade decisions (from cli directory)
 RUST_LOG=do_wdr_lib=trace ./target/release/do-wdr resolve "query" 2>&1 | grep -E "Trying|returned|quality"
 ```
 
