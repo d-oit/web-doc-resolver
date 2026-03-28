@@ -232,8 +232,6 @@ cd cli && cargo build --release
 
 ### Web UI
 
-![Help Page](./assets/screenshots/release-v0.2.0/help-page.png)
-
 ```bash
 # Development
 cd web && npm run dev
