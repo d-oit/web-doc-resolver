@@ -20,7 +20,14 @@ pub fn score_result(url: &str, content: &str) -> f64 {
             score += 0.1;
         }
 
-        let dev_sites = ["github.com", "stackoverflow.com", "docs.rs", "mozilla.org", "rust-lang.org", "tokio.rs"];
+        let dev_sites = [
+            "github.com",
+            "stackoverflow.com",
+            "docs.rs",
+            "mozilla.org",
+            "rust-lang.org",
+            "tokio.rs",
+        ];
         if dev_sites.iter().any(|&site| domain.contains(site)) {
             score += 0.2;
         }

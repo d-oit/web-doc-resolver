@@ -142,11 +142,7 @@ fn parse_ddg_markdown(markdown: &str, limit: usize) -> Result<Vec<ResolvedResult
                 }
 
                 // Join collected lines, limiting total snippet length
-                let snippet: String = snippet_lines
-                    .join(" ")
-                    .chars()
-                    .take(800)
-                    .collect();
+                let snippet: String = snippet_lines.join(" ").chars().take(800).collect();
 
                 let content = if snippet.is_empty() {
                     Some(title.clone())
