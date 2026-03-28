@@ -125,9 +125,9 @@ fn parse_ddg_markdown(markdown: &str, limit: usize) -> Result<Vec<ResolvedResult
         if line.starts_with("## [") {
             // Extract title and URL from heading
             if let Some((title, url)) = extract_heading_info(line) {
-                // Look for snippet in next few lines
-                let mut snippet = String::new();
-                for next_line in lines.iter().skip(i + 1).take(5) {
+                // Look for snippet in next few lines - collect multiple lines for better content
+                let mut snippet_lines: Vec<&str> = Vec::new();
+                for next_line in lines.iter().skip(i + 1).take(15) {
                     let next_line = next_line.trim();
                     // Skip empty lines and domain links
                     if next_line.is_empty() || next_line.starts_with('[') {
@@ -137,13 +137,16 @@ fn parse_ddg_markdown(markdown: &str, limit: usize) -> Result<Vec<ResolvedResult
                     if next_line.starts_with('#') || next_line.contains("Feedback") {
                         break;
                     }
-                    // This is snippet content
-                    if !snippet.is_empty() {
-                        snippet.push(' ');
-                    }
-                    snippet.push_str(next_line);
-                    break;
+                    // This is snippet content - collect multiple lines
+                    snippet_lines.push(next_line);
                 }
+
+                // Join collected lines, limiting total snippet length
+                let snippet: String = snippet_lines
+                    .join(" ")
+                    .chars()
+                    .take(800)
+                    .collect();
 
                 let content = if snippet.is_empty() {
                     Some(title.clone())
@@ -151,7 +154,13 @@ fn parse_ddg_markdown(markdown: &str, limit: usize) -> Result<Vec<ResolvedResult
                     Some(snippet)
                 };
 
-                results.push(ResolvedResult::new(url, content, "duckduckgo", 0.5));
+                // Improved base score for better content
+                let base_score = if content.as_ref().map_or(0, |c| c.len()) >= 500 {
+                    0.75
+                } else {
+                    0.60
+                };
+                results.push(ResolvedResult::new(url, content, "duckduckgo", base_score));
             }
         }
 

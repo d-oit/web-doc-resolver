@@ -142,9 +142,10 @@ fn parse_exa_mcp_text(response: &ExaMcpResponse) -> Vec<ResolvedResult> {
                 if let Some(title) = line.strip_prefix("Title: ") {
                     let mut url: Option<String> = None;
                     let mut highlights = String::new();
+                    let mut description = String::new();
 
-                    // Look for URL and Highlights in next lines
-                    for j in (i + 1)..std::cmp::min(i + 15, lines.len()) {
+                    // Look for URL, Highlights, and other fields in next lines
+                    for j in (i + 1)..std::cmp::min(i + 25, lines.len()) {
                         if lines[j].starts_with("Title: ") {
                             // Next result starts, stop looking
                             break;
@@ -153,7 +154,8 @@ fn parse_exa_mcp_text(response: &ExaMcpResponse) -> Vec<ResolvedResult> {
                             url = Some(url_str.to_string());
                         } else if lines[j].starts_with("Highlights:") {
                             // Collect highlight lines until --- or next Title
-                            for highlight_line in lines.iter().skip(j + 1).take(30) {
+                            // Increased from 30 to 100 for more content
+                            for highlight_line in lines.iter().skip(j + 1).take(100) {
                                 if highlight_line.starts_with("---")
                                     || highlight_line.starts_with("Title: ")
                                 {
@@ -166,19 +168,31 @@ fn parse_exa_mcp_text(response: &ExaMcpResponse) -> Vec<ResolvedResult> {
                                     highlights.push_str(highlight_line.trim());
                                 }
                             }
-                            break;
+                        } else if let Some(desc) = lines[j].strip_prefix("Description: ") {
+                            description = desc.to_string();
                         } else if lines[j].starts_with("---") {
                             break;
                         }
                     }
 
                     if let Some(url) = url {
-                        let content = if highlights.is_empty() {
-                            Some(title.to_string())
-                        } else {
+                        // Use highlights first, then description as fallback
+                        let content = if !highlights.is_empty() {
                             Some(highlights)
+                        } else if !description.is_empty() {
+                            Some(description)
+                        } else {
+                            Some(title.to_string())
                         };
-                        results.push(ResolvedResult::new(url, content, "exa_mcp", 0.7));
+
+                        // Improved base score based on content length
+                        let base_score = match content.as_ref().map_or(0, |c| c.len()) {
+                            l if l >= 500 => 0.80,
+                            l if l >= 300 => 0.75,
+                            l if l >= 150 => 0.70,
+                            _ => 0.65,
+                        };
+                        results.push(ResolvedResult::new(url, content, "exa_mcp", base_score));
                     }
                 }
 

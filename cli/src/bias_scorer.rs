@@ -20,18 +20,30 @@ pub fn score_result(url: &str, content: &str) -> f64 {
             score += 0.1;
         }
 
-        let dev_sites = ["github.com", "stackoverflow.com", "docs.rs", "mozilla.org"];
+        let dev_sites = ["github.com", "stackoverflow.com", "docs.rs", "mozilla.org", "rust-lang.org", "tokio.rs"];
         if dev_sites.iter().any(|&site| domain.contains(site)) {
             score += 0.2;
         }
     }
 
-    // Content quality heuristics
+    // Content quality heuristics - graduated scoring
     let word_count = content.split_whitespace().count();
     if word_count > 500 {
+        score += 0.2;
+    } else if word_count > 300 {
+        score += 0.15;
+    } else if word_count > 150 {
         score += 0.1;
     } else if word_count < 50 {
-        score -= 0.2;
+        score -= 0.15;
+    }
+
+    // Content length bonus (characters)
+    let char_count = content.len();
+    if char_count > 2000 {
+        score += 0.1;
+    } else if char_count > 1000 {
+        score += 0.05;
     }
 
     // SEO spam detection
