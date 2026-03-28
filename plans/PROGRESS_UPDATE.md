@@ -1,4 +1,4 @@
-# Progress Update - 2026-03-27
+# Progress Update - 2026-03-28
 
 ## Status Summary
 
@@ -13,8 +13,40 @@
 | CLI Testing | ✅ COMPLETE | URL cascade verified, bugs documented |
 | Bug Documentation | ✅ COMPLETE | All pre-existing bugs documented with solutions |
 | CLI Bug Fixes | ✅ COMPLETE | exa_mcp, quality gate, duckduckgo URL extraction |
+| DuckDuckGo CAPTCHA Fix | ✅ COMPLETE | Jina Reader proxy bypass |
+| Provider Verification | ✅ COMPLETE | All API keys verified working |
 
 ## Completed Actions
+
+### 2026-03-28
+
+**PR #153 Merged**: fix(duckduckgo): use Jina Reader proxy to bypass CAPTCHA
+
+#### DuckDuckGo Fix
+- DuckDuckGo HTML endpoint blocks automated requests with CAPTCHA
+- Solution: Use Jina Reader (`r.jina.ai`) as proxy
+- Parses markdown output instead of HTML
+- Decodes `uddg=` redirect URLs
+
+#### Provider Verification
+- Tested all API keys from `.env`:
+  - `TAVILY_API_KEY` → ✅ Working (score: 0.99)
+  - `SERPER_API_KEY` → ✅ Working (2499/2500 credits, score: 0.80)
+  - `MISTRAL_API_KEY` → ✅ Working (score: 0.80)
+  - `FIRECRAWL_API_KEY` → ✅ Working (score: 0.95)
+  - `NVIDIA_API_KEY` → Not used by CLI
+- All free providers working:
+  - `exa_mcp` → ✅ Working (score: 0.70)
+  - `duckduckgo` → ✅ Working via Jina (score: 0.50)
+  - `jina` → ✅ Working (score: 0.95)
+
+#### Documentation
+- Created `plans/PROVIDER_TEST_RESULTS_2026_03_28.md` with:
+  - Environment setup instructions
+  - All provider test results
+  - Cascade debug trace explanation
+  - DuckDuckGo implementation details
+  - Logging level documentation
 
 ### 2026-03-27
 
