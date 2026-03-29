@@ -6,54 +6,84 @@ license: MIT
 
 # Skill Creator
 
-Create and improve skills. A skill extends capabilities with specialized knowledge, workflows, and tools.
+Create and improve skills following the Agent Skills specification. A skill extends agent capabilities with specialized knowledge, workflows, and tools.
 
 ## Core Loop
 
 1. **Capture intent** - What should the skill do? When should it trigger?
 2. **Write draft** - Create SKILL.md with frontmatter and instructions
-3. **Create test cases** - 2-3 realistic prompts users would actually say
+3. **Create test cases** - Realistic prompts users would actually say
 4. **Run evals** - Test with-skill vs baseline (or old version)
 5. **Review results** - Use eval-viewer for human review + benchmarks
 6. **Iterate** - Improve based on feedback until satisfied
 7. **Optimize description** - Fine-tune frontmatter for better triggering
 
-## Skill Structure
+---
+
+## Skill Specification
+
+### Directory Structure
 
 ```
 skill-name/
-├── SKILL.md (required)
-│   ├── YAML frontmatter (name, description required)
-│   └── Markdown instructions (<250 lines)
-└── Bundled Resources (optional)
-    ├── scripts/    - Executable code for deterministic tasks
-    ├── references/ - Docs loaded into context as needed
-    └── assets/     - Files used in output (templates, icons)
+├── SKILL.md          # Required: metadata + instructions
+├── scripts/          # Optional: executable code
+├── references/       # Optional: documentation
+├── assets/           # Optional: templates, resources
+└── evals/            # Optional: test cases
 ```
 
-### Frontmatter
+### Frontmatter Fields
 
-```yaml
+| Field | Required | Constraints |
+|-------|----------|-------------|
+| `name` | Yes | Max 64 chars. Lowercase letters, numbers, hyphens only. |
+| `description` | Yes | Max 1024 chars. Describes what the skill does AND when to use it. |
+| `license` | No | License name or reference to bundled license file. |
+| `compatibility` | No | Max 500 chars. Environment requirements. |
+| `metadata` | No | Arbitrary key-value mapping. |
+| `allowed-tools` | No | Space-delimited list of pre-approved tools. |
+
+### SKILL.md Body
+
+- Keep under **250 lines**
+- Use progressive disclosure: move detailed content to `references/`
+- Include step-by-step instructions, examples, and common edge cases
+
 ---
-name: my-skill
-description: Clear description of what the skill does AND when to use it.
+
+## Optimizing Skill Descriptions
+
+### Core Writing Principles
+
+1. **Use imperative phrasing** — "Use this skill when..." rather than "This skill does..."
+2. **Focus on user intent, not implementation** — Describe what the user is trying to achieve
+3. **Err on the side of being pushy** — Explicitly list contexts where the skill applies
+4. **Keep it concise** — A few sentences; max 1024 characters
+
+### Testing & Evaluation
+
+5. **Design trigger eval queries** — Create ~20 realistic prompts (8-10 should-trigger, 8-10 should-not-trigger)
+6. **Vary should-trigger queries** along multiple axes: phrasing, explicitness, detail, complexity
+7. **Create strong should-not-trigger queries** — Use near-misses that share keywords but need something different
+8. **Run each query multiple times** — Model behavior is nondeterministic; run 3 times
+9. **Use train/validation splits** — ~60% train / ~40% validation
+
+### The Optimization Loop
+
+10. **Evaluate on both sets** — Train results guide changes; validation tells if changes generalize
+11. **Identify failures in train set only** — Keep validation results hidden during iteration
+12. **Revise strategically:**
+    - Should-trigger failing → broaden scope or add context
+    - Should-not-trigger false-triggering → add specificity about what the skill does *not* do
+13. **Select best iteration by validation pass rate**
+14. **Check the 1024-character limit**
+
 ---
-```
-
-Make descriptions "pushy" to avoid undertriggering. Include specific triggers.
-
-### Progressive Disclosure
-
-1. **Metadata** - Always in context (~100 words)
-2. **SKILL.md body** - When skill triggers (<500 lines)
-3. **Bundled resources** - As needed (scripts can execute without loading)
-
-Keep SKILL.md under 250 lines. Use references/ for additional detail.
 
 ## Creating Test Cases
 
-After writing the draft, create 2-3 realistic test prompts. Save to `evals/evals.json`:
-
+Store in `evals/evals.json`:
 ```json
 {
   "skill_name": "example-skill",
@@ -63,85 +93,27 @@ After writing the draft, create 2-3 realistic test prompts. Save to `evals/evals
       "prompt": "User's task prompt",
       "expected_output": "Description of expected result",
       "files": [],
-      "expectations": ["The output includes X"]
+      "assertions": ["The output includes X"]
     }
   ]
 }
 ```
 
-## Running Evals
+### Test Case Guidelines
 
-### Step 1: Spawn all runs in parallel
+- **Realism**: Add file paths, personal context, specific details, casual language
+- **Variety**: Mix formal/casual, terse/context-heavy, single-step/multi-step
+- **Near-misses**: Include queries that share keywords but need something different
 
-For each test case, spawn two subagents - one with skill, one without (baseline).
-
-**Workspace structure:**
-```
-<skill-name>-workspace/
-└── iteration-1/
-    ├── eval-0/
-    │   ├── with_skill/outputs/
-    │   ├── without_skill/outputs/
-    │   └── eval_metadata.json
-    └── timing.json
-```
-
-### Step 2: Capture timing data
-
-When subagent tasks complete, save timing.json immediately:
-
-```json
-{
-  "total_tokens": 84852,
-  "duration_ms": 23332,
-  "total_duration_seconds": 23.3
-}
-```
-
-### Step 3: Grade and aggregate
-
-1. Grade each run with grader subagent (read `agents/grader.md`)
-2. Run `python -m scripts.aggregate_benchmark <workspace>/iteration-N`
-3. Launch viewer: `python eval-viewer/generate_review.py <workspace>`
-
-### Step 4: Review with user
-
-The viewer shows qualitative outputs and quantitative benchmarks. User provides feedback via text boxes. Read feedback from `feedback.json` when complete.
-
-## Improving Skills
-
-Based on feedback:
-1. **Generalize** - Don't overfit to specific examples
-2. **Remove bloat** - Keep the prompt lean
-3. **Explain why** - LLMs understand reasoning, not just rules
-4. **Bundle repeated work** - If all test cases write similar scripts, add them to scripts/
-
-Then iterate: rerun evals, review, improve again.
-
-## Description Optimization
-
-After the skill is working well, optimize the frontmatter description for better triggering:
-
-1. **Generate eval queries** - 20 queries (8-10 should-trigger, 8-10 should-not-trigger). Realistic, specific, with file paths, context. Include near-misses that share keywords but need something different.
-
-2. **Run optimization loop**:
-```bash
-python -m scripts.run_loop \
-  --eval-set <path/to/queries.json> \
-  --skill-path <path/to/skill> \
-  --model <current-model> \
-  --max-iterations 5 \
-  --verbose
-```
-
-3. **Apply best description** - Update SKILL.md frontmatter
+---
 
 ## Reference Files
 
-- `agents/grader.md` - How to evaluate assertions against outputs
-- `agents/comparator.md` - Blind A/B comparison between outputs
-- `agents/analyzer.md` - Post-hoc analysis and benchmark analysis
-- `references/schemas.md` - JSON structures for evals.json, grading.json, etc.
+- `references/best-practices.md` - Best practices for skill creators
+- `references/evaluating-skills.md` - Evaluating skill output quality
+- `references/schemas.md` - JSON structures for evals.json, grading.json
+- `references/output-patterns.md` - Common output patterns
+- `references/workflows.md` - Common workflow patterns
 
 ## Packaging
 
