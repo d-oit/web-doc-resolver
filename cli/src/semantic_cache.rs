@@ -23,7 +23,10 @@ use crate::config::Config;
 use crate::types::ResolvedResult;
 
 #[cfg(feature = "semantic-cache")]
-use {chaotic_semantic_memory::prelude::*, serde_json::Value, std::collections::HashMap};
+use {
+    chaotic_semantic_memory::encoder::TextEncoder, chaotic_semantic_memory::prelude::*,
+    serde_json::Value, std::collections::HashMap,
+};
 
 // Use std::result::Result explicitly to avoid conflict with chaotic_semantic_memory::Result
 type StdResult<T, E> = std::result::Result<T, E>;
@@ -60,6 +63,8 @@ pub struct SemanticCache {
     framework: ChaoticSemanticFramework,
     #[cfg(feature = "semantic-cache")]
     config: SemanticCacheConfig,
+    #[cfg(feature = "semantic-cache")]
+    encoder: TextEncoder,
     /// In-memory cache for non-feature builds
     #[cfg(not(feature = "semantic-cache"))]
     _phantom: std::marker::PhantomData<()>,
@@ -90,9 +95,9 @@ impl Default for SemanticCacheConfig {
 }
 
 impl SemanticCache {
-    /// Initialize semantic cache from config
+    /// Initialize semantic cache from config (async)
     #[cfg(feature = "semantic-cache")]
-    pub fn new(config: &Config) -> StdResult<Option<Self>, ResolverError> {
+    pub async fn new(config: &Config) -> StdResult<Option<Self>, ResolverError> {
         if !config.semantic_cache.enabled {
             tracing::debug!("Semantic cache disabled");
             return Ok(None);
@@ -114,18 +119,16 @@ impl SemanticCache {
 
         let db_path = std::path::Path::new(&cache_config.path).join("semantic.db");
 
-        let framework = tokio::runtime::Handle::current()
-            .block_on(async {
-                ChaoticSemanticFramework::builder()
-                    .with_local_db(db_path.to_str().unwrap_or("memory.db"))
-                    .build()
-                    .await
-            })
+        let framework = ChaoticSemanticFramework::builder()
+            .with_local_db(db_path.to_str().unwrap_or("memory.db"))
+            .build()
+            .await
             .map_err(|e| ResolverError::Config(e.to_string()))?;
 
         Ok(Some(Self {
             framework,
             config: cache_config,
+            encoder: TextEncoder::new(),
         }))
     }
 
@@ -211,8 +214,15 @@ impl SemanticCache {
         results: &[ResolvedResult],
         provider: &str,
     ) -> StdResult<(), ResolverError> {
-        // Generate query vector
+        // Generate query vector (normalizes internally)
         let query_vector = self.encode_query(query);
+
+        // Normalize query for consistent ID
+        let normalized: String = query
+            .to_lowercase()
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ");
 
         // Create metadata HashMap
         let mut metadata = HashMap::new();
@@ -229,7 +239,7 @@ impl SemanticCache {
         );
 
         self.framework
-            .inject_concept_with_metadata(query.to_string(), query_vector, metadata)
+            .inject_concept_with_metadata(normalized.clone(), query_vector, metadata)
             .await
             .map_err(|e| ResolverError::Cache(format!("inject failed: {}", e)))?;
 
@@ -250,6 +260,33 @@ impl SemanticCache {
         _results: &[ResolvedResult],
         _provider: &str,
     ) -> StdResult<(), ResolverError> {
+        Ok(())
+    }
+
+    /// Remove a cached entry by query
+    #[cfg(feature = "semantic-cache")]
+    pub async fn remove(&self, query: &str) -> StdResult<(), ResolverError> {
+        // Normalize query to match how it was stored
+        let normalized: String = query
+            .to_lowercase()
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ");
+
+        // Use the normalized query as the concept ID
+        self.framework
+            .delete_concept(&normalized)
+            .await
+            .map_err(|e| ResolverError::Cache(format!("delete failed: {}", e)))?;
+
+        tracing::info!("Removed from semantic cache: query='{}'", query);
+        Ok(())
+    }
+
+    /// Remove a cached entry (no-op without feature)
+    #[cfg(not(feature = "semantic-cache"))]
+    #[allow(dead_code)]
+    pub async fn remove(&self, _query: &str) -> StdResult<(), ResolverError> {
         Ok(())
     }
 
@@ -297,8 +334,6 @@ impl SemanticCache {
     /// Encode query to semantic vector
     #[cfg(feature = "semantic-cache")]
     fn encode_query(&self, query: &str) -> HVec10240 {
-        use chaotic_semantic_memory::hyperdim::HVec10240;
-
         // Normalize query for better matching: lowercase, trim, collapse whitespace
         let normalized: String = query
             .to_lowercase()
@@ -306,10 +341,8 @@ impl SemanticCache {
             .collect::<Vec<_>>()
             .join(" ");
 
-        // Use inject_text_with_metadata encoding path via direct hypervector generation
-        // The framework's built-in encoder is used for inject_text, but for probe we need
-        // to generate a compatible vector. Use the same normalizer for consistency.
-        HVec10240::from_bytes(normalized.as_bytes()).expect("Failed to encode query vector")
+        // Use TextEncoder for proper semantic encoding
+        self.encoder.encode(&normalized)
     }
 
     /// Encode query (no-op without feature)

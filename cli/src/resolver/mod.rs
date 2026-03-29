@@ -52,14 +52,17 @@ pub struct Resolver {
 }
 
 impl Resolver {
-    /// Create a new resolver with default config
-    pub fn new() -> Self {
-        Self::with_config(Config::default())
+    /// Create a new resolver with default config (async for semantic cache init)
+    pub async fn new() -> Self {
+        Self::with_config(Config::default()).await
     }
 
-    /// Create a new resolver with custom config
-    pub fn with_config(config: Config) -> Self {
-        let cache = SemanticCache::new(&config).ok().flatten();
+    /// Create a new resolver with custom config (async for semantic cache init)
+    pub async fn with_config(config: Config) -> Self {
+        #[cfg(feature = "semantic-cache")]
+        let cache = SemanticCache::new(&config).await.ok().flatten();
+        #[cfg(not(feature = "semantic-cache"))]
+        let cache: Option<SemanticCache> = None;
         Self {
             config,
             cache,
@@ -239,11 +242,7 @@ impl Resolver {
     }
 }
 
-impl Default for Resolver {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+// Note: Default trait removed because Resolver::new() is now async
 
 #[cfg(test)]
 mod tests {
@@ -258,9 +257,9 @@ mod tests {
         assert!(!is_url("just some text"));
     }
 
-    #[test]
-    fn test_resolver_creation() {
-        let resolver = Resolver::new();
+    #[tokio::test]
+    async fn test_resolver_creation() {
+        let resolver = Resolver::new().await;
         assert!(resolver.config.max_chars > 0);
     }
 }

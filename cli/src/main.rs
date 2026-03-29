@@ -109,7 +109,7 @@ async fn handle_resolve(
     if skip_cache {
         config.semantic_cache.enabled = false;
     }
-    let resolver = Resolver::with_config(config);
+    let resolver = Resolver::with_config(config).await;
 
     let result = if synthesize {
         resolver.resolve_aggregated(input).await
@@ -207,17 +207,25 @@ fn main() -> ExitCode {
             Ok(())
         }
         do_wdr_lib::cli::Commands::CacheStats => {
-            let config = Config::load();
-            tokio::runtime::Runtime::new().unwrap().block_on(async {
-                if let Some(cache) = do_wdr_lib::SemanticCache::new(&config)? {
-                    let stats = cache.stats().await?;
-                    do_wdr_lib::output::CacheStatsOutput::print(&stats);
-                    Ok(())
-                } else {
-                    eprintln!("Info: Semantic cache is disabled");
-                    Ok(())
-                }
-            })
+            #[cfg(feature = "semantic-cache")]
+            {
+                let config = Config::load();
+                tokio::runtime::Runtime::new().unwrap().block_on(async {
+                    if let Some(cache) = do_wdr_lib::SemanticCache::new(&config).await? {
+                        let stats = cache.stats().await?;
+                        do_wdr_lib::output::CacheStatsOutput::print(&stats);
+                        Ok(())
+                    } else {
+                        eprintln!("Info: Semantic cache is disabled");
+                        Ok(())
+                    }
+                })
+            }
+            #[cfg(not(feature = "semantic-cache"))]
+            {
+                eprintln!("Info: Semantic cache feature not enabled");
+                Ok(())
+            }
         }
     };
 
