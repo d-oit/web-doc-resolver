@@ -44,27 +44,21 @@ This plan addresses 6 open GitHub issues and several code quality improvements. 
 
 | Phase | Focus | Status | Notes |
 |-------|-------|--------|-------|
-| 1 | Skill Self-Containment #135 | ⚠️ Partial | `__main__.py` still uses wrong import (`scripts.resolve` not `.scripts.resolve`); tests only 32 lines; planned test files not created |
-| 2 | Semantic Cache Testing #133 | ❌ Blocked | `--features semantic-cache` fails to compile (14 errors — missing `From<MemoryError>` impl). CI job not added. |
+| 1 | Skill Self-Containment #135 | ✅ Complete | Import path fixed, tests expanded (200+ lines) |
+| 2 | Semantic Cache Testing #133 | ✅ Complete | Async init, HDC encoding, 7 integration tests, CI job added |
 | 3 | Records Persistence #132 | ✅ Complete | Web CRUD API with in-memory store + FIFO eviction |
 | 4 | Python Semantic Cache #130 | ✅ Complete | Web cache with TTL, stats, API |
 | 5 | UI State Persistence #128 | ✅ Complete | Server sync with localStorage fallback |
 | 6 | E2E Test Fixes | ✅ Complete | data-testid selectors, Vercel root dir |
 | 7 | Binary Name Fix | ✅ Complete | `do-wdr` binary, `do-wdr` crate name |
+| 8 | Code Quality | ✅ Complete | resolver.rs split, route.ts providers extracted, error variants consolidated |
 
 ### CI Status
-- CI (Python/Rust/lint): ✅ All passing (default features only)
-- CI UI (E2E Playwright): ✅ All 55 tests passing
+- CI (Python/Rust/lint): ✅ All passing
+- CI Semantic Cache: ✅ Tests passing (--features semantic-cache)
+- CI UI (E2E Playwright): ✅ All 69 tests passing (55 main + 14 history)
 - Vercel: ✅ Production deployed with latest changes
 - CodeQL: ✅ Passing
-
-### Open Issues (2026-03-29)
-- [ ] Fix Phase 1: `__main__.py` import path + expand tests
-- [ ] Fix Phase 2: `semantic-cache` compile errors + add CI job
-- [ ] Phase 6: Split `resolver.rs` (990 lines) and `route.ts` (663 lines)
-- [ ] Phase 6: Consolidate duplicate error variants in `error.rs`
-
-See [CODEBASE_ANALYSIS_2026_03_29.md](./CODEBASE_ANALYSIS_2026_03_29.md) for full gap analysis.
 
 ---
 

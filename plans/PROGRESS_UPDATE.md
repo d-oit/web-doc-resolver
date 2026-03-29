@@ -10,15 +10,17 @@
 | Performance | ✅ COMPLETE | LRU cache eviction, records size limits |
 | Unit Tests | ✅ COMPLETE | 80 tests for validation, rate-limit, cache, records |
 | E2E Tests Fix | ✅ COMPLETE | Fixed loading state aria-label, CI runs local build |
+| E2E History Tests | ✅ COMPLETE | 14 tests for history panel, CRUD, persistence, accessibility |
 | CLI Testing | ✅ COMPLETE | URL cascade verified, bugs documented |
 | Bug Documentation | ✅ COMPLETE | All pre-existing bugs documented with solutions |
 | CLI Bug Fixes | ✅ COMPLETE | exa_mcp, quality gate, duckduckgo URL extraction |
 | DuckDuckGo CAPTCHA Fix | ✅ COMPLETE | Jina Reader proxy bypass |
 | Provider Verification | ✅ COMPLETE | All API keys verified working |
-| **Semantic cache compile** | ❌ BLOCKED | `--features semantic-cache` has 14 compile errors (missing From impl) |
-| **Skill self-containment** | ⚠️ PARTIAL | `__main__.py` wrong import; tests minimal (32 lines) |
-| **File size limits** | ⚠️ OVERDUE | `resolver.rs` (990), `route.ts` (663) exceed 500-line max |
-| **Error variant cleanup** | ⚠️ OVERDUE | 6 duplicate variant pairs in `error.rs` |
+| Semantic cache compile | ✅ COMPLETE | Async init, HDC encoding, remove() method (PR #164) |
+| Skill self-containment | ✅ COMPLETE | Import path fixed, tests expanded (200+ lines) |
+| File size limits | ✅ COMPLETE | resolver.rs split, route.ts providers extracted |
+| Error variant cleanup | ✅ COMPLETE | Consolidated duplicates in error.rs |
+| Semantic cache CI | ✅ COMPLETE | Added test job to GitHub Actions |
 
 ## Open Items (2026-03-29)
 
