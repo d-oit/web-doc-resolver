@@ -84,7 +84,12 @@ def resolve_with_exa_mcp(query: str, max_chars: int = MAX_CHARS) -> ResolvedResu
             "params": {"name": "web_search_exa", "arguments": {"query": query, "numResults": 8}},
         }
         session = get_session()
-        response = session.post("https://mcp.exa.ai/mcp", json=mcp_request, timeout=25)
+        response = session.post(
+            "https://mcp.exa.ai/mcp",
+            json=mcp_request,
+            headers={"Accept": "application/json, text/event-stream"},
+            timeout=25,
+        )
         if response.status_code != 200:
             return None
         for line in response.text.split("\n"):

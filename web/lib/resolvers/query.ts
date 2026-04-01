@@ -30,7 +30,10 @@ export async function searchViaExaMcp(query: string, log: Logger): Promise<strin
     };
     const res = await fetchWithTimeout("https://mcp.exa.ai/mcp", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json, text/event-stream",
+      },
       body: JSON.stringify(mcpRequest),
     });
     if (!res.ok) {
