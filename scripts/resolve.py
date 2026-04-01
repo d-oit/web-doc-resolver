@@ -40,6 +40,7 @@ from scripts.providers_impl import (
     resolve_with_mistral_browser,
     resolve_with_mistral_websearch,
     resolve_with_ocr,
+    resolve_with_serper,
     resolve_with_tavily,
 )
 from scripts.utils import (
@@ -349,6 +350,7 @@ def resolve_query_stream(
         "exa_mcp": (ProviderType.EXA_MCP, resolve_with_exa_mcp),
         "exa": (ProviderType.EXA, resolve_with_exa),
         "tavily": (ProviderType.TAVILY, resolve_with_tavily),
+        "serper": (ProviderType.SERPER, resolve_with_serper),
         "duckduckgo": (ProviderType.DUCKDUCKGO, resolve_with_duckduckgo),
         "mistral_websearch": (ProviderType.MISTRAL_WEBSEARCH, resolve_with_mistral_websearch),
     }

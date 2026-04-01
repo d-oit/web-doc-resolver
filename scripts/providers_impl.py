@@ -154,6 +154,54 @@ def resolve_with_tavily(query: str, max_chars: int = MAX_CHARS) -> ResolvedResul
         return None
 
 
+def resolve_with_serper(query: str, max_chars: int = MAX_CHARS) -> ResolvedResult | None:
+    """Search via Serper (Google Search API). Free tier: 2500 credits."""
+    cached = _get_from_cache(query, "serper")
+    if cached:
+        return ResolvedResult(**cached)
+    api_key = os.getenv("SERPER_API_KEY")
+    if not api_key or _is_rate_limited("serper"):
+        return None
+    try:
+        session = get_session()
+        response = session.post(
+            "https://google.serper.dev/search",
+            headers={
+                "X-API-KEY": api_key,
+                "Content-Type": "application/json",
+            },
+            json={"q": query, "num": 5},
+            timeout=DEFAULT_TIMEOUT,
+        )
+        if response.status_code == 429:
+            _set_rate_limit("serper", 3600)  # 1 hour cooldown
+            return None
+        if response.status_code == 401 or response.status_code == 403:
+            return None
+        if response.status_code != 200:
+            return None
+        data = response.json()
+        organic = data.get("organic", [])
+        if not organic:
+            return None
+        # Format results as markdown
+        parts = []
+        for r in organic:
+            title = r.get("title", "")
+            link = r.get("link", "")
+            snippet = r.get("snippet", "")
+            if title and snippet:
+                parts.append(f"## {title}\n\n{snippet}\n\n[{link}]({link})")
+        if not parts:
+            return None
+        content = "\n\n---\n\n".join(parts)
+        result = ResolvedResult(source="serper", content=content[:max_chars], query=query)
+        _save_to_cache(query, "serper", result.to_dict())
+        return result
+    except Exception:
+        return None
+
+
 def resolve_with_duckduckgo(query: str, max_chars: int = MAX_CHARS) -> ResolvedResult | None:
     cached = _get_from_cache(query, "duckduckgo")
     if cached:
