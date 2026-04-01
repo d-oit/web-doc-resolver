@@ -208,7 +208,7 @@ def plan_provider_order(
                 "duckduckgo",
             ]
     else:
-        base = ["exa_mcp", "exa", "tavily", "duckduckgo", "mistral_websearch"]
+        base = ["exa_mcp", "exa", "tavily", "serper", "duckduckgo", "mistral_websearch"]
 
     skip_providers = skip_providers or set()
 

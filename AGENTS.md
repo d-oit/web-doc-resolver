@@ -16,6 +16,9 @@ cd cli && cargo build --release
 # Web UI (Next.js + Playwright)
 cd web && npm install && npx playwright install chromium
 
+# CLI UI (design system)
+cd cli/ui && pnpm install
+
 # Git hooks (validates skill symlink on commit + quality gate)
 ./scripts/setup-hooks.sh
 cp scripts/pre-commit-hook.sh .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
@@ -60,7 +63,7 @@ rm -rf cli/target/debug/
 - Docstrings on all public functions and classes
 
 ### Rust (CLI)
-- Rust stable, edition 2021
+- Rust stable, edition 2024
 - `cargo fmt` + `cargo clippy -- -D warnings` must pass
 - **Maximum 500 lines per source file** — split into sub-modules if exceeded
 - Each provider in its own module under `cli/src/providers/`
@@ -94,7 +97,8 @@ do-web-doc-resolver/
 │       └── capture-responsive.sh
 ├── cli/                   # Rust CLI (do-wdr binary)
 │   ├── Cargo.toml
-│   └── src/
+│   ├── src/
+│   └── ui/                # Design system (tokens, components, Storybook)
 ├── web/                   # Next.js web UI (Vercel deployed)
 │   ├── app/               # App Router pages & layout
 │   ├── tests/e2e/         # Playwright E2E tests

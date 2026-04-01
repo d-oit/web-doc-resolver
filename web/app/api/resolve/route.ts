@@ -5,25 +5,8 @@ import { scoreContent, QualityScore } from "@/lib/quality";
 import * as cache from "@/lib/cache";
 import { save as saveRecord } from "@/lib/records";
 import { Logger } from "@/lib/log";
-import {
-  searchViaExaMcp,
-  searchViaExaSdk,
-  searchViaSerper,
-  searchViaTavily,
-  searchViaDuckDuckGoLite,
-  searchViaDuckDuckGoFree,
-  searchViaMistralWeb,
-  searchViaExaMcpWithMistral,
-  MAX_CHARS as QUERY_MAX_CHARS,
-} from "@/lib/resolvers/query";
-import {
-  extractViaJina,
-  extractViaDirectFetch,
-  extractViaFirecrawl,
-  extractViaMistralBrowser,
-  extractViaLlmsTxt,
-  MAX_CHARS as URL_MAX_CHARS,
-} from "@/lib/resolvers/url";
+import { searchViaExaMcpWithMistral } from "@/lib/resolvers/query";
+import { validateUrl, queryProviders, urlProviders, ProviderKeys } from "@/lib/resolvers/index";
 
 // Allow up to 60 seconds for resolver operations
 export const maxDuration = 60;
@@ -32,15 +15,6 @@ const DEFAULT_MAX_CHARS = parseInt(process.env.WEB_RESOLVER_MAX_CHARS || "8000")
 
 // Singleton circuit breaker registry (survives across warm invocations)
 const circuitBreakers = new CircuitBreakerRegistry();
-
-// Provider keys - can come from env vars or request body
-interface ProviderKeys {
-  SERPER_API_KEY?: string;
-  TAVILY_API_KEY?: string;
-  EXA_API_KEY?: string;
-  FIRECRAWL_API_KEY?: string;
-  MISTRAL_API_KEY?: string;
-}
 
 function isUrl(input: string): boolean {
   return /^https?:\/\/\S+$/i.test(input.trim());
@@ -54,24 +28,23 @@ async function runQueryProvider(
   log: Logger,
   maxChars: number
 ): Promise<string | null> {
-  switch (provider) {
-    case "exa_mcp":
-      return searchViaExaMcp(query, log);
-    case "exa":
-      return searchViaExaSdk(query, keys.EXA_API_KEY || process.env.EXA_API_KEY || "", log);
-    case "serper":
-      return searchViaSerper(query, keys.SERPER_API_KEY || process.env.SERPER_API_KEY || "", log);
-    case "tavily":
-      return searchViaTavily(query, keys.TAVILY_API_KEY || process.env.TAVILY_API_KEY || "", log);
-    case "duckduckgo":
-      return (await searchViaDuckDuckGoLite(query, log)) || searchViaDuckDuckGoFree(query, log);
-    case "mistral_websearch":
-      return searchViaMistralWeb(query, keys.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY || "", log);
-    case "exa_mcp_mistral":
-      return searchViaExaMcpWithMistral(query, keys.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY || "", log);
-    default:
-      return null;
+  // Special case: exa_mcp_mistral combo not in shared map
+  if (provider === "exa_mcp_mistral") {
+    return searchViaExaMcpWithMistral(query, keys.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY || "", log);
   }
+  // Validate provider against allowlist before dynamic dispatch
+  const allowedProviders = ["exa_mcp", "exa", "serper", "tavily", "duckduckgo", "mistral_websearch"];
+  if (!allowedProviders.includes(provider)) return null;
+  const fn = queryProviders[provider];
+  if (!fn) return null;
+  // Merge process.env fallbacks into keys
+  const mergedKeys: ProviderKeys = { ...keys };
+  if (!mergedKeys.EXA_API_KEY && process.env.EXA_API_KEY) mergedKeys.EXA_API_KEY = process.env.EXA_API_KEY;
+  if (!mergedKeys.SERPER_API_KEY && process.env.SERPER_API_KEY) mergedKeys.SERPER_API_KEY = process.env.SERPER_API_KEY;
+  if (!mergedKeys.TAVILY_API_KEY && process.env.TAVILY_API_KEY) mergedKeys.TAVILY_API_KEY = process.env.TAVILY_API_KEY;
+  if (!mergedKeys.FIRECRAWL_API_KEY && process.env.FIRECRAWL_API_KEY) mergedKeys.FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
+  if (!mergedKeys.MISTRAL_API_KEY && process.env.MISTRAL_API_KEY) mergedKeys.MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
+  return fn(query, mergedKeys, log);
 }
 
 // URL provider functions using Logger
@@ -82,20 +55,19 @@ async function runUrlProvider(
   log: Logger,
   maxChars: number
 ): Promise<string | null> {
-  switch (provider) {
-    case "llms_txt":
-      return extractViaLlmsTxt(url, log);
-    case "jina":
-      return extractViaJina(url, log);
-    case "firecrawl":
-      return extractViaFirecrawl(url, keys.FIRECRAWL_API_KEY || process.env.FIRECRAWL_API_KEY || "", log);
-    case "direct_fetch":
-      return extractViaDirectFetch(url, log);
-    case "mistral_browser":
-      return extractViaMistralBrowser(url, keys.MISTRAL_API_KEY || process.env.MISTRAL_API_KEY || "", log);
-    default:
-      return null;
-  }
+  // Validate provider against allowlist before dynamic dispatch
+  const allowedProviders = ["llms_txt", "jina", "firecrawl", "direct_fetch", "mistral_browser"];
+  if (!allowedProviders.includes(provider)) return null;
+  const fn = urlProviders[provider];
+  if (!fn) return null;
+  // Merge process.env fallbacks into keys
+  const mergedKeys: ProviderKeys = { ...keys };
+  if (!mergedKeys.EXA_API_KEY && process.env.EXA_API_KEY) mergedKeys.EXA_API_KEY = process.env.EXA_API_KEY;
+  if (!mergedKeys.SERPER_API_KEY && process.env.SERPER_API_KEY) mergedKeys.SERPER_API_KEY = process.env.SERPER_API_KEY;
+  if (!mergedKeys.TAVILY_API_KEY && process.env.TAVILY_API_KEY) mergedKeys.TAVILY_API_KEY = process.env.TAVILY_API_KEY;
+  if (!mergedKeys.FIRECRAWL_API_KEY && process.env.FIRECRAWL_API_KEY) mergedKeys.FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
+  if (!mergedKeys.MISTRAL_API_KEY && process.env.MISTRAL_API_KEY) mergedKeys.MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
+  return fn(url, mergedKeys, log);
 }
 
 // Run providers sequentially with budget and circuit breaker
@@ -249,6 +221,14 @@ export async function POST(request: NextRequest) {
     const skipCache: boolean = body.skipCache || false;
     const urlMode = isUrl(input);
     const source = urlMode ? "url" : "query";
+
+    // Validate URL for SSRF protection
+    if (urlMode) {
+      const validation = validateUrl(input);
+      if (!validation.valid) {
+        return NextResponse.json({ error: validation.error || "Invalid URL" }, { status: 400 });
+      }
+    }
 
     // Check cache first
     if (!skipCache) {

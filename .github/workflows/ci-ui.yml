@@ -99,6 +99,25 @@ jobs:
       - run: npm run typecheck
         working-directory: web
 
+  web-test:
+    name: Unit Tests (web)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - run: npm ci
+        working-directory: web
+
+      - run: npm test
+        working-directory: web
+
   web-build:
     name: Build (web)
     runs-on: ubuntu-latest
@@ -161,7 +180,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: always()
-    needs: [lint, test, web-lint, web-typecheck, web-build]
+    needs: [lint, test, web-lint, web-typecheck, web-test, web-build]
     steps:
       - name: Check results
         run: |
@@ -170,6 +189,7 @@ jobs:
             "${{ needs.test.result }}"
             "${{ needs.web-lint.result }}"
             "${{ needs.web-typecheck.result }}"
+            "${{ needs.web-test.result }}"
             "${{ needs.web-build.result }}"
           )
           failed=false
