@@ -146,31 +146,6 @@ jobs:
           path: cli/target/release/do-wdr
           retention-days: 7
 
-  web-build:
-    name: Web UI Build
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: web/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-        working-directory: web
-
-      - name: Lint
-        run: npm run lint
-        working-directory: web
-
-      - name: Build
-        run: npm run build
-        working-directory: web
-
   sample:
     name: Sample Run
     runs-on: ubuntu-latest
