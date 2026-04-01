@@ -51,6 +51,7 @@ export default function Home() {
   const [providerStatus, setProviderStatus] = useState<string | null>(null);
   const [resolveTime, setResolveTime] = useState<number | null>(null);
   const [sourceProvider, setSourceProvider] = useState<string | null>(null);
+  const [qualityScore, setQualityScore] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -208,6 +209,7 @@ export default function Home() {
 
       setResult(data.markdown || data.result || "");
       setSourceProvider(data.provider || (activeProviders.length > 0 ? activeProviders.join(", ") : profile));
+      setQualityScore(data.quality?.score ?? null);
       const elapsed = Date.now() - startTime;
       setResolveTime(elapsed);
       setProviderStatus(null);
@@ -543,6 +545,7 @@ export default function Home() {
                     setProviderStatus(null);
                     setResolveTime(null);
                     setSourceProvider(null);
+                    setQualityScore(null);
                   }}
                   aria-label="Clear input and results"
                   className="bg-transparent text-[#888] px-4 py-2 text-[13px] border-2 border-[#333] hover:border-[#00ff41] hover:text-[#00ff41] min-h-[44px]"
@@ -583,6 +586,11 @@ export default function Home() {
                   </span>
                   {resolveTime && <span>{resolveTime}ms</span>}
                   <span>{charCount.toLocaleString()} chars</span>
+                  {qualityScore !== null && (
+                    <span title="Quality score (0-100)">
+                      Quality: <span className={qualityScore >= 70 ? "text-[#00ff41]" : qualityScore >= 40 ? "text-[#ffaa00]" : "text-[#ff4444]"}>{qualityScore}</span>
+                    </span>
+                  )}
                 </div>
                 <button
                   onClick={handleCopy}
