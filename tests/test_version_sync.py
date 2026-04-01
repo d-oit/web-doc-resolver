@@ -4,8 +4,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
 ROOT = Path(__file__).resolve().parent.parent
 SYNC_SCRIPT = ROOT / "scripts" / "sync_versions.py"
 
