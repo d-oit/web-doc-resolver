@@ -36,11 +36,11 @@ async function runQueryProvider(
   if (!fn) return null;
   // Merge process.env fallbacks into keys
   const mergedKeys: ProviderKeys = { ...keys };
-  if (!mergedKeys.EXA_API_KEY) mergedKeys.EXA_API_KEY = process.env.EXA_API_KEY;
-  if (!mergedKeys.SERPER_API_KEY) mergedKeys.SERPER_API_KEY = process.env.SERPER_API_KEY;
-  if (!mergedKeys.TAVILY_API_KEY) mergedKeys.TAVILY_API_KEY = process.env.TAVILY_API_KEY;
-  if (!mergedKeys.FIRECRAWL_API_KEY) mergedKeys.FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
-  if (!mergedKeys.MISTRAL_API_KEY) mergedKeys.MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
+  if (!mergedKeys.EXA_API_KEY && process.env.EXA_API_KEY) mergedKeys.EXA_API_KEY = process.env.EXA_API_KEY;
+  if (!mergedKeys.SERPER_API_KEY && process.env.SERPER_API_KEY) mergedKeys.SERPER_API_KEY = process.env.SERPER_API_KEY;
+  if (!mergedKeys.TAVILY_API_KEY && process.env.TAVILY_API_KEY) mergedKeys.TAVILY_API_KEY = process.env.TAVILY_API_KEY;
+  if (!mergedKeys.FIRECRAWL_API_KEY && process.env.FIRECRAWL_API_KEY) mergedKeys.FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
+  if (!mergedKeys.MISTRAL_API_KEY && process.env.MISTRAL_API_KEY) mergedKeys.MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
   return fn(query, mergedKeys, log);
 }
 
@@ -56,11 +56,11 @@ async function runUrlProvider(
   if (!fn) return null;
   // Merge process.env fallbacks into keys
   const mergedKeys: ProviderKeys = { ...keys };
-  if (!mergedKeys.EXA_API_KEY) mergedKeys.EXA_API_KEY = process.env.EXA_API_KEY;
-  if (!mergedKeys.SERPER_API_KEY) mergedKeys.SERPER_API_KEY = process.env.SERPER_API_KEY;
-  if (!mergedKeys.TAVILY_API_KEY) mergedKeys.TAVILY_API_KEY = process.env.TAVILY_API_KEY;
-  if (!mergedKeys.FIRECRAWL_API_KEY) mergedKeys.FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
-  if (!mergedKeys.MISTRAL_API_KEY) mergedKeys.MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
+  if (!mergedKeys.EXA_API_KEY && process.env.EXA_API_KEY) mergedKeys.EXA_API_KEY = process.env.EXA_API_KEY;
+  if (!mergedKeys.SERPER_API_KEY && process.env.SERPER_API_KEY) mergedKeys.SERPER_API_KEY = process.env.SERPER_API_KEY;
+  if (!mergedKeys.TAVILY_API_KEY && process.env.TAVILY_API_KEY) mergedKeys.TAVILY_API_KEY = process.env.TAVILY_API_KEY;
+  if (!mergedKeys.FIRECRAWL_API_KEY && process.env.FIRECRAWL_API_KEY) mergedKeys.FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY;
+  if (!mergedKeys.MISTRAL_API_KEY && process.env.MISTRAL_API_KEY) mergedKeys.MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
   return fn(url, mergedKeys, log);
 }
 

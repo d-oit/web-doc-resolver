@@ -44,8 +44,8 @@ all = [
 ]
 
 [project.scripts]
-do-wdr = "scripts.resolve:main"
-do-web-doc-resolver = "scripts.resolve:main"
+do-wdr = "scripts.cli:main"
+do-web-doc-resolver = "scripts.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/d-oit/do-web-doc-resolver"
