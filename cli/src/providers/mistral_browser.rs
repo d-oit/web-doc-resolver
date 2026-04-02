@@ -1,6 +1,7 @@
 //! Mistral browser provider.
 //!
-//! Uses Mistral agent with web browsing capability.
+//! Uses Mistral agent with web search tool to extract URL content.
+//! Requires two-step process: create agent with web_search tool, then start conversation.
 
 use crate::error::{ResolverError, detect_error_type};
 use crate::types::ResolvedResult;
@@ -68,75 +69,159 @@ impl crate::providers::UrlProvider for MistralBrowserProvider {
             ));
         }
 
-        // Use Mistral agents API with web browsing
-        let response = self
+        // Step 1: Create an agent with web_search tool
+        let create_response = self
             .client
-            .post("https://api.mistral.ai/v1/agents/execute")
+            .post("https://api.mistral.ai/v1/agents")
             .header("Authorization", format!("Bearer {}", api_key))
             .header("Content-Type", "application/json")
-            .json(&MistralBrowserRequest {
-                agent_id: "browser".to_string(),
-                inputs: MistralInputs {
-                    url: url.to_string(),
-                    task: "Extract all text content from this webpage in markdown format"
-                        .to_string(),
-                },
+            .json(&CreateAgentRequest {
+                model: "mistral-small-latest",
+                name: "url-extractor",
+                instructions: "Extract and summarize content from web pages. Return clean markdown.",
+                tools: vec![AgentTool { tool_type: "web_search" }],
             })
             .send()
             .await
             .map_err(|e| ResolverError::Network(e.to_string()))?;
 
-        if response.status() == 429 {
+        if create_response.status() == 429 {
             self.set_rate_limited(true);
             return Err(ResolverError::RateLimit(
                 "Mistral rate limit exceeded".to_string(),
             ));
         }
 
-        if response.status() == 401 {
+        if create_response.status() == 401 {
             return Err(ResolverError::Auth(
                 "Mistral authentication failed".to_string(),
             ));
         }
 
-        if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
+        if !create_response.status().is_success() {
+            let error_text = create_response.text().await.unwrap_or_default();
             return Err(detect_error_type(&error_text));
         }
 
-        let browser_response: MistralBrowserResponse = response
+        let agent: AgentResponse = create_response
             .json()
             .await
             .map_err(|e| ResolverError::Parse(e.to_string()))?;
 
-        let content = browser_response.output.and_then(|o| o.text);
+        let agent_id = agent.id;
 
-        Ok(ResolvedResult::new(url, content, "mistral_browser", 0.85))
+        // Step 2: Start a conversation to extract the URL
+        let conv_response = self
+            .client
+            .post("https://api.mistral.ai/v1/conversations")
+            .header("Authorization", format!("Bearer {}", api_key))
+            .header("Content-Type", "application/json")
+            .json(&StartConversationRequest {
+                agent_id: agent_id.clone(),
+                inputs: format!(
+                    "Extract the main content from this URL and return it as markdown: {}",
+                    url
+                ),
+            })
+            .send()
+            .await
+            .map_err(|e| ResolverError::Network(e.to_string()))?;
+
+        let content = if conv_response.status().is_success() {
+            let conv: ConversationResponse = conv_response
+                .json()
+                .await
+                .map_err(|e| ResolverError::Parse(e.to_string()))?;
+
+            // Extract text from message.output entries
+            conv.outputs
+                .into_iter()
+                .filter(|o| o.entry_type.as_deref() == Some("message.output"))
+                .filter_map(|o| o.content)
+                .flatten()
+                .filter_map(|part| {
+                    if part.part_type.as_deref() == Some("text") {
+                        part.text
+                    } else {
+                        None
+                    }
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        } else {
+            // Cleanup on failure
+            let _ = self.delete_agent(&agent_id, api_key).await;
+            let error_text = conv_response.text().await.unwrap_or_default();
+            return Err(detect_error_type(&error_text));
+        };
+
+        // Step 3: Cleanup - delete the agent
+        let _ = self.delete_agent(&agent_id, api_key).await;
+
+        Ok(ResolvedResult::new(
+            url,
+            Some(content),
+            "mistral_browser",
+            0.85,
+        ))
+    }
+}
+
+impl MistralBrowserProvider {
+    async fn delete_agent(&self, agent_id: &str, api_key: &str) -> Result<(), ResolverError> {
+        self.client
+            .delete(format!("https://api.mistral.ai/v1/agents/{}", agent_id))
+            .header("Authorization", format!("Bearer {}", api_key))
+            .send()
+            .await
+            .map(|_| ())
+            .map_err(|e| ResolverError::Network(e.to_string()))
     }
 }
 
 #[derive(Debug, Serialize)]
-struct MistralBrowserRequest {
-    #[serde(rename = "agent_id")]
-    agent_id: String,
-    inputs: MistralInputs,
+struct CreateAgentRequest {
+    model: &'static str,
+    name: &'static str,
+    instructions: &'static str,
+    tools: Vec<AgentTool>,
 }
 
 #[derive(Debug, Serialize)]
-struct MistralInputs {
-    url: String,
-    task: String,
+struct AgentTool {
+    #[serde(rename = "type")]
+    tool_type: &'static str,
 }
 
 #[derive(Debug, Deserialize)]
-struct MistralBrowserResponse {
-    #[serde(default)]
-    output: Option<MistralOutput>,
+struct AgentResponse {
+    id: String,
+}
+
+#[derive(Debug, Serialize)]
+struct StartConversationRequest {
+    #[serde(rename = "agent_id")]
+    agent_id: String,
+    inputs: String,
 }
 
 #[derive(Debug, Deserialize)]
-struct MistralOutput {
+struct ConversationResponse {
     #[serde(default)]
+    outputs: Vec<ConversationOutput>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ConversationOutput {
+    #[serde(rename = "type")]
+    entry_type: Option<String>,
+    content: Option<Vec<ContentPart>>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ContentPart {
+    #[serde(rename = "type")]
+    part_type: Option<String>,
     text: Option<String>,
 }
 
