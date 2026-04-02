@@ -259,16 +259,42 @@ def resolve_with_mistral_browser(url: str, max_chars: int = MAX_CHARS) -> Resolv
         return None
     try:
         from mistralai.client import Mistral
-        from mistralai.client.models import UserMessage, WebSearchTool
 
         client = Mistral(api_key=api_key)
-        resp = client.beta.conversations.start(
-            inputs=UserMessage(content=f"Extract URL: {url}"), tools=[WebSearchTool()]
+
+        # Create an agent with web_search tool
+        agent = client.beta.agents.create(
+            model="mistral-small-latest",
+            name="url-extractor",
+            instructions="Extract and summarize content from web pages. Return clean markdown.",
+            tools=[{"type": "web_search"}],
         )
-        content = resp.outputs[0].content if resp.outputs else ""
-        result = ResolvedResult(source="mistral-browser", content=content[:max_chars], url=url)
-        _save_to_cache(url, "mistral_browser", result.to_dict())
-        return result
+
+        try:
+            # Start conversation to extract the URL
+            result = client.beta.conversations.start(
+                agent_id=agent.id,
+                inputs=f"Extract the main content from this URL and return it as markdown: {url}",
+            )
+
+            content = ""
+            for entry in result.outputs:
+                if hasattr(entry, "content") and entry.content:
+                    content += str(entry.content)
+
+            if content:
+                resolved = ResolvedResult(
+                    source="mistral-browser", content=content[:max_chars], url=url
+                )
+                _save_to_cache(url, "mistral_browser", resolved.to_dict())
+                return resolved
+        finally:
+            # Clean up the agent
+            try:
+                client.beta.agents.delete(agent_id=agent.id)
+            except Exception:
+                pass
+        return None
     except Exception:
         return None
 
