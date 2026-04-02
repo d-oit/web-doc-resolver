@@ -278,9 +278,7 @@ def check_rust_cli_flags(report: Report):
         actual_flags.add(m.group(1))
     # Handle bare `#[arg(...long...)]` where flag name comes from the Rust field name
     # Pattern: `#[arg(short, long)]` followed by `pub field_name: Type,`
-    for m in re.finditer(
-        r"#\[arg\([^)]*\blong\b[^\]]*\]\s*\n\s*(?:pub\s+)?(\w+)\s*:", cli_rs
-    ):
+    for m in re.finditer(r"#\[arg\([^)]*\blong\b[^\]]*\]\s*\n\s*(?:pub\s+)?(\w+)\s*:", cli_rs):
         field_name = m.group(1)
         actual_flags.add(field_name.replace("_", "-"))
 
