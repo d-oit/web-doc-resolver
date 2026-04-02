@@ -399,7 +399,7 @@ def check_repo_tree(report: Report, doc_name: str, content: str):
     implied by the tree indentation. Detects root path lines (e.g., '.agents/skills/')
     that appear before tree-indented entries.
     """
-    for start_line, lang, code in extract_code_blocks(content):
+    for start_line, _lang, code in extract_code_blocks(content):
         if "├──" not in code and "└──" not in code:
             continue
 
@@ -455,8 +455,8 @@ def check_repo_tree(report: Report, doc_name: str, content: str):
 
             # If this entry is a directory (has child tree content), push onto stack
             is_dir = "/" not in entry and any(
-                re.match(rf"^{' ' * (indent + 2)}[│ ]*(?:├──|└──)", l)
-                for l in lines[offset + 1:]
+                re.match(rf"^{' ' * (indent + 2)}[│ ]*(?:├──|└──)", line)
+                for line in lines[offset + 1:]
             )
 
             # Check existence (prepend tree_root if set)
@@ -490,8 +490,6 @@ def check_repo_tree(report: Report, doc_name: str, content: str):
                                     "screenshots", "plans", "samples", "videos"):
                 dir_stack.append((indent, rel_path))
 
-            prev_indent = indent
-
 
 # ── Check 8: npm scripts ─────────────────────────────────────────────────────
 
@@ -511,7 +509,7 @@ def check_npm_scripts(report: Report):
 
     for doc_name in ["README.md", "AGENTS.md"]:
         content = read_file(REPO_ROOT / doc_name)
-        for line_no, lang, code in extract_code_blocks(content):
+        for line_no, _lang, code in extract_code_blocks(content):
             for cmd_line in code.splitlines():
                 m = re.search(r"npm\s+run\s+(\w[\w:.-]*)", cmd_line)
                 if m:
@@ -529,7 +527,7 @@ def check_npm_scripts(report: Report):
 def check_cross_docs(report: Report):
     """Check consistency between docs."""
     readme = read_file(REPO_ROOT / "README.md")
-    agents = read_file(REPO_ROOT / "AGENTS.md")
+    _agents = read_file(REPO_ROOT / "AGENTS.md")
 
     # Check for duplicate links in README
     readme_links = extract_markdown_links(readme)
@@ -673,7 +671,7 @@ def fix_duplicate_links(report: Report) -> int:
         return 0
 
     lines = content.splitlines()
-    new_lines = [l for i, l in enumerate(lines, 1) if i not in dupes]
+    new_lines = [line for i, line in enumerate(lines, 1) if i not in dupes]
     new_content = "\n".join(new_lines)
     if new_content != content:
         path.write_text(new_content, encoding="utf-8")
@@ -776,7 +774,6 @@ def fix_rust_architecture(report: Report) -> int:
     # Replace old architecture block
     lines = content.splitlines()
     new_lines = []
-    in_tree = False
     i = 0
     while i < len(lines):
         if lines[i].strip() == "## Architecture":
