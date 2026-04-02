@@ -283,7 +283,9 @@ def resolve_with_mistral_browser(url: str, max_chars: int = MAX_CHARS) -> Resolv
                     content += str(entry.content)
 
             if content:
-                resolved = ResolvedResult(source="mistral-browser", content=content[:max_chars], url=url)
+                resolved = ResolvedResult(
+                    source="mistral-browser", content=content[:max_chars], url=url
+                )
                 _save_to_cache(url, "mistral_browser", resolved.to_dict())
                 return resolved
         finally:
