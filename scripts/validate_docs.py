@@ -35,12 +35,35 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # Known external packages — not project modules
-EXTERNAL_PACKAGES = frozenset({
-    "pytest", "ruff", "black", "mypy", "pip", "setuptools", "wheel",
-    "requests", "exa", "tavily", "firecrawl", "mistralai", "ddgs",
-    "diskcache", "vitest", "playwright", "next", "eslint", "tsc",
-    "cargo", "npm", "pnpx", "npx", "node", "gh",
-})
+EXTERNAL_PACKAGES = frozenset(
+    {
+        "pytest",
+        "ruff",
+        "black",
+        "mypy",
+        "pip",
+        "setuptools",
+        "wheel",
+        "requests",
+        "exa",
+        "tavily",
+        "firecrawl",
+        "mistralai",
+        "ddgs",
+        "diskcache",
+        "vitest",
+        "playwright",
+        "next",
+        "eslint",
+        "tsc",
+        "cargo",
+        "npm",
+        "pnpx",
+        "npx",
+        "node",
+        "gh",
+    }
+)
 
 # ── Data ──────────────────────────────────────────────────────────────────────
 
@@ -143,8 +166,7 @@ def check_file_references(report: Report, doc_name: str, content: str):
 
         full_path = REPO_ROOT / path_part
         if not full_path.exists():
-            report.add("error", "file-ref", doc_name,
-                        f"Linked file missing: {path_part}", line_no)
+            report.add("error", "file-ref", doc_name, f"Linked file missing: {path_part}", line_no)
 
 
 # ── Check 2: Shell commands ──────────────────────────────────────────────────
@@ -169,8 +191,13 @@ def check_shell_commands(report: Report, doc_name: str, content: str):
                 script = m.group(1).lstrip("./")
                 full = REPO_ROOT / script
                 if not full.exists():
-                    report.add("error", "script-ref", doc_name,
-                               f"Script referenced but missing: {script}", line_no)
+                    report.add(
+                        "error",
+                        "script-ref",
+                        doc_name,
+                        f"Script referenced but missing: {script}",
+                        line_no,
+                    )
 
             # Check python -m module references
             for m in MODULE_PATTERN.finditer(cmd_line):
@@ -184,8 +211,13 @@ def check_shell_commands(report: Report, doc_name: str, content: str):
                 pkg = REPO_ROOT / mod_path / "__init__.py"
                 mod_file = REPO_ROOT / f"{mod_path}.py"
                 if not pkg.exists() and not mod_file.exists():
-                    report.add("error", "module-ref", doc_name,
-                               f"Python module '{mod}' referenced but missing", line_no)
+                    report.add(
+                        "error",
+                        "module-ref",
+                        doc_name,
+                        f"Python module '{mod}' referenced but missing",
+                        line_no,
+                    )
 
 
 # ── Check 3: Python CLI entrypoint ───────────────────────────────────────────
@@ -209,16 +241,23 @@ def check_python_cli(report: Report):
                 if cmd_line.startswith("#"):
                     continue
                 if "python -m scripts.resolve" in cmd_line and not has_resolve_main:
-                    report.add("error", "python-cli", doc_name,
-                               "'python -m scripts.resolve' documented but resolve.py has no "
-                               "__main__ block. Use 'python -m scripts.cli' or 'do-wdr'.",
-                               line_no)
-                if (cmd_line.startswith("python scripts/resolve.py")
-                        and not has_resolve_main):
-                    report.add("error", "python-cli", doc_name,
-                               "'python scripts/resolve.py' documented but resolve.py has no "
-                               "__main__ block. Use 'python scripts/cli.py' or 'do-wdr'.",
-                               line_no)
+                    report.add(
+                        "error",
+                        "python-cli",
+                        doc_name,
+                        "'python -m scripts.resolve' documented but resolve.py has no "
+                        "__main__ block. Use 'python -m scripts.cli' or 'do-wdr'.",
+                        line_no,
+                    )
+                if cmd_line.startswith("python scripts/resolve.py") and not has_resolve_main:
+                    report.add(
+                        "error",
+                        "python-cli",
+                        doc_name,
+                        "'python scripts/resolve.py' documented but resolve.py has no "
+                        "__main__ block. Use 'python scripts/cli.py' or 'do-wdr'.",
+                        line_no,
+                    )
 
 
 # ── Check 4: Rust CLI flags ──────────────────────────────────────────────────
@@ -228,8 +267,9 @@ def check_rust_cli_flags(report: Report):
     """Compare documented Rust CLI flags against cli/src/cli.rs."""
     cli_rs = read_file(REPO_ROOT / "cli" / "src" / "cli.rs")
     if not cli_rs:
-        report.add("warning", "rust-cli", "cli/src/cli.rs",
-                    "Cannot read cli.rs for flag validation")
+        report.add(
+            "warning", "rust-cli", "cli/src/cli.rs", "Cannot read cli.rs for flag validation"
+        )
         return
 
     # Extract actual flags from clap derive
@@ -255,8 +295,12 @@ def check_rust_cli_flags(report: Report):
     # Report flags in code but not documented
     undocumented = actual_flags - doc_flags
     for flag in sorted(undocumented):
-        report.add("warning", "undoc-flag", "Rust CLI",
-                    f"Rust CLI flag --{flag} exists in cli.rs but not documented")
+        report.add(
+            "warning",
+            "undoc-flag",
+            "Rust CLI",
+            f"Rust CLI flag --{flag} exists in cli.rs but not documented",
+        )
 
 
 # ── Check 5: Cargo.toml features ─────────────────────────────────────────────
@@ -265,9 +309,7 @@ def check_rust_cli_flags(report: Report):
 def check_cargo_features(report: Report):
     """Verify RUST_CLI.md features section matches actual Cargo.toml."""
     cargo = read_file(REPO_ROOT / "cli" / "Cargo.toml")
-    rust_cli_md = read_file(
-        REPO_ROOT / ".agents/skills/do-web-doc-resolver/references/RUST_CLI.md"
-    )
+    rust_cli_md = read_file(REPO_ROOT / ".agents/skills/do-web-doc-resolver/references/RUST_CLI.md")
     if not cargo or not rust_cli_md:
         return
 
@@ -281,7 +323,7 @@ def check_cargo_features(report: Report):
         if in_features:
             if line.startswith("["):
                 break
-            m = re.match(r'(\w[\w-]*)\s*=\s*(.+)', line)
+            m = re.match(r"(\w[\w-]*)\s*=\s*(.+)", line)
             if m:
                 actual_features[m.group(1)] = m.group(2).strip()
 
@@ -292,21 +334,29 @@ def check_cargo_features(report: Report):
         if "[features]" not in code:
             continue
         for code_line in code.splitlines():
-            m = re.match(r'(\w[\w-]*)\s*=\s*(.+)', code_line)
+            m = re.match(r"(\w[\w-]*)\s*=\s*(.+)", code_line)
             if not m:
                 continue
             feat_name = m.group(1)
             feat_val = m.group(2).strip()
             if feat_name not in actual_features:
                 report.add(
-                    "error", "cargo-feature", "RUST_CLI.md",
+                    "error",
+                    "cargo-feature",
+                    "RUST_CLI.md",
                     f"Feature '{feat_name}' documented but does not exist in Cargo.toml. "
-                    f"Actual features: {sorted(actual_features.keys())}", line_no)
+                    f"Actual features: {sorted(actual_features.keys())}",
+                    line_no,
+                )
             elif actual_features[feat_name] != feat_val:
                 report.add(
-                    "error", "cargo-feature", "RUST_CLI.md",
+                    "error",
+                    "cargo-feature",
+                    "RUST_CLI.md",
                     f"Feature '{feat_name}' value mismatch: "
-                    f"doc={feat_val!r} actual={actual_features[feat_name]!r}", line_no)
+                    f"doc={feat_val!r} actual={actual_features[feat_name]!r}",
+                    line_no,
+                )
 
 
 # ── Check 6: Rust architecture ───────────────────────────────────────────────
@@ -317,9 +367,7 @@ def check_rust_architecture(report: Report):
 
     Uses context-aware path resolution (tracks parent directories from tree).
     """
-    rust_cli_md = read_file(
-        REPO_ROOT / ".agents/skills/do-web-doc-resolver/references/RUST_CLI.md"
-    )
+    rust_cli_md = read_file(REPO_ROOT / ".agents/skills/do-web-doc-resolver/references/RUST_CLI.md")
     if not rust_cli_md:
         return
 
@@ -371,13 +419,19 @@ def check_rust_architecture(report: Report):
                 dir_candidate = REPO_ROOT / tree_root / rel_path.replace(".rs", "")
                 if dir_candidate.is_dir():
                     report.add(
-                        "error", "rust-arch", "RUST_CLI.md",
+                        "error",
+                        "rust-arch",
+                        "RUST_CLI.md",
                         f"'{tree_root}/{rel_path}' documented as file but exists as directory: "
-                        f"{tree_root}/{rel_path.replace('.rs', '')}/")
+                        f"{tree_root}/{rel_path.replace('.rs', '')}/",
+                    )
                 else:
                     report.add(
-                        "error", "rust-arch", "RUST_CLI.md",
-                        f"'{tree_root}/{rel_path}' documented but does not exist")
+                        "error",
+                        "rust-arch",
+                        "RUST_CLI.md",
+                        f"'{tree_root}/{rel_path}' documented but does not exist",
+                    )
 
             # Push directories onto stack
             is_dir = (
@@ -456,7 +510,7 @@ def check_repo_tree(report: Report, doc_name: str, content: str):
             # If this entry is a directory (has child tree content), push onto stack
             is_dir = "/" not in entry and any(
                 re.match(rf"^{' ' * (indent + 2)}[│ ]*(?:├──|└──)", line)
-                for line in lines[offset + 1:]
+                for line in lines[offset + 1 :]
             )
 
             # Check existence (prepend tree_root if set)
@@ -469,25 +523,68 @@ def check_repo_tree(report: Report, doc_name: str, content: str):
                 if (full.parent / rel_path.rstrip("/")).is_dir():
                     continue
                 display_path = f"{tree_root}/{rel_path}" if tree_root else rel_path
-                report.add("warning", "repo-tree", doc_name,
-                           f"Tree entry '{display_path}' does not exist", line_no)
+                report.add(
+                    "warning",
+                    "repo-tree",
+                    doc_name,
+                    f"Tree entry '{display_path}' does not exist",
+                    line_no,
+                )
 
-            if is_dir or full.is_dir() or entry in ("src", "app", "providers", "resolver", "tests",
-                                    "scripts", "cli", "web", "assets", "capture",
-                                    "skills", "references", "agents-docs",
-                                    "do-web-doc-resolver", "do-wdr-cli",
-                                    "do-wdr-assets", "do-wdr-release",
-                                    "do-wdr-ui-component", "do-wdr-issue-swarm",
-                                    "do-github-pr-sentinel", "agent-browser",
-                                    "privacy-first", "skill-creator",
-                                    "readme-best-practices", "anti-ai-slop",
-                                    "vercel-cli", ".github", "workflows",
-                                    ".agents", ".blackbox", ".claude", ".opencode",
-                                    "public", "lib", "page.tsx", "layout.tsx",
-                                    "globals.css", "postcss.config.mjs",
-                                    "playwright.config.ts", "vercel.json",
-                                    "ui", "components", "tokens",
-                                    "screenshots", "plans", "samples", "videos"):
+            if (
+                is_dir
+                or full.is_dir()
+                or entry
+                in (
+                    "src",
+                    "app",
+                    "providers",
+                    "resolver",
+                    "tests",
+                    "scripts",
+                    "cli",
+                    "web",
+                    "assets",
+                    "capture",
+                    "skills",
+                    "references",
+                    "agents-docs",
+                    "do-web-doc-resolver",
+                    "do-wdr-cli",
+                    "do-wdr-assets",
+                    "do-wdr-release",
+                    "do-wdr-ui-component",
+                    "do-wdr-issue-swarm",
+                    "do-github-pr-sentinel",
+                    "agent-browser",
+                    "privacy-first",
+                    "skill-creator",
+                    "readme-best-practices",
+                    "anti-ai-slop",
+                    "vercel-cli",
+                    ".github",
+                    "workflows",
+                    ".agents",
+                    ".blackbox",
+                    ".claude",
+                    ".opencode",
+                    "public",
+                    "lib",
+                    "page.tsx",
+                    "layout.tsx",
+                    "globals.css",
+                    "postcss.config.mjs",
+                    "playwright.config.ts",
+                    "vercel.json",
+                    "ui",
+                    "components",
+                    "tokens",
+                    "screenshots",
+                    "plans",
+                    "samples",
+                    "videos",
+                )
+            ):
                 dir_stack.append((indent, rel_path))
 
 
@@ -516,9 +613,13 @@ def check_npm_scripts(report: Report):
                     script = m.group(1)
                     if script not in available_scripts:
                         report.add(
-                            "error", "npm-script", doc_name,
+                            "error",
+                            "npm-script",
+                            doc_name,
                             f"npm script '{script}' not in web/package.json. "
-                            f"Available: {sorted(available_scripts)}", line_no)
+                            f"Available: {sorted(available_scripts)}",
+                            line_no,
+                        )
 
 
 # ── Check 9: Cross-doc consistency ────────────────────────────────────────────
@@ -535,9 +636,13 @@ def check_cross_docs(report: Report):
     for line_no, text, target in readme_links:
         key = (text, target)
         if key in seen:
-            report.add("warning", "duplicate-link", "README.md",
-                        f"Duplicate link: [{text}]({target}) "
-                        f"(first at line {seen[key]})", line_no)
+            report.add(
+                "warning",
+                "duplicate-link",
+                "README.md",
+                f"Duplicate link: [{text}]({target}) " f"(first at line {seen[key]})",
+                line_no,
+            )
         else:
             seen[key] = line_no
 
@@ -561,8 +666,7 @@ def check_cross_docs(report: Report):
         pass
 
     if len(set(versions.values())) > 1:
-        report.add("warning", "version-sync", "Cross-file",
-                    f"Version mismatch: {versions}")
+        report.add("warning", "version-sync", "Cross-file", f"Version mismatch: {versions}")
 
 
 # ── Auto-fixers ───────────────────────────────────────────────────────────────
@@ -618,7 +722,7 @@ def fix_cargo_features(report: Report) -> int:
     # Build correct features block
     correct_lines = ["# Cargo.toml features", "[features]"]
     for name, val in actual_features.items():
-        correct_lines.append(f'{name} = {val}')
+        correct_lines.append(f"{name} = {val}")
     correct_block = "\n".join(correct_lines)
 
     # Replace the block in the doc
@@ -869,8 +973,11 @@ def main():
     parser = argparse.ArgumentParser(description="Validate docs against codebase")
     parser.add_argument("--strict", action="store_true", help="Exit 1 on warnings")
     parser.add_argument("--json", action="store_true", help="Output JSON")
-    parser.add_argument("--fix", action="store_true",
-                        help="Auto-fix issues in-place, re-validate, stage fixed files")
+    parser.add_argument(
+        "--fix",
+        action="store_true",
+        help="Auto-fix issues in-place, re-validate, stage fixed files",
+    )
     args = parser.parse_args()
 
     report = run_all_checks()
@@ -891,6 +998,7 @@ def main():
             # Stage fixed files
             if files_fixed > 0:
                 import subprocess
+
                 subprocess.run(
                     ["git", "add", "-u"],
                     cwd=str(REPO_ROOT),
@@ -904,8 +1012,13 @@ def main():
             "errors": len(report.errors),
             "warnings": len(report.warnings),
             "issues": [
-                {"severity": i.severity, "category": i.category,
-                 "doc": i.doc, "detail": i.detail, "line": i.line}
+                {
+                    "severity": i.severity,
+                    "category": i.category,
+                    "doc": i.doc,
+                    "detail": i.detail,
+                    "line": i.line,
+                }
                 for i in report.issues
             ],
         }
