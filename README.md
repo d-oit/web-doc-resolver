@@ -1,4 +1,4 @@
-# <img width="48" height="48" alt="image" src="https://github.com/user-attachments/assets/69413312-89b1-42b4-9f86-bce6903864fb" /> do-web-doc-resolver 
+# <img width="48" height="48" alt="image" src="https://github.com/user-attachments/assets/69413312-89b1-42b4-9f86-bce6903864fb" /> do-web-doc-resolver
 
 **Resolve queries or URLs into compact, LLM-ready markdown using an intelligent, low-cost cascade**
 
