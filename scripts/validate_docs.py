@@ -272,10 +272,17 @@ def check_rust_cli_flags(report: Report):
         )
         return
 
-    # Extract actual flags from clap derive
+    # Extract actual flags from clap derive (both `long = "name"` and bare `long`)
     actual_flags = set()
     for m in re.finditer(r'long\s*=\s*"([\w-]+)"', cli_rs):
         actual_flags.add(m.group(1))
+    # Handle bare `#[arg(...long...)]` where flag name comes from the Rust field name
+    # Pattern: `#[arg(short, long)]` followed by `pub field_name: Type,`
+    for m in re.finditer(
+        r"#\[arg\([^)]*\blong\b[^\]]*\]\s*\n\s*(?:pub\s+)?(\w+)\s*:", cli_rs
+    ):
+        field_name = m.group(1)
+        actual_flags.add(field_name.replace("_", "-"))
 
     # Extract subcommands
     actual_subcmds = set()
@@ -507,8 +514,10 @@ def check_repo_tree(report: Report, doc_name: str, content: str):
             else:
                 rel_path = entry
 
-            # If this entry is a directory (has child tree content), push onto stack
-            is_dir = "/" not in entry and any(
+            # If this entry is a directory, push onto stack.
+            # Check via: (a) heuristic child-content scan, (b) filesystem existence.
+            # Removed "/" not in entry check — entries like ".agents/skills/" need detection.
+            is_dir = any(
                 re.match(rf"^{' ' * (indent + 2)}[│ ]*(?:├──|└──)", line)
                 for line in lines[offset + 1 :]
             )
