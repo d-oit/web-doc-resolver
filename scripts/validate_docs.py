@@ -131,7 +131,7 @@ def extract_code_blocks(content: str) -> list[tuple[int, str, str]]:
 
 def check_file_references(report: Report, doc_name: str, content: str):
     """Verify that markdown links point to files that actually exist."""
-    for line_no, text, target in extract_markdown_links(content):
+    for line_no, _text, target in extract_markdown_links(content):
         if target.startswith(("http://", "https://", "#", "mailto:")):
             continue
         if target.startswith("$") or target.startswith("{{"):
@@ -239,8 +239,6 @@ def check_rust_cli_flags(report: Report):
 
     # Extract subcommands
     actual_subcmds = set()
-    for m in re.finditer(r"enum\s+(\w+)\s*\{", cli_rs):
-        enum_name = m.group(1)
     # Parse Commands enum variants
     enum_match = re.search(r"enum\s+Commands\s*\{([^}]+)\}", cli_rs, re.DOTALL)
     if enum_match:
