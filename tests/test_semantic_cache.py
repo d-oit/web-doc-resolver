@@ -25,8 +25,9 @@ pytestmark = [
 
 # Try to import optional dependencies
 try:
-    import sqlite_vec
-    import sentence_transformers
+    import sentence_transformers  # noqa: F401
+    import sqlite_vec  # noqa: F401
+
     DEPS_AVAILABLE = True
 except ImportError:
     DEPS_AVAILABLE = False
@@ -401,8 +402,8 @@ class TestSemanticCacheIntegration:
         if not DEPS_AVAILABLE:
             pytest.skip("Dependencies not available")
 
-        from scripts.semantic_cache import SemanticCache
         from scripts import resolve
+        from scripts.semantic_cache import SemanticCache
 
         # Create and inject cache
         cache = SemanticCache(
@@ -464,7 +465,7 @@ class TestSemanticCachePerformance:
         latencies = []
         for _ in range(10):
             start = time.time()
-            entry = semantic_cache.query(query)
+            semantic_cache.query(query)  # Ignore result
             end = time.time()
             latencies.append((end - start) * 1000)  # Convert to ms
 
