@@ -1,9 +1,11 @@
-import { describe, expect, it, beforeEach } from "vitest";
-import { save, get, list, remove, clear, search, size, maxSize, configure } from "../lib/records";
+import { describe, expect, it, beforeEach, vi } from "vitest";
+import { save, get, list, remove, clear, search, size, maxSize, configure, getAnalytics } from "../lib/records";
 
 describe("records", () => {
   beforeEach(() => {
     clear();
+    // Reset to default config
+    configure({ maxEntries: 100, ttlMs: 30 * 24 * 60 * 60 * 1000 });
   });
 
   describe("save/get", () => {
@@ -67,19 +69,92 @@ describe("records", () => {
       const results = search("react");
       expect(results.length).toBe(1);
     });
+
+    it("is case-insensitive", () => {
+      save({ query: "React Hooks", url: null, content: "", source: "test", score: 0 });
+      
+      const results = search("react");
+      expect(results.length).toBe(1);
+    });
   });
 
   describe("FIFO eviction", () => {
     it("evicts oldest entries when max size reached", () => {
       configure({ maxEntries: 3 });
 
-      save({ query: "first", url: null, content: "", source: "test", score: 0 });
+      const first = save({ query: "first", url: null, content: "", source: "test", score: 0 });
       save({ query: "second", url: null, content: "", source: "test", score: 0 });
       save({ query: "third", url: null, content: "", source: "test", score: 0 });
       save({ query: "fourth", url: null, content: "", source: "test", score: 0 });
 
       expect(size()).toBe(3);
-      expect(get("first")).toBeUndefined(); // Evicted
+      expect(get(first.id)).toBeUndefined(); // Evicted
+    });
+  });
+
+  describe("TTL expiration", () => {
+    it("expires records after TTL", async () => {
+      // Set very short TTL for testing
+      configure({ ttlMs: 50 }); // 50ms
+
+      const record = save({ query: "expires", url: null, content: "", source: "test", score: 0 });
+      
+      // Record should exist initially
+      expect(get(record.id)).toBeDefined();
+      
+      // Wait for TTL to expire
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      
+      // Record should be expired
+      expect(get(record.id)).toBeUndefined();
+    });
+
+    it("cleans up expired records on save", async () => {
+      configure({ ttlMs: 50 });
+
+      save({ query: "expires1", url: null, content: "", source: "test", score: 0 });
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      
+      // This save should trigger cleanup
+      save({ query: "new", url: null, content: "", source: "test", score: 0 });
+      
+      expect(size()).toBe(1);
+    });
+
+    it("filters expired records from list", async () => {
+      configure({ ttlMs: 50 });
+
+      save({ query: "expires", url: null, content: "", source: "test", score: 0 });
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      
+      const records = list();
+      expect(records.length).toBe(0);
+    });
+  });
+
+  describe("analytics", () => {
+    it("returns analytics stats", () => {
+      save({ query: "test1", url: null, content: "", source: "provider1", score: 0.9 });
+      save({ query: "test2", url: null, content: "", source: "provider1", score: 0.8 });
+      save({ query: "test3", url: null, content: "", source: "provider2", score: 0.7 });
+
+      const analytics = getAnalytics();
+
+      expect(analytics.totalRecords).toBe(3);
+      expect(analytics.providerUsage["provider1"]).toBe(2);
+      expect(analytics.providerUsage["provider2"]).toBe(1);
+      expect(analytics.averageScore).toBeGreaterThan(0);
+      expect(analytics.oldestRecord).toBeDefined();
+      expect(analytics.newestRecord).toBeDefined();
+    });
+
+    it("handles empty store analytics", () => {
+      const analytics = getAnalytics();
+
+      expect(analytics.totalRecords).toBe(0);
+      expect(analytics.averageScore).toBe(0);
+      expect(analytics.oldestRecord).toBeNull();
+      expect(analytics.newestRecord).toBeNull();
     });
   });
 
@@ -106,6 +181,13 @@ describe("records", () => {
       const count = clear();
       expect(count).toBe(2);
       expect(size()).toBe(0);
+    });
+  });
+
+  describe("maxSize", () => {
+    it("returns configured max size", () => {
+      configure({ maxEntries: 50 });
+      expect(maxSize()).toBe(50);
     });
   });
 });
