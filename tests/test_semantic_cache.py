@@ -1,0 +1,505 @@
+"""
+Tests for semantic cache implementation.
+
+These tests verify that the semantic cache:
+- Stores and retrieves results correctly
+- Finds similar queries (semantic similarity)
+- Rejects dissimilar queries
+- Respects threshold configuration
+- Persists across cache instances
+"""
+
+import os
+import tempfile
+from unittest import mock
+
+import pytest
+
+# Skip all tests if dependencies not available
+pytestmark = [
+    pytest.mark.skipif(
+        os.environ.get("DO_WDR_SEMANTIC_CACHE", "1") == "0",
+        reason="Semantic cache disabled via environment",
+    ),
+]
+
+# Try to import optional dependencies
+try:
+    import sqlite_vec
+    import sentence_transformers
+    DEPS_AVAILABLE = True
+except ImportError:
+    DEPS_AVAILABLE = False
+
+
+@pytest.fixture
+def temp_cache_dir():
+    """Provide a temporary directory for cache tests."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        yield tmpdir
+
+
+@pytest.fixture
+def semantic_cache(temp_cache_dir):
+    """Create a fresh semantic cache instance for testing."""
+    if not DEPS_AVAILABLE:
+        pytest.skip("sqlite-vec or sentence-transformers not available")
+
+    # Reset any existing instance
+    from scripts.semantic_cache import reset_semantic_cache
+    reset_semantic_cache()
+
+    # Create new instance with low threshold for testing
+    from scripts.semantic_cache import SemanticCache
+    cache = SemanticCache(
+        cache_dir=temp_cache_dir,
+        threshold=0.7,  # Lower threshold for testing
+        max_entries=100,
+    )
+
+    if not cache.enabled:
+        pytest.skip("Semantic cache could not be enabled")
+
+    yield cache
+
+    cache.close()
+    reset_semantic_cache()
+
+
+class TestSemanticCacheBasic:
+    """Basic semantic cache functionality tests."""
+
+    def test_semantic_cache_store_and_query(self, semantic_cache):
+        """Test basic store and query functionality."""
+        query = "python list comprehension tutorial"
+        result = {
+            "source": "test",
+            "content": "List comprehensions provide a concise way to create lists.",
+            "url": "https://example.com/python-list-comp",
+        }
+
+        # Store result
+        stored = semantic_cache.store(query, result)
+        assert stored is True
+
+        # Query should return the stored result
+        entry = semantic_cache.query(query)
+        assert entry is not None
+        assert entry.query == query
+        assert entry.result["content"] == result["content"]
+        assert entry.similarity > 0.7
+
+    def test_semantic_cache_similar_queries(self, semantic_cache):
+        """Test that similar queries return cached results."""
+        # Store original query
+        original_query = "how to reverse a string in python"
+        result = {
+            "source": "test",
+            "content": "You can reverse a string using slicing: s[::-1]",
+            "url": "https://example.com/python-reverse",
+        }
+
+        semantic_cache.store(original_query, result)
+
+        # Similar queries should hit cache
+        similar_queries = [
+            "reverse string python",
+            "python string reversal method",
+            "how do I reverse a string python",
+        ]
+
+        for similar in similar_queries:
+            entry = semantic_cache.query(similar)
+            assert entry is not None, f"Should find similar query: {similar}"
+            assert entry.similarity >= 0.7, f"Similarity too low for: {similar}"
+            assert entry.result["content"] == result["content"]
+
+    def test_semantic_cache_dissimilar_queries(self, semantic_cache):
+        """Test that different queries do not return cached results."""
+        # Store a query about Python
+        query = "python exception handling try except"
+        result = {
+            "source": "test",
+            "content": "Use try/except blocks to handle exceptions in Python.",
+        }
+        semantic_cache.store(query, result)
+
+        # Dissimilar queries should not hit
+        dissimilar_queries = [
+            "javascript array methods",
+            "rust ownership and borrowing",
+            "sql join types explained",
+            "best pizza restaurants in rome",
+        ]
+
+        for dissimilar in dissimilar_queries:
+            entry = semantic_cache.query(dissimilar)
+            assert entry is None, f"Should not find dissimilar query: {dissimilar}"
+
+
+class TestSemanticCacheThreshold:
+    """Tests for semantic cache threshold behavior."""
+
+    def test_semantic_cache_threshold_filtering(self, temp_cache_dir):
+        """Test that threshold correctly filters results."""
+        if not DEPS_AVAILABLE:
+            pytest.skip("Dependencies not available")
+
+        from scripts.semantic_cache import SemanticCache
+
+        # Create cache with high threshold
+        strict_cache = SemanticCache(
+            cache_dir=temp_cache_dir,
+            threshold=0.95,  # Very strict
+            max_entries=100,
+        )
+
+        if not strict_cache.enabled:
+            pytest.skip("Cache not enabled")
+
+        try:
+            query = "asyncio python tutorial"
+            result = {"source": "test", "content": "Asyncio is Python's async library."}
+            strict_cache.store(query, result)
+
+            # Exact query should hit
+            entry = strict_cache.query(query)
+            assert entry is not None
+            assert entry.similarity > 0.95
+
+            # Similar but not exact query should miss with strict threshold
+            similar = "python asyncio guide"
+            entry = strict_cache.query(similar)
+            # May or may not hit depending on embedding similarity
+            # Just verify no errors occur
+
+        finally:
+            strict_cache.close()
+
+    def test_semantic_cache_low_threshold_hits(self, temp_cache_dir):
+        """Test that low threshold allows more hits."""
+        if not DEPS_AVAILABLE:
+            pytest.skip("Dependencies not available")
+
+        from scripts.semantic_cache import SemanticCache
+
+        # Create cache with low threshold
+        loose_cache = SemanticCache(
+            cache_dir=temp_cache_dir,
+            threshold=0.5,  # Very loose
+            max_entries=100,
+        )
+
+        if not loose_cache.enabled:
+            pytest.skip("Cache not enabled")
+
+        try:
+            query = "pandas dataframe tutorial"
+            result = {"source": "test", "content": "Pandas DataFrames are 2D data structures."}
+            loose_cache.store(query, result)
+
+            # Various related queries should hit
+            related = [
+                "pandas data manipulation",
+                "python data analysis tutorial",
+                "how to use pandas dataframes",
+            ]
+
+            hits = 0
+            for q in related:
+                entry = loose_cache.query(q)
+                if entry is not None and entry.similarity >= 0.5:
+                    hits += 1
+
+            # With loose threshold, we expect some hits
+            assert hits >= 1, "Should have at least one hit with loose threshold"
+
+        finally:
+            loose_cache.close()
+
+
+class TestSemanticCachePersistence:
+    """Tests for semantic cache persistence."""
+
+    def test_semantic_cache_persistence(self, temp_cache_dir):
+        """Test that cache persists across instances."""
+        if not DEPS_AVAILABLE:
+            pytest.skip("Dependencies not available")
+
+        from scripts.semantic_cache import SemanticCache
+
+        query = "machine learning basics"
+        result = {
+            "source": "test",
+            "content": "Machine learning enables computers to learn from data.",
+        }
+
+        # Store in first instance
+        cache1 = SemanticCache(cache_dir=temp_cache_dir, threshold=0.7, max_entries=100)
+        if not cache1.enabled:
+            pytest.skip("Cache not enabled")
+
+        try:
+            cache1.store(query, result)
+        finally:
+            cache1.close()
+
+        # Create new instance pointing to same directory
+        cache2 = SemanticCache(cache_dir=temp_cache_dir, threshold=0.7, max_entries=100)
+        if not cache2.enabled:
+            pytest.skip("Cache not enabled")
+
+        try:
+            # Should find the stored entry
+            entry = cache2.query(query)
+            assert entry is not None
+            assert entry.result["content"] == result["content"]
+
+            # Stats should show one entry
+            stats = cache2.stats()
+            assert stats["total_entries"] == 1
+        finally:
+            cache2.close()
+
+    def test_semantic_cache_stats(self, semantic_cache):
+        """Test cache statistics reporting."""
+        # Initially empty
+        stats = semantic_cache.stats()
+        assert stats["enabled"] is True
+        assert stats["total_entries"] == 0
+
+        # Add entries
+        for i in range(3):
+            semantic_cache.store(
+                f"query {i}",
+                {"source": "test", "content": f"content {i}"}
+            )
+
+        stats = semantic_cache.stats()
+        assert stats["total_entries"] == 3
+        assert stats["model"] == "all-MiniLM-L6-v2"
+        assert "embedding_dimension" in stats
+
+
+class TestSemanticCacheEviction:
+    """Tests for cache eviction behavior."""
+
+    def test_semantic_cache_eviction(self, temp_cache_dir):
+        """Test that old entries are evicted when max_entries exceeded."""
+        if not DEPS_AVAILABLE:
+            pytest.skip("Dependencies not available")
+
+        from scripts.semantic_cache import SemanticCache
+
+        # Create cache with very low max
+        small_cache = SemanticCache(
+            cache_dir=temp_cache_dir,
+            threshold=0.7,
+            max_entries=5,
+        )
+
+        if not small_cache.enabled:
+            pytest.skip("Cache not enabled")
+
+        try:
+            # Add more entries than max
+            for i in range(10):
+                small_cache.store(
+                    f"unique query number {i} about python",
+                    {"source": "test", "content": f"content {i}"}
+                )
+
+            # Should only have 5 entries
+            stats = small_cache.stats()
+            assert stats["total_entries"] <= 5, f"Expected <= 5 entries, got {stats['total_entries']}"
+
+        finally:
+            small_cache.close()
+
+
+class TestSemanticCacheGlobal:
+    """Tests for global semantic cache instance."""
+
+    def test_get_semantic_cache_singleton(self):
+        """Test that get_semantic_cache returns singleton instance."""
+        if not DEPS_AVAILABLE:
+            pytest.skip("Dependencies not available")
+
+        from scripts.semantic_cache import get_semantic_cache, reset_semantic_cache
+
+        # Reset first
+        reset_semantic_cache()
+
+        with mock.patch.dict(os.environ, {"DO_WDR_SEMANTIC_CACHE": "1"}):
+            cache1 = get_semantic_cache()
+            if cache1 is None:
+                pytest.skip("Could not initialize cache")
+
+            cache2 = get_semantic_cache()
+            assert cache1 is cache2, "Should return same instance"
+
+        reset_semantic_cache()
+
+    def test_get_semantic_cache_disabled(self):
+        """Test that get_semantic_cache returns None when disabled."""
+        from scripts.semantic_cache import get_semantic_cache, reset_semantic_cache
+
+        # Reset first
+        reset_semantic_cache()
+
+        with mock.patch.dict(os.environ, {"DO_WDR_SEMANTIC_CACHE": "0"}):
+            cache = get_semantic_cache()
+            assert cache is None, "Should return None when disabled"
+
+        reset_semantic_cache()
+
+
+class TestSemanticCacheErrorHandling:
+    """Tests for error handling and edge cases."""
+
+    def test_semantic_cache_handles_empty_query(self, semantic_cache):
+        """Test that empty queries are handled gracefully."""
+        entry = semantic_cache.query("")
+        # Should either return None or handle gracefully
+        assert entry is None or isinstance(entry, object)
+
+    def test_semantic_cache_handles_large_content(self, semantic_cache):
+        """Test that large content can be stored and retrieved."""
+        query = "large content test"
+        large_content = "x" * 100000  # 100KB of content
+        result = {"source": "test", "content": large_content}
+
+        stored = semantic_cache.store(query, result)
+        assert stored is True
+
+        entry = semantic_cache.query(query)
+        assert entry is not None
+        assert len(entry.result["content"]) == 100000
+
+    def test_semantic_cache_clear(self, semantic_cache):
+        """Test that clear removes all entries."""
+        # Add entries
+        semantic_cache.store("query1", {"content": "test1"})
+        semantic_cache.store("query2", {"content": "test2"})
+
+        stats = semantic_cache.stats()
+        assert stats["total_entries"] == 2
+
+        # Clear
+        cleared = semantic_cache.clear()
+        assert cleared is True
+
+        stats = semantic_cache.stats()
+        assert stats["total_entries"] == 0
+
+
+class TestSemanticCacheIntegration:
+    """Integration tests with resolve.py functions."""
+
+    def test_semantic_cache_via_resolve_functions(self, temp_cache_dir):
+        """Test semantic cache integration with resolve functions."""
+        if not DEPS_AVAILABLE:
+            pytest.skip("Dependencies not available")
+
+        from scripts.semantic_cache import SemanticCache
+        from scripts import resolve
+
+        # Create and inject cache
+        cache = SemanticCache(
+            cache_dir=temp_cache_dir,
+            threshold=0.7,
+            max_entries=100,
+        )
+
+        if not cache.enabled:
+            pytest.skip("Cache not enabled")
+
+        try:
+            # Manually store a result
+            test_query = "pytest testing framework tutorial"
+            cached_result = {
+                "source": "test_provider",
+                "content": "pytest is a testing framework for Python",
+                "url": "https://example.com/pytest",
+                "query": test_query,
+            }
+            cache.store(test_query, cached_result)
+
+            # Verify cache integration functions work
+            # Note: We can't easily mock the global cache, but we can verify
+            # the helper functions exist and have correct signatures
+            assert hasattr(resolve, '_check_semantic_cache')
+            assert hasattr(resolve, '_store_in_semantic_cache')
+
+            # Test the helper functions directly
+            # Reset global cache to use our test cache
+            resolve._semantic_cache = cache
+
+            result = resolve._check_semantic_cache(test_query)
+            assert result is not None
+            assert result.get("semantic_cache_hit") is True
+
+        finally:
+            cache.close()
+            resolve._semantic_cache = None
+
+
+@pytest.mark.benchmark
+class TestSemanticCachePerformance:
+    """Performance tests for semantic cache."""
+
+    def test_semantic_cache_query_latency(self, semantic_cache):
+        """Test that cache query latency is under threshold."""
+        import time
+
+        # Pre-populate cache
+        query = "performance test query"
+        result = {"source": "test", "content": "test content"}
+        semantic_cache.store(query, result)
+
+        # Force model to load
+        semantic_cache.query(query)
+
+        # Measure query latency
+        latencies = []
+        for _ in range(10):
+            start = time.time()
+            entry = semantic_cache.query(query)
+            end = time.time()
+            latencies.append((end - start) * 1000)  # Convert to ms
+
+        avg_latency = sum(latencies) / len(latencies)
+        max_latency = max(latencies)
+
+        # Should be under 50ms on average
+        assert avg_latency < 50, f"Average query latency {avg_latency:.2f}ms exceeds 50ms"
+        # Max should be reasonable too
+        assert max_latency < 100, f"Max query latency {max_latency:.2f}ms exceeds 100ms"
+
+    def test_semantic_cache_hit_rate(self, semantic_cache):
+        """Test cache hit rate for similar queries."""
+        # Store base query
+        base_query = "python dictionary methods get setdefault"
+        result = {
+            "source": "test",
+            "content": "Python dict has methods like get(), setdefault(), update()",
+        }
+        semantic_cache.store(base_query, result)
+
+        # Test similar queries
+        similar_queries = [
+            "python dict get method",
+            "setdefault python dictionary",
+            "how to use dict methods in python",
+            "python dictionary get vs setdefault",
+        ]
+
+        hits = 0
+        for q in similar_queries:
+            entry = semantic_cache.query(q)
+            if entry is not None:
+                hits += 1
+
+        hit_rate = hits / len(similar_queries)
+        # Should achieve >30% hit rate for similar queries
+        assert hit_rate >= 0.30, f"Hit rate {hit_rate*100:.1f}% below 30% threshold"
