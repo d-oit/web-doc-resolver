@@ -36,6 +36,12 @@ semantic-cache = ["dep:chaotic_semantic_memory"]
 [dev-dependencies]
 mockall = "0.14"
 tempfile = "3"
+criterion = { version = "0.5", features = ["async_tokio"] }
+
+[[bench]]
+name = "semantic_cache_bench"
+harness = false
+path = "benches/semantic_cache_bench.rs"
 
 [[bin]]
 name = "do-wdr"
