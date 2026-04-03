@@ -149,55 +149,29 @@ fn bench_concurrent(c: &mut Criterion) {
     group.measurement_time(Duration::from_secs(10));
     group.sample_size(20);
     
-    // Benchmark concurrent reads using futures::future::join_all
-    group.bench_function("concurrent_reads", |b| {
+    // Benchmark rapid sequential reads
+    group.bench_function("rapid_reads", |b| {
         b.to_async(&rt).iter(|| async {
-            use futures::future::join_all;
-            let futures: Vec<_> = (0..10)
-                .map(|i| {
-                    let query = format!("concurrent query {}", i);
-                    async {
-                        if i % 2 == 0 {
-                            cache.query("base query").await
-                        } else {
-                            cache.query(&query).await
-                        }
-                    }
-                })
-                .collect();
-            let _results = join_all(futures).await;
+            for i in 0..10 {
+                let query = if i % 2 == 0 {
+                    "base query"
+                } else {
+                    &format!("rapid query {}", i)
+                };
+                let _ = cache.query(query).await;
+            }
         });
     });
     
-    // Benchmark mixed read/write
-    group.bench_function("mixed_read_write", |b| {
+    // Benchmark rapid interleaved read/write
+    group.bench_function("interleaved_ops", |b| {
         b.to_async(&rt).iter(|| async {
-            use futures::future::join_all;
-            let results = create_test_results(2);
-            
-            // Perform writes
-            let write_futures: Vec<_> = (0..5)
-                .map(|i| {
-                    let query = format!("write query {}", i);
-                    let results = create_test_results(2);
-                    async move {
-                        cache.store(&query, &results, "test_provider").await
-                    }
-                })
-                .collect();
-            
-            // Perform reads
-            let read_futures: Vec<_> = (0..5)
-                .map(|i| {
-                    let query = format!("read query {}", i);
-                    async move {
-                        cache.query(&query).await
-                    }
-                })
-                .collect();
-            
-            let _ = join_all(write_futures).await;
-            let _ = join_all(read_futures).await;
+            for i in 0..5 {
+                let query = format!("bench query {}", i);
+                let results = create_test_results(2);
+                let _ = cache.store(&query, &results, "test_provider").await;
+                let _ = cache.query(&query).await;
+            }
         });
     });
     
