@@ -8,20 +8,53 @@ export interface Record {
   timestamp: number;
 }
 
-const DEFAULT_MAX_ENTRIES = 500;
+// Environment-based configuration with defaults
+const DEFAULT_MAX_ENTRIES = parseInt(process.env.RECORDS_MAX_SIZE || "100", 10);
+const DEFAULT_TTL_DAYS = parseInt(process.env.RECORDS_TTL_DAYS || "30", 10);
+const DEFAULT_TTL_MS = DEFAULT_TTL_DAYS * 24 * 60 * 60 * 1000;
 
 interface RecordsConfig {
   maxEntries: number;
+  ttlMs: number;
 }
 
 const store = new Map<string, Record>();
 const order: string[] = []; // Track insertion order for FIFO eviction
 let config: RecordsConfig = {
   maxEntries: DEFAULT_MAX_ENTRIES,
+  ttlMs: DEFAULT_TTL_MS,
 };
 
 export function configure(newConfig: Partial<RecordsConfig>): void {
   config = { ...config, ...newConfig };
+}
+
+/**
+ * Check if a record has expired based on TTL
+ */
+function isExpired(record: Record): boolean {
+  const age = Date.now() - record.timestamp;
+  return age > config.ttlMs;
+}
+
+/**
+ * Clean up expired records from the store
+ */
+function cleanupExpired(): void {
+  const now = Date.now();
+  const expiredIds: string[] = [];
+
+  for (const [id, record] of store.entries()) {
+    if (now - record.timestamp > config.ttlMs) {
+      expiredIds.push(id);
+    }
+  }
+
+  for (const id of expiredIds) {
+    store.delete(id);
+    const idx = order.indexOf(id);
+    if (idx > -1) order.splice(idx, 1);
+  }
 }
 
 function evictOldest(count: number): void {
@@ -33,6 +66,9 @@ function evictOldest(count: number): void {
 }
 
 export function save(record: Omit<Record, "id" | "timestamp">): Record {
+  // Clean up expired records periodically
+  cleanupExpired();
+
   // Check if we need to evict
   if (store.size >= config.maxEntries) {
     // Evict 10% of entries
@@ -48,11 +84,21 @@ export function save(record: Omit<Record, "id" | "timestamp">): Record {
 }
 
 export function get(id: string): Record | undefined {
-  return store.get(id);
+  const record = store.get(id);
+  if (record && isExpired(record)) {
+    // Remove expired record on access
+    store.delete(id);
+    const idx = order.indexOf(id);
+    if (idx > -1) order.splice(idx, 1);
+    return undefined;
+  }
+  return record;
 }
 
 export function list(limit = 50): Record[] {
+  cleanupExpired();
   return Array.from(store.values())
+    .filter((r) => !isExpired(r))
     .sort((a, b) => b.timestamp - a.timestamp)
     .slice(0, limit);
 }
@@ -75,6 +121,7 @@ export function clear(): number {
 
 export function search(query: string, limit = 50): Record[] {
   const q = query.toLowerCase();
+  cleanupExpired();
   return list(limit).filter(
     (r) =>
       r.query.toLowerCase().includes(q) ||
@@ -84,9 +131,52 @@ export function search(query: string, limit = 50): Record[] {
 }
 
 export function size(): number {
+  cleanupExpired();
   return store.size;
 }
 
 export function maxSize(): number {
   return config.maxEntries;
+}
+
+/**
+ * Get analytics statistics about the records store
+ */
+export function getAnalytics(): {
+  totalRecords: number;
+  maxRecords: number;
+  providerUsage: Record<string, number>;
+  averageScore: number;
+  oldestRecord: number | null;
+  newestRecord: number | null;
+  ttlDays: number;
+} {
+  cleanupExpired();
+  const records = Array.from(store.values());
+  
+  // Provider usage stats
+  const providerUsage: Record<string, number> = {};
+  records.forEach((r) => {
+    providerUsage[r.source] = (providerUsage[r.source] || 0) + 1;
+  });
+
+  // Average score
+  const avgScore = records.length > 0
+    ? records.reduce((sum, r) => sum + r.score, 0) / records.length
+    : 0;
+
+  // Oldest and newest timestamps
+  const timestamps = records.map((r) => r.timestamp);
+  const oldestRecord = timestamps.length > 0 ? Math.min(...timestamps) : null;
+  const newestRecord = timestamps.length > 0 ? Math.max(...timestamps) : null;
+
+  return {
+    totalRecords: records.length,
+    maxRecords: config.maxEntries,
+    providerUsage,
+    averageScore: Math.round(avgScore * 100) / 100,
+    oldestRecord,
+    newestRecord,
+    ttlDays: config.ttlMs / (24 * 60 * 60 * 1000),
+  };
 }
