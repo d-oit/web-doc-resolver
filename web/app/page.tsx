@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { loadApiKeys, saveApiKeys, ApiKeys, resolveKeySource, KeySource } from "@/lib/keys";
-import { loadUiState, saveUiState, loadStateFromServer, saveStateToServer, resolveUiState } from "@/lib/ui-state";
+import { loadUIState, saveUIState, type UIState } from "@/lib/ui-state";
 import History, { HistoryEntry } from "@/app/components/History";
 
 type ProfileId = "free" | "balanced" | "fast" | "quality" | "custom";
@@ -106,15 +106,13 @@ export default function Home() {
       })
       .catch(() => {});
 
-    // Try server state first, fallback to localStorage
-    loadStateFromServer()
-      .then((serverState) => {
-        const localState = loadUiState();
-        const ui = resolveUiState(serverState, localState);
-        setSidebarOpen(ui.sidebarOpen);
-        setApiKeysOpen(ui.apiKeysOpen);
+    // Load UI state from server with localStorage fallback
+    loadUIState()
+      .then((ui) => {
+        setSidebarOpen(!ui.sidebarCollapsed);
+        setApiKeysOpen(ui.showApiKeys);
         setShowAdvanced(ui.showAdvanced);
-        const savedProfile = PROFILES.some((p) => p.id === ui.profile) ? (ui.profile as ProfileId) : "free";
+        const savedProfile = PROFILES.some((p) => p.id === ui.activeProfile) ? (ui.activeProfile as ProfileId) : "free";
         setProfile(savedProfile);
         setSelectedProviders(ui.selectedProviders);
         setMaxChars(ui.maxChars);
@@ -127,6 +125,11 @@ export default function Home() {
         }
         setLoaded(true);
         inputRef.current?.focus();
+      })
+      .catch(() => {
+        // Fallback: just use defaults
+        setLoaded(true);
+        inputRef.current?.focus();
       });
   }, []);
 
@@ -136,32 +139,22 @@ export default function Home() {
   }, [apiKeys, serverKeyStatus]);
 
   // Persist UI state changes (skip before first load)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   useEffect(() => {
     if (!loaded) return;
-    const state = {
-      sidebarOpen,
-      apiKeysOpen,
-      showAdvanced,
-      profile,
+    const state: Partial<UIState> = {
+      sidebarCollapsed: !sidebarOpen,
+      showApiKeys: apiKeysOpen,
+      showAdvanced: showAdvanced,
+      activeProfile: profile,
       selectedProviders,
       maxChars,
       skipCache,
       deepResearch,
       apiKeys,
     };
-    // localStorage: immediate
-    saveUiState(state);
+    // Save to server with localStorage fallback (fire-and-forget)
+    saveUIState(state);
     saveApiKeys(apiKeys);
-    // Server: debounced 2s
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      saveStateToServer(state);
-    }, 2000);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
   }, [loaded, sidebarOpen, apiKeysOpen, showAdvanced, profile, selectedProviders, maxChars, skipCache, deepResearch, apiKeys]);
 
   const handleProviderToggle = (providerId: string) => {
