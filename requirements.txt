@@ -9,6 +9,10 @@ mistralai>=2.0.0  # Mistral agent-browser skill fallback - free tier available
 duckduckgo-search>=6.0.0  # DuckDuckGo search - FREE, no API key required
 httpx>=0.27.0  # optional faster async client (used by Jina if available)
 
+# Semantic cache dependencies (optional - local embeddings, no API key required)
+sentence-transformers>=2.2.0  # Local embeddings for semantic cache - downloads ~80MB model on first use
+sqlite-vec>=0.1.0  # Vector search extension for SQLite - loaded dynamically
+
 # Development dependencies
 pytest>=7.4.0
 pytest-cov>=4.1.0
