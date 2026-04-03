@@ -2,7 +2,7 @@
 //!
 //! Run with: cargo bench --features semantic-cache
 
-use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 use do_wdr_lib::config::Config;
 use do_wdr_lib::semantic_cache::{SemanticCache, SemanticCacheConfig};
 use do_wdr_lib::types::ResolvedResult;
@@ -24,12 +24,17 @@ fn test_config(path: &str) -> Config {
 /// Create sample resolved results for testing
 fn create_test_results(count: usize) -> Vec<ResolvedResult> {
     (0..count)
-        .map(|i| ResolvedResult::new(
-            format!("https://example.com/page{}", i),
-            Some(format!("Content for page {} with enough characters to be valid", i)),
-            "test_provider",
-            0.9 - (i as f64 * 0.1),
-        ))
+        .map(|i| {
+            ResolvedResult::new(
+                format!("https://example.com/page{}", i),
+                Some(format!(
+                    "Content for page {} with enough characters to be valid",
+                    i
+                )),
+                "test_provider",
+                0.9 - (i as f64 * 0.1),
+            )
+        })
         .collect()
 }
 
@@ -38,34 +43,31 @@ fn bench_store(c: &mut Criterion) {
     let rt = Runtime::new().unwrap();
     let temp_dir = tempfile::tempdir().unwrap();
     let config = test_config(temp_dir.path().to_str().unwrap());
-    
-    let cache = rt.block_on(async {
-        SemanticCache::new(&config).await.unwrap().unwrap()
-    });
-    
+
+    let cache = rt.block_on(async { SemanticCache::new(&config).await.unwrap().unwrap() });
+
     let _results = create_test_results(5);
-    
+
     let mut group = c.benchmark_group("semantic_cache_store");
     group.measurement_time(Duration::from_secs(5));
     group.sample_size(50);
-    
-        // Benchmark storing different query sizes
+
+    // Benchmark storing different query sizes
     for size in [1, 5, 10].iter() {
-        group.bench_with_input(
-            BenchmarkId::new("results", size),
-            size,
-            |b, _| {
-                let query = format!("rust programming tutorial bench {}", size);
-                let test_results = create_test_results(*size);
-                b.to_async(&rt).iter(|| async {
-                    cache.store(&query, &test_results, "test_provider").await.unwrap();
-                });
-            },
-        );
+        group.bench_with_input(BenchmarkId::new("results", size), size, |b, _| {
+            let query = format!("rust programming tutorial bench {}", size);
+            let test_results = create_test_results(*size);
+            b.to_async(&rt).iter(|| async {
+                cache
+                    .store(&query, &test_results, "test_provider")
+                    .await
+                    .unwrap();
+            });
+        });
     }
-    
+
     group.finish();
-    
+
     // Cleanup
     drop(cache);
     let _ = std::fs::remove_dir_all(temp_dir);
@@ -76,10 +78,10 @@ fn bench_query(c: &mut Criterion) {
     let rt = Runtime::new().unwrap();
     let temp_dir = tempfile::tempdir().unwrap();
     let config = test_config(temp_dir.path().to_str().unwrap());
-    
+
     let cache = rt.block_on(async {
         let cache = SemanticCache::new(&config).await.unwrap().unwrap();
-        
+
         // Pre-populate cache with test data
         let queries = vec![
             "rust programming tutorial",
@@ -88,42 +90,45 @@ fn bench_query(c: &mut Criterion) {
             "go concurrency best practices",
             "typescript type system advanced",
         ];
-        
+
         for (_i, query) in queries.iter().enumerate() {
             let results = create_test_results(3);
             cache.store(query, &results, "test_provider").await.unwrap();
         }
-        
+
         cache
     });
-    
+
     let mut group = c.benchmark_group("semantic_cache_query");
     group.measurement_time(Duration::from_secs(5));
     group.sample_size(50);
-    
+
     // Benchmark querying with exact match
     group.bench_function("exact_match", |b| {
         b.to_async(&rt).iter(|| async {
             cache.query("rust programming tutorial").await.unwrap();
         });
     });
-    
+
     // Benchmark querying with similar (semantic) match
     group.bench_function("semantic_match", |b| {
         b.to_async(&rt).iter(|| async {
             cache.query("rust coding tutorial").await.unwrap();
         });
     });
-    
+
     // Benchmark querying with no match
     group.bench_function("no_match", |b| {
         b.to_async(&rt).iter(|| async {
-            cache.query("completely unrelated query about gardening").await.unwrap();
+            cache
+                .query("completely unrelated query about gardening")
+                .await
+                .unwrap();
         });
     });
-    
+
     group.finish();
-    
+
     // Cleanup
     drop(cache);
     let _ = std::fs::remove_dir_all(temp_dir);
@@ -134,21 +139,24 @@ fn bench_concurrent(c: &mut Criterion) {
     let rt = Runtime::new().unwrap();
     let temp_dir = tempfile::tempdir().unwrap();
     let config = test_config(temp_dir.path().to_str().unwrap());
-    
+
     let cache = rt.block_on(async {
         let cache = SemanticCache::new(&config).await.unwrap().unwrap();
-        
+
         // Pre-populate cache with test data
         let results = create_test_results(3);
-        cache.store("base query", &results, "test_provider").await.unwrap();
-        
+        cache
+            .store("base query", &results, "test_provider")
+            .await
+            .unwrap();
+
         cache
     });
-    
+
     let mut group = c.benchmark_group("semantic_cache_concurrent");
     group.measurement_time(Duration::from_secs(10));
     group.sample_size(20);
-    
+
     // Benchmark rapid sequential reads
     group.bench_function("rapid_reads", |b| {
         b.to_async(&rt).iter(|| async {
@@ -162,7 +170,7 @@ fn bench_concurrent(c: &mut Criterion) {
             }
         });
     });
-    
+
     // Benchmark rapid interleaved read/write
     group.bench_function("interleaved_ops", |b| {
         b.to_async(&rt).iter(|| async {
@@ -174,9 +182,9 @@ fn bench_concurrent(c: &mut Criterion) {
             }
         });
     });
-    
+
     group.finish();
-    
+
     // Cleanup
     drop(cache);
     let _ = std::fs::remove_dir_all(temp_dir);
