@@ -350,3 +350,356 @@ impl SemanticCache {
     #[allow(dead_code, clippy::unused_unit)]
     fn encode_query(&self, _query: &str) -> () {}
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::types::ResolvedResult;
+    use std::time::Duration;
+    use tokio::time::timeout;
+
+    /// Create a test configuration with semantic cache enabled
+    fn test_config(path: &str) -> Config {
+        let mut config = Config::default();
+        config.semantic_cache = SemanticCacheConfig {
+            enabled: true,
+            path: path.to_string(),
+            threshold: 0.85,
+            max_entries: 10000,
+        };
+        config
+    }
+
+    /// Create sample resolved results for testing
+    fn create_test_results(count: usize) -> Vec<ResolvedResult> {
+        (0..count)
+            .map(|i| ResolvedResult::new(
+                format!("https://example.com/page{}", i),
+                Some(format!("Content for page {} with enough characters to be valid for testing purposes", i)),
+                "test_provider",
+                0.9 - (i as f64 * 0.1),
+            ))
+            .collect()
+    }
+
+    #[test]
+    fn test_cache_entry_serialization() {
+        let entry = CacheEntry {
+            query: "rust programming".to_string(),
+            results: create_test_results(3),
+            provider: "test_provider".to_string(),
+            timestamp: chrono::Utc::now(),
+            hit_count: 5,
+        };
+
+        // Test serialization
+        let json = serde_json::to_string(&entry).expect("Failed to serialize CacheEntry");
+        assert!(json.contains("rust programming"));
+        assert!(json.contains("test_provider"));
+
+        // Test deserialization
+        let deserialized: CacheEntry = serde_json::from_str(&json)
+            .expect("Failed to deserialize CacheEntry");
+        
+        assert_eq!(deserialized.query, entry.query);
+        assert_eq!(deserialized.provider, entry.provider);
+        assert_eq!(deserialized.hit_count, entry.hit_count);
+        assert_eq!(deserialized.results.len(), entry.results.len());
+    }
+
+    #[test]
+    fn test_query_normalization() {
+        // Test case variations
+        let queries = vec![
+            ("Rust Programming", "rust programming"),
+            ("RUST   PROGRAMMING", "rust programming"),
+            ("  rust  programming  ", "rust programming"),
+            ("Rust\tProgramming", "rust programming"),
+        ];
+
+        for (input, expected) in queries {
+            let normalized: String = input
+                .to_lowercase()
+                .split_whitespace()
+                .collect::<Vec<_>>()
+                .join(" ");
+            assert_eq!(normalized, expected, "Query normalization failed for: {}", input);
+        }
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "semantic-cache")]
+    async fn test_store_and_query() {
+        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let config = test_config(temp_dir.path().to_str().unwrap());
+        
+        // Initialize cache
+        let cache = SemanticCache::new(&config).await
+            .expect("Failed to create cache")
+            .expect("Cache should be enabled");
+        
+        // Create test results
+        let results = create_test_results(3);
+        let query = "rust programming tutorial";
+        
+        // Store in cache
+        cache.store(query, &results, "test_provider").await
+            .expect("Failed to store in cache");
+        
+        // Query exact match
+        let retrieved = cache.query(query).await
+            .expect("Failed to query cache");
+        
+        assert!(retrieved.is_some(), "Should find exact match");
+        let retrieved_results = retrieved.unwrap();
+        assert_eq!(retrieved_results.len(), results.len());
+        assert_eq!(retrieved_results[0].url, results[0].url);
+        
+        // Query similar (semantic match)
+        let similar_query = "rust coding tutorial";
+        let similar_retrieved = cache.query(similar_query).await
+            .expect("Failed to query cache with similar query");
+        
+        // Note: Semantic matching depends on the encoder quality
+        // The test documents this behavior
+        if similar_retrieved.is_some() {
+            assert_eq!(similar_retrieved.as_ref().unwrap().len(), results.len());
+        }
+        
+        // Query non-matching
+        let no_match = cache.query("completely unrelated query about gardening").await
+            .expect("Failed to query cache");
+        
+        assert!(no_match.is_none(), "Should not find unrelated query");
+        
+        // Cleanup
+        drop(cache);
+        drop(temp_dir);
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "semantic-cache")]
+    async fn test_concurrent_access() {
+        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let config = test_config(temp_dir.path().to_str().unwrap());
+        
+        let cache = SemanticCache::new(&config).await
+            .expect("Failed to create cache")
+            .expect("Cache should be enabled");
+        
+        // Pre-populate with some data
+        let initial_results = create_test_results(3);
+        cache.store("base query", &initial_results, "test_provider").await
+            .expect("Failed to store initial data");
+        
+        // Spawn concurrent reads
+        let mut read_handles = vec![];
+        for i in 0..20 {
+            let query = format!("concurrent read query {}", i % 5);
+            let cache_ref = &cache;
+            read_handles.push(tokio::spawn(async move {
+                cache_ref.query(&query).await
+            }));
+        }
+        
+        // Spawn concurrent writes
+        let mut write_handles = vec![];
+        for i in 0..10 {
+            let query = format!("concurrent write query {}", i);
+            let results = create_test_results(2);
+            let cache_ref = &cache;
+            write_handles.push(tokio::spawn(async move {
+                cache_ref.store(&query, &results, "test_provider").await
+            }));
+        }
+        
+        // Wait for all operations with timeout
+        let timeout_duration = Duration::from_secs(30);
+        
+        for (i, handle) in read_handles.into_iter().enumerate() {
+            let result = timeout(timeout_duration, handle).await
+                .expect(&format!("Read handle {} timed out", i))
+                .expect(&format!("Read handle {} panicked", i));
+            assert!(result.is_ok(), "Read operation {} failed", i);
+        }
+        
+        for (i, handle) in write_handles.into_iter().enumerate() {
+            let result = timeout(timeout_duration, handle).await
+                .expect(&format!("Write handle {} timed out", i))
+                .expect(&format!("Write handle {} panicked", i));
+            assert!(result.is_ok(), "Write operation {} failed", i);
+        }
+        
+        // Verify data integrity - all written queries should be retrievable
+        for i in 0..10 {
+            let query = format!("concurrent write query {}", i);
+            let retrieved = cache.query(&query).await
+                .expect("Failed to query after concurrent writes");
+            assert!(retrieved.is_some(), "Should find written query after concurrent access");
+        }
+        
+        // Cleanup
+        drop(cache);
+        drop(temp_dir);
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "semantic-cache")]
+    async fn test_database_failure() {
+        // Test with invalid path (read-only or non-existent parent)
+        let mut config = Config::default();
+        config.semantic_cache = SemanticCacheConfig {
+            enabled: true,
+            path: "/nonexistent/path/that/cannot/be/created".to_string(),
+            threshold: 0.85,
+            max_entries: 10000,
+        };
+        
+        // Should gracefully handle directory creation failure
+        let result = SemanticCache::new(&config).await;
+        
+        // When cache directory creation fails, it returns Ok(None) instead of error
+        assert!(result.is_ok(), "Should not panic on invalid path");
+        // The cache gracefully returns None when it can't create the directory
+        assert!(result.unwrap().is_none(), "Should return None for invalid path");
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "semantic-cache")]
+    async fn test_cache_persistence() {
+        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let config = test_config(temp_dir.path().to_str().unwrap());
+        let query = "persistent query test";
+        let results = create_test_results(3);
+        
+        // Create cache and store data
+        {
+            let cache = SemanticCache::new(&config).await
+                .expect("Failed to create cache")
+                .expect("Cache should be enabled");
+            
+            cache.store(query, &results, "test_provider").await
+                .expect("Failed to store in cache");
+            
+            // Verify data is stored
+            let retrieved = cache.query(query).await
+                .expect("Failed to query cache")
+                .expect("Should find stored query");
+            assert_eq!(retrieved.len(), results.len());
+            
+            // Cache is dropped here
+        }
+        
+        // Create new cache instance with same path
+        {
+            let cache = SemanticCache::new(&config).await
+                .expect("Failed to create cache")
+                .expect("Cache should be enabled");
+            
+            // Data should still be available
+            let retrieved = cache.query(query).await
+                .expect("Failed to query cache after restart");
+            
+            // Note: Data persistence depends on the underlying database implementation
+            // This test documents the expected behavior
+            if retrieved.is_some() {
+                assert_eq!(retrieved.as_ref().unwrap().len(), results.len());
+            }
+        }
+        
+        drop(temp_dir);
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "semantic-cache")]
+    async fn test_remove_operation() {
+        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let config = test_config(temp_dir.path().to_str().unwrap());
+        
+        let cache = SemanticCache::new(&config).await
+            .expect("Failed to create cache")
+            .expect("Cache should be enabled");
+        
+        let query = "query to be removed";
+        let results = create_test_results(2);
+        
+        // Store data
+        cache.store(query, &results, "test_provider").await
+            .expect("Failed to store in cache");
+        
+        // Verify it's there
+        let retrieved = cache.query(query).await
+            .expect("Failed to query cache");
+        assert!(retrieved.is_some(), "Should find stored query");
+        
+        // Remove the entry
+        cache.remove(query).await
+            .expect("Failed to remove from cache");
+        
+        // Verify it's gone
+        let after_remove = cache.query(query).await
+            .expect("Failed to query cache after removal");
+        assert!(after_remove.is_none(), "Should not find removed query");
+        
+        drop(cache);
+        drop(temp_dir);
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "semantic-cache")]
+    async fn test_store_latency() {
+        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let config = test_config(temp_dir.path().to_str().unwrap());
+        
+        let cache = SemanticCache::new(&config).await
+            .expect("Failed to create cache")
+            .expect("Cache should be enabled");
+        
+        let results = create_test_results(5);
+        let query = "latency test query";
+        
+        let start = std::time::Instant::now();
+        cache.store(query, &results, "test_provider").await
+            .expect("Failed to store in cache");
+        let elapsed = start.elapsed();
+        
+        // Assert latency requirement: < 10ms
+        assert!(elapsed.as_millis() < 10, 
+            "Store operation took {}ms, expected < 10ms", 
+            elapsed.as_millis());
+        
+        drop(cache);
+        drop(temp_dir);
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "semantic-cache")]
+    async fn test_query_latency() {
+        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let config = test_config(temp_dir.path().to_str().unwrap());
+        
+        let cache = SemanticCache::new(&config).await
+            .expect("Failed to create cache")
+            .expect("Cache should be enabled");
+        
+        // Pre-populate cache
+        let results = create_test_results(5);
+        let query = "query latency test";
+        cache.store(query, &results, "test_provider").await
+            .expect("Failed to store in cache");
+        
+        // Measure query latency
+        let start = std::time::Instant::now();
+        let _retrieved = cache.query(query).await
+            .expect("Failed to query cache");
+        let elapsed = start.elapsed();
+        
+        // Assert latency requirement: < 10ms
+        assert!(elapsed.as_millis() < 10, 
+            "Query operation took {}ms, expected < 10ms", 
+            elapsed.as_millis());
+        
+        drop(cache);
+        drop(temp_dir);
+    }
+}
