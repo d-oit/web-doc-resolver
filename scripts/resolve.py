@@ -534,8 +534,12 @@ def resolve(
     input_str: str,
     max_chars: int = MAX_CHARS,
     skip_providers: set[str] | None = None,
-    profile: Profile = Profile.BALANCED,
+    profile: Profile | str = Profile.BALANCED,
 ) -> dict[str, Any]:
+    # Convert string profile to enum if needed
+    if isinstance(profile, str):
+        profile = Profile(profile.lower())
+    
     if is_url(input_str):
         return resolve_url(input_str, max_chars, profile=profile)
     return resolve_query(input_str, max_chars, skip_providers, profile=profile)
