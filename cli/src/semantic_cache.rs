@@ -492,41 +492,43 @@ mod tests {
         cache.store("base query", &initial_results, "test_provider").await
             .expect("Failed to store initial data");
         
-        // Spawn concurrent reads
-        let mut read_handles = vec![];
-        for i in 0..20 {
-            let query = format!("concurrent read query {}", i % 5);
-            let cache_ref = &cache;
-            read_handles.push(tokio::spawn(async move {
-                cache_ref.query(&query).await
-            }));
-        }
+        // Test concurrent access using futures::future::join_all
+        // This runs operations concurrently without requiring 'static lifetime
+        use futures::future::join_all;
         
-        // Spawn concurrent writes
-        let mut write_handles = vec![];
-        for i in 0..10 {
-            let query = format!("concurrent write query {}", i);
-            let results = create_test_results(2);
-            let cache_ref = &cache;
-            write_handles.push(tokio::spawn(async move {
-                cache_ref.store(&query, &results, "test_provider").await
-            }));
-        }
+        // Perform multiple reads concurrently
+        let read_futures: Vec<_> = (0..20)
+            .map(|i| {
+                let query = format!("concurrent read query {}", i % 5);
+                async {
+                    // Alternate between querying base data and new queries
+                    if i % 2 == 0 {
+                        cache.query("base query").await
+                    } else {
+                        cache.query(&query).await
+                    }
+                }
+            })
+            .collect();
         
-        // Wait for all operations with timeout
-        let timeout_duration = Duration::from_secs(30);
-        
-        for (i, handle) in read_handles.into_iter().enumerate() {
-            let result = timeout(timeout_duration, handle).await
-                .expect(&format!("Read handle {} timed out", i))
-                .expect(&format!("Read handle {} panicked", i));
+        let read_results = join_all(read_futures).await;
+        for (i, result) in read_results.iter().enumerate() {
             assert!(result.is_ok(), "Read operation {} failed", i);
         }
         
-        for (i, handle) in write_handles.into_iter().enumerate() {
-            let result = timeout(timeout_duration, handle).await
-                .expect(&format!("Write handle {} timed out", i))
-                .expect(&format!("Write handle {} panicked", i));
+        // Perform multiple writes concurrently
+        let write_futures: Vec<_> = (0..10)
+            .map(|i| {
+                let query = format!("concurrent write query {}", i);
+                let results = create_test_results(2);
+                async move {
+                    cache.store(&query, &results, "test_provider").await
+                }
+            })
+            .collect();
+        
+        let write_results = join_all(write_futures).await;
+        for (i, result) in write_results.iter().enumerate() {
             assert!(result.is_ok(), "Write operation {} failed", i);
         }
         
