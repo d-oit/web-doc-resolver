@@ -418,9 +418,7 @@ class SemanticCache:
             cursor = self._conn.execute("SELECT COUNT(*) as count FROM cache_entries")
             total_entries = cursor.fetchone()["count"]
 
-            cursor = self._conn.execute(
-                "SELECT AVG(access_count) as avg_access FROM cache_entries"
-            )
+            cursor = self._conn.execute("SELECT AVG(access_count) as avg_access FROM cache_entries")
             avg_access = cursor.fetchone()["avg_access"] or 0
 
             return {
@@ -469,9 +467,7 @@ def get_semantic_cache() -> SemanticCache | None:
         try:
             threshold = float(os.environ.get("DO_WDR_CACHE_THRESHOLD", "0.85"))
             max_entries = int(os.environ.get("DO_WDR_CACHE_MAX_ENTRIES", "10000"))
-            _semantic_cache_instance = SemanticCache(
-                threshold=threshold, max_entries=max_entries
-            )
+            _semantic_cache_instance = SemanticCache(threshold=threshold, max_entries=max_entries)
             if not _semantic_cache_instance.enabled:
                 return None
         except Exception as e:

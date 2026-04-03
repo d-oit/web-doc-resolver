@@ -1001,7 +1001,9 @@ class TestAdditionalEdgeCases:
     @patch("scripts.resolve.resolve_with_firecrawl")
     @patch("scripts.resolve.fetch_url_content")
     @patch("scripts.resolve.resolve_with_mistral_browser")
-    def test_url_cascade_mistral_last(self, mock_mistral, mock_fetch_url, mock_firecrawl, mock_jina, mock_fetch_llms):
+    def test_url_cascade_mistral_last(
+        self, mock_mistral, mock_fetch_url, mock_firecrawl, mock_jina, mock_fetch_llms
+    ):
         """Test that Mistral is tried last for URLs."""
         mock_fetch_llms.return_value = None
         mock_jina.return_value = None
