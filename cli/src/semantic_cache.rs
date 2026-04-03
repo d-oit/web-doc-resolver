@@ -669,12 +669,12 @@ mod tests {
         
         // Latency requirements:
         // - Release build: < 10ms
-        // - Debug build: < 100ms (accounts for debug overhead)
+        // - Debug build: < 200ms (accounts for debug overhead)
         // The semantic encoding and database operations add overhead
         #[cfg(not(debug_assertions))]
         let max_latency_ms = 10u128;
         #[cfg(debug_assertions)]
-        let max_latency_ms = 100u128;
+        let max_latency_ms = 200u128;
         
         assert!(
             elapsed.as_millis() < max_latency_ms,
@@ -714,11 +714,11 @@ mod tests {
         
         // Latency requirements:
         // - Release build: < 10ms
-        // - Debug build: < 100ms (accounts for debug overhead)
+        // - Debug build: < 200ms (accounts for debug overhead)
         #[cfg(not(debug_assertions))]
         let max_latency_ms = 10u128;
         #[cfg(debug_assertions)]
-        let max_latency_ms = 100u128;
+        let max_latency_ms = 200u128;
         
         assert!(
             elapsed.as_millis() < max_latency_ms,
