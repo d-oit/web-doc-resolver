@@ -1007,7 +1007,9 @@ class TestAdditionalEdgeCases:
 
         result = resolve("https://example.com")
 
+        # Mistral should succeed when all others fail
         assert result["source"] == "mistral-browser"
+        mock_mistral.assert_called_once()
 
     def test_cache_key_consistency(self):
         """Test that cache keys are consistent for same inputs."""
