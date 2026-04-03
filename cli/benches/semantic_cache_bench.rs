@@ -136,30 +136,77 @@ fn bench_concurrent(c: &mut Criterion) {
     let config = test_config(temp_dir.path().to_str().unwrap());
     
     let cache = rt.block_on(async {
-        SemanticCache::new(&config).await.unwrap().unwrap()
-    });
-    
-    // Pre-populate
-    let results = create_test_results(3);
-    rt.block_on(async {
+        let cache = SemanticCache::new(&config).await.unwrap().unwrap();
+        
+        // Pre-populate cache with test data
+        let results = create_test_results(3);
         cache.store("base query", &results, "test_provider").await.unwrap();
+        
+        cache
     });
     
     let mut group = c.benchmark_group("semantic_cache_concurrent");
     group.measurement_time(Duration::from_secs(10));
     group.sample_size(20);
     
-    // Benchmark concurrent reads
+    // Benchmark concurrent reads using futures::future::join_all
     group.bench_function("concurrent_reads", |b| {
         b.to_async(&rt).iter(|| async {
-            let mut handles = vec![];
-            for i in 0..10 {
-                let query = format!("concurrent query {}", i);
-                let cache_ref = &cache;
-                handles.push(tokio::spawn(async move {
-                    cache_ref.query(&query).await.unwrap();
-                }));
-            }
+            use futures::future::join_all;
+            let futures: Vec<_> = (0..10)
+                .map(|i| {
+                    let query = format!("concurrent query {}", i);
+                    async {
+                        if i % 2 == 0 {
+                            cache.query("base query").await
+                        } else {
+                            cache.query(&query).await
+                        }
+                    }
+                })
+                .collect();
+            let _results = join_all(futures).await;
+        });
+    });
+    
+    // Benchmark mixed read/write
+    group.bench_function("mixed_read_write", |b| {
+        b.to_async(&rt).iter(|| async {
+            use futures::future::join_all;
+            let results = create_test_results(2);
+            
+            // Perform writes
+            let write_futures: Vec<_> = (0..5)
+                .map(|i| {
+                    let query = format!("write query {}", i);
+                    let results = create_test_results(2);
+                    async move {
+                        cache.store(&query, &results, "test_provider").await
+                    }
+                })
+                .collect();
+            
+            // Perform reads
+            let read_futures: Vec<_> = (0..5)
+                .map(|i| {
+                    let query = format!("read query {}", i);
+                    async move {
+                        cache.query(&query).await
+                    }
+                })
+                .collect();
+            
+            let _ = join_all(write_futures).await;
+            let _ = join_all(read_futures).await;
+        });
+    });
+    
+    group.finish();
+    
+    // Cleanup
+    drop(cache);
+    let _ = std::fs::remove_dir_all(temp_dir);
+}
             for handle in handles {
                 handle.await.unwrap();
             }
