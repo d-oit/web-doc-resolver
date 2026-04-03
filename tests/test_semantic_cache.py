@@ -48,10 +48,12 @@ def semantic_cache(temp_cache_dir):
 
     # Reset any existing instance
     from scripts.semantic_cache import reset_semantic_cache
+
     reset_semantic_cache()
 
     # Create new instance with low threshold for testing
     from scripts.semantic_cache import SemanticCache
+
     cache = SemanticCache(
         cache_dir=temp_cache_dir,
         threshold=0.7,  # Lower threshold for testing
@@ -271,10 +273,7 @@ class TestSemanticCachePersistence:
 
         # Add entries
         for i in range(3):
-            semantic_cache.store(
-                f"query {i}",
-                {"source": "test", "content": f"content {i}"}
-            )
+            semantic_cache.store(f"query {i}", {"source": "test", "content": f"content {i}"})
 
         stats = semantic_cache.stats()
         assert stats["total_entries"] == 3
@@ -307,12 +306,14 @@ class TestSemanticCacheEviction:
             for i in range(10):
                 small_cache.store(
                     f"unique query number {i} about python",
-                    {"source": "test", "content": f"content {i}"}
+                    {"source": "test", "content": f"content {i}"},
                 )
 
             # Should only have 5 entries
             stats = small_cache.stats()
-            assert stats["total_entries"] <= 5, f"Expected <= 5 entries, got {stats['total_entries']}"
+            assert (
+                stats["total_entries"] <= 5
+            ), f"Expected <= 5 entries, got {stats['total_entries']}"
 
         finally:
             small_cache.close()
@@ -429,8 +430,8 @@ class TestSemanticCacheIntegration:
             # Verify cache integration functions work
             # Note: We can't easily mock the global cache, but we can verify
             # the helper functions exist and have correct signatures
-            assert hasattr(resolve, '_check_semantic_cache')
-            assert hasattr(resolve, '_store_in_semantic_cache')
+            assert hasattr(resolve, "_check_semantic_cache")
+            assert hasattr(resolve, "_store_in_semantic_cache")
 
             # Test the helper functions directly
             # Reset global cache to use our test cache
