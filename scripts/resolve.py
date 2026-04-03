@@ -104,7 +104,9 @@ def _check_semantic_cache(query_or_url: str) -> dict[str, Any] | None:
     try:
         entry = cache.query(query_or_url)
         if entry:
-            logger.info(f"Semantic cache hit for '{query_or_url[:50]}...' (similarity: {entry.similarity:.3f})")
+            logger.info(
+                f"Semantic cache hit for '{query_or_url[:50]}...' (similarity: {entry.similarity:.3f})"
+            )
             result = dict(entry.result)
             result["semantic_cache_hit"] = True
             result["semantic_similarity"] = entry.similarity
@@ -140,6 +142,7 @@ def _store_in_semantic_cache(query_or_url: str, result: dict[str, Any]) -> bool:
     except Exception as e:
         logger.debug(f"Failed to store in semantic cache: {e}")
         return False
+
 
 __all__ = [
     "resolve",
