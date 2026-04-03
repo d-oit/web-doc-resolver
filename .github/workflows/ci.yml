@@ -297,3 +297,6 @@ jobs:
 
       - name: Run clippy with semantic-cache feature
         run: cd cli && cargo clippy --features semantic-cache -- -D warnings
+
+      - name: Verify benchmarks compile
+        run: cd cli && cargo bench --features semantic-cache --no-run
