@@ -396,9 +396,9 @@ mod tests {
         assert!(json.contains("test_provider"));
 
         // Test deserialization
-        let deserialized: CacheEntry = serde_json::from_str(&json)
-            .expect("Failed to deserialize CacheEntry");
-        
+        let deserialized: CacheEntry =
+            serde_json::from_str(&json).expect("Failed to deserialize CacheEntry");
+
         assert_eq!(deserialized.query, entry.query);
         assert_eq!(deserialized.provider, entry.provider);
         assert_eq!(deserialized.hit_count, entry.hit_count);
@@ -421,7 +421,11 @@ mod tests {
                 .split_whitespace()
                 .collect::<Vec<_>>()
                 .join(" ");
-            assert_eq!(normalized, expected, "Query normalization failed for: {}", input);
+            assert_eq!(
+                normalized, expected,
+                "Query normalization failed for: {}",
+                input
+            );
         }
     }
 
@@ -430,46 +434,52 @@ mod tests {
     async fn test_store_and_query() {
         let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
         let config = test_config(temp_dir.path().to_str().unwrap());
-        
+
         // Initialize cache
-        let cache = SemanticCache::new(&config).await
+        let cache = SemanticCache::new(&config)
+            .await
             .expect("Failed to create cache")
             .expect("Cache should be enabled");
-        
+
         // Create test results
         let results = create_test_results(3);
         let query = "rust programming tutorial";
-        
+
         // Store in cache
-        cache.store(query, &results, "test_provider").await
+        cache
+            .store(query, &results, "test_provider")
+            .await
             .expect("Failed to store in cache");
-        
+
         // Query exact match
-        let retrieved = cache.query(query).await
-            .expect("Failed to query cache");
-        
+        let retrieved = cache.query(query).await.expect("Failed to query cache");
+
         assert!(retrieved.is_some(), "Should find exact match");
         let retrieved_results = retrieved.unwrap();
         assert_eq!(retrieved_results.len(), results.len());
         assert_eq!(retrieved_results[0].url, results[0].url);
-        
+
         // Query similar (semantic match)
         let similar_query = "rust coding tutorial";
-        let similar_retrieved = cache.query(similar_query).await
+        let similar_retrieved = cache
+            .query(similar_query)
+            .await
             .expect("Failed to query cache with similar query");
-        
+
         // Note: Semantic matching depends on the encoder quality
         // The test documents this behavior
         if similar_retrieved.is_some() {
             assert_eq!(similar_retrieved.as_ref().unwrap().len(), results.len());
         }
-        
+
         // Query non-matching
-        let no_match = cache.query("completely unrelated query about gardening").await
+        let no_match = cache
+            .query("completely unrelated query about gardening")
+            .await
             .expect("Failed to query cache");
-        
+
         assert!(no_match.is_none(), "Should not find unrelated query");
-        
+
         // Cleanup
         drop(cache);
         drop(temp_dir);
@@ -480,20 +490,23 @@ mod tests {
     async fn test_concurrent_access() {
         let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
         let config = test_config(temp_dir.path().to_str().unwrap());
-        
-        let cache = SemanticCache::new(&config).await
+
+        let cache = SemanticCache::new(&config)
+            .await
             .expect("Failed to create cache")
             .expect("Cache should be enabled");
-        
+
         // Pre-populate with some data
         let initial_results = create_test_results(3);
-        cache.store("base query", &initial_results, "test_provider").await
+        cache
+            .store("base query", &initial_results, "test_provider")
+            .await
             .expect("Failed to store initial data");
-        
+
         // Test rapid sequential operations (simulating concurrent load)
         // This exercises the underlying database's thread safety
         // by performing operations in quick succession
-        
+
         // Perform 20 reads rapidly
         for i in 0..20 {
             let query = if i % 2 == 0 {
@@ -504,7 +517,7 @@ mod tests {
             let result = cache.query(query).await;
             assert!(result.is_ok(), "Read operation {} failed", i);
         }
-        
+
         // Perform 10 writes rapidly
         for i in 0..10 {
             let query = format!("concurrent write query {}", i);
@@ -512,30 +525,36 @@ mod tests {
             let result = cache.store(&query, &results, "test_provider").await;
             assert!(result.is_ok(), "Write operation {} failed", i);
         }
-        
+
         // Verify data integrity - all written queries should be retrievable
         for i in 0..10 {
             let query = format!("concurrent write query {}", i);
-            let retrieved = cache.query(&query).await
+            let retrieved = cache
+                .query(&query)
+                .await
                 .expect("Failed to query after rapid writes");
-            assert!(retrieved.is_some(), "Should find written query after rapid access");
+            assert!(
+                retrieved.is_some(),
+                "Should find written query after rapid access"
+            );
         }
-        
+
         // Test interleaved reads and writes
         for i in 0..5 {
             let query = format!("interleaved query {}", i);
             let results = create_test_results(2);
-            
+
             // Write
-            cache.store(&query, &results, "test_provider").await
+            cache
+                .store(&query, &results, "test_provider")
+                .await
                 .expect("Failed interleaved write");
-            
+
             // Immediate read
-            let retrieved = cache.query(&query).await
-                .expect("Failed interleaved read");
+            let retrieved = cache.query(&query).await.expect("Failed interleaved read");
             assert!(retrieved.is_some(), "Should find immediately written query");
         }
-        
+
         // Cleanup
         drop(cache);
         drop(temp_dir);
@@ -552,14 +571,17 @@ mod tests {
             threshold: 0.85,
             max_entries: 10000,
         };
-        
+
         // Should gracefully handle directory creation failure
         let result = SemanticCache::new(&config).await;
-        
+
         // When cache directory creation fails, it returns Ok(None) instead of error
         assert!(result.is_ok(), "Should not panic on invalid path");
         // The cache gracefully returns None when it can't create the directory
-        assert!(result.unwrap().is_none(), "Should return None for invalid path");
+        assert!(
+            result.unwrap().is_none(),
+            "Should return None for invalid path"
+        );
     }
 
     #[tokio::test]
@@ -569,42 +591,50 @@ mod tests {
         let config = test_config(temp_dir.path().to_str().unwrap());
         let query = "persistent query test";
         let results = create_test_results(3);
-        
+
         // Create cache and store data
         {
-            let cache = SemanticCache::new(&config).await
+            let cache = SemanticCache::new(&config)
+                .await
                 .expect("Failed to create cache")
                 .expect("Cache should be enabled");
-            
-            cache.store(query, &results, "test_provider").await
+
+            cache
+                .store(query, &results, "test_provider")
+                .await
                 .expect("Failed to store in cache");
-            
+
             // Verify data is stored
-            let retrieved = cache.query(query).await
+            let retrieved = cache
+                .query(query)
+                .await
                 .expect("Failed to query cache")
                 .expect("Should find stored query");
             assert_eq!(retrieved.len(), results.len());
-            
+
             // Cache is dropped here
         }
-        
+
         // Create new cache instance with same path
         {
-            let cache = SemanticCache::new(&config).await
+            let cache = SemanticCache::new(&config)
+                .await
                 .expect("Failed to create cache")
                 .expect("Cache should be enabled");
-            
+
             // Data should still be available
-            let retrieved = cache.query(query).await
+            let retrieved = cache
+                .query(query)
+                .await
                 .expect("Failed to query cache after restart");
-            
+
             // Note: Data persistence depends on the underlying database implementation
             // This test documents the expected behavior
             if retrieved.is_some() {
                 assert_eq!(retrieved.as_ref().unwrap().len(), results.len());
             }
         }
-        
+
         drop(temp_dir);
     }
 
@@ -613,32 +643,38 @@ mod tests {
     async fn test_remove_operation() {
         let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
         let config = test_config(temp_dir.path().to_str().unwrap());
-        
-        let cache = SemanticCache::new(&config).await
+
+        let cache = SemanticCache::new(&config)
+            .await
             .expect("Failed to create cache")
             .expect("Cache should be enabled");
-        
+
         let query = "query to be removed";
         let results = create_test_results(2);
-        
+
         // Store data
-        cache.store(query, &results, "test_provider").await
+        cache
+            .store(query, &results, "test_provider")
+            .await
             .expect("Failed to store in cache");
-        
+
         // Verify it's there
-        let retrieved = cache.query(query).await
-            .expect("Failed to query cache");
+        let retrieved = cache.query(query).await.expect("Failed to query cache");
         assert!(retrieved.is_some(), "Should find stored query");
-        
+
         // Remove the entry
-        cache.remove(query).await
+        cache
+            .remove(query)
+            .await
             .expect("Failed to remove from cache");
-        
+
         // Verify it's gone
-        let after_remove = cache.query(query).await
+        let after_remove = cache
+            .query(query)
+            .await
             .expect("Failed to query cache after removal");
         assert!(after_remove.is_none(), "Should not find removed query");
-        
+
         drop(cache);
         drop(temp_dir);
     }
@@ -648,25 +684,30 @@ mod tests {
     async fn test_store_latency() {
         let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
         let config = test_config(temp_dir.path().to_str().unwrap());
-        
-        let cache = SemanticCache::new(&config).await
+
+        let cache = SemanticCache::new(&config)
+            .await
             .expect("Failed to create cache")
             .expect("Cache should be enabled");
-        
+
         // Warm up - first operation may be slower due to initialization
         let warmup_results = create_test_results(2);
-        cache.store("warmup", &warmup_results, "test_provider").await
+        cache
+            .store("warmup", &warmup_results, "test_provider")
+            .await
             .expect("Warmup failed");
-        
+
         // Measure actual latency
         let results = create_test_results(5);
         let query = "latency test query";
-        
+
         let start = std::time::Instant::now();
-        cache.store(query, &results, "test_provider").await
+        cache
+            .store(query, &results, "test_provider")
+            .await
             .expect("Failed to store in cache");
         let elapsed = start.elapsed();
-        
+
         // Latency requirements:
         // - Release build: < 10ms
         // - Debug build: < 200ms (accounts for debug overhead)
@@ -675,14 +716,14 @@ mod tests {
         let max_latency_ms = 10u128;
         #[cfg(debug_assertions)]
         let max_latency_ms = 200u128;
-        
+
         assert!(
             elapsed.as_millis() < max_latency_ms,
             "Store operation took {}ms, expected < {}ms",
             elapsed.as_millis(),
             max_latency_ms
         );
-        
+
         drop(cache);
         drop(temp_dir);
     }
@@ -692,26 +733,28 @@ mod tests {
     async fn test_query_latency() {
         let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
         let config = test_config(temp_dir.path().to_str().unwrap());
-        
-        let cache = SemanticCache::new(&config).await
+
+        let cache = SemanticCache::new(&config)
+            .await
             .expect("Failed to create cache")
             .expect("Cache should be enabled");
-        
+
         // Pre-populate cache
         let results = create_test_results(5);
         let query = "query latency test";
-        cache.store(query, &results, "test_provider").await
+        cache
+            .store(query, &results, "test_provider")
+            .await
             .expect("Failed to store in cache");
-        
+
         // Warm up query
         let _ = cache.query("warmup").await;
-        
+
         // Measure query latency
         let start = std::time::Instant::now();
-        let _retrieved = cache.query(query).await
-            .expect("Failed to query cache");
+        let _retrieved = cache.query(query).await.expect("Failed to query cache");
         let elapsed = start.elapsed();
-        
+
         // Latency requirements:
         // - Release build: < 10ms
         // - Debug build: < 200ms (accounts for debug overhead)
@@ -719,14 +762,14 @@ mod tests {
         let max_latency_ms = 10u128;
         #[cfg(debug_assertions)]
         let max_latency_ms = 200u128;
-        
+
         assert!(
             elapsed.as_millis() < max_latency_ms,
             "Query operation took {}ms, expected < {}ms",
             elapsed.as_millis(),
             max_latency_ms
         );
-        
+
         drop(cache);
         drop(temp_dir);
     }
