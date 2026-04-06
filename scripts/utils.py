@@ -10,7 +10,7 @@ import re
 import socket
 from html.parser import HTMLParser
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -339,12 +339,11 @@ _TRACKING_PARAMS = {
 
 def normalize_url(url: str) -> str:
     """Normalize URL by stripping tracking params, anchors, and common aliases."""
+    # Bolt Optimization: Imports moved to top level to reduce overhead per call.
     try:
         parsed = urlparse(url)
         # Strip all known tracking params
         if parsed.query:
-            from urllib.parse import parse_qs, urlencode
-
             params = parse_qs(parsed.query)
             filtered_params = {
                 k: v

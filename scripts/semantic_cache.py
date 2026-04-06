@@ -241,7 +241,10 @@ class SemanticCache:
         Returns:
             SemanticCacheEntry if similar entry found above threshold, None otherwise
         """
-        if not self.enabled or not self._model:
+        # Bolt Optimization: Removed 'or not self._model' check.
+        # The model is lazy-loaded in _compute_embedding(), so checking it here
+        # would prevent the first (and all subsequent) calls from ever loading it.
+        if not self.enabled:
             return None
 
         try:
@@ -309,7 +312,8 @@ class SemanticCache:
         Returns:
             True if stored successfully, False otherwise
         """
-        if not self.enabled or not self._model:
+        # Bolt Optimization: Removed 'or not self._model' check to allow lazy-loading.
+        if not self.enabled:
             return False
 
         try:
