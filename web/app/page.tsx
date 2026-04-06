@@ -320,10 +320,13 @@ export default function Home() {
         ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}>
         {/* Sidebar Header - Toggle */}
-        <button
+        <div
           data-testid="sidebar-toggle"
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors min-h-[44px]"
+          onKeyDown={(e) => e.key === "Enter" && setSidebarOpen(!sidebarOpen)}
+          role="button"
+          tabIndex={0}
+          className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors min-h-[44px] cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-[#00ff41]"
         >
           <span className="text-[11px] uppercase tracking-[0.1em] text-[#666]">
             Configuration
@@ -336,13 +339,13 @@ export default function Home() {
             {/* Close button for mobile */}
             <button
               onClick={(e) => { e.stopPropagation(); setMobileMenuOpen(false); }}
-              className="lg:hidden text-[#666] hover:text-[#e8e6e3] p-2"
+              className="lg:hidden text-[#666] hover:text-[#e8e6e3] p-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
               aria-label="Close menu"
             >
               ✕
             </button>
           </div>
-        </button>
+        </div>
 
         {sidebarOpen && (
           <div className="px-4 pb-4 flex flex-col gap-4">

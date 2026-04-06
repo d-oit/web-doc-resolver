@@ -268,8 +268,14 @@ test.describe("History Delete", () => {
     const entryRow = page.locator("div").filter({ hasText: "test entry to delete" }).first();
     await entryRow.hover();
 
-    // Click delete button
-    const deleteButton = page.locator("button[aria-label*='Delete']");
+    // Click delete button (first click)
+    const deleteButton = page.getByTestId("delete-history-item");
+    await deleteButton.click({ force: true });
+
+    // Should show CONFIRM
+    await expect(deleteButton).toHaveText("CONFIRM");
+
+    // Click delete button again (second click)
     await deleteButton.click();
 
     // Entry should be removed

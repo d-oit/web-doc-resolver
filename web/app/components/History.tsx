@@ -22,6 +22,7 @@ export default function History({ onLoad }: HistoryProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -45,9 +46,17 @@ export default function History({ onLoad }: HistoryProps) {
   }, [isOpen, search]);
 
   const handleDelete = async (id: string) => {
+    if (confirmingId !== id) {
+      setConfirmingId(id);
+      // Auto-cancel after 3 seconds
+      setTimeout(() => setConfirmingId((curr) => curr === id ? null : curr), 3000);
+      return;
+    }
+
     try {
       await fetch(`/api/history?id=${id}`, { method: "DELETE" });
       setEntries((prev) => prev.filter((e) => e.id !== id));
+      setConfirmingId(null);
     } catch {
       // Silent fail
     }
@@ -106,11 +115,19 @@ export default function History({ onLoad }: HistoryProps) {
                     </div>
                   </div>
                   <button
-                    onClick={() => handleDelete(entry.id)}
-                    className="text-[10px] text-[#444] hover:text-[#ff4444] opacity-0 group-hover:opacity-100 transition-opacity min-h-[44px] min-w-[44px] flex items-center justify-center"
-                    aria-label={`Delete ${entry.query}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(entry.id);
+                    }}
+                    className={`text-[10px] transition-all min-h-[44px] min-w-[44px] flex items-center justify-center outline-none ${
+                      confirmingId === entry.id
+                        ? "text-[#ff4444] opacity-100 ring-1 ring-[#ff4444] bg-[#ff4444]/10 px-2 w-auto"
+                        : "text-[#444] hover:text-[#ff4444] opacity-0 group-hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-1 focus-visible:ring-[#ff4444]"
+                    }`}
+                    aria-label={confirmingId === entry.id ? `Confirm Delete ${entry.query}` : `Delete ${entry.query}`}
+                    data-testid="delete-history-item"
                   >
-                    ×
+                    {confirmingId === entry.id ? "CONFIRM" : "×"}
                   </button>
                 </div>
               ))
