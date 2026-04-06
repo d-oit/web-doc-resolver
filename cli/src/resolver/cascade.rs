@@ -39,7 +39,11 @@ pub fn is_safe_url(url_str: &str) -> bool {
     match host {
         url::Host::Domain(d) => {
             let d = d.to_lowercase();
-            if d == "localhost" || d == "localhost.localdomain" || d.ends_with(".local") || d.ends_with(".internal") {
+            if d == "localhost"
+                || d == "localhost.localdomain"
+                || d.ends_with(".local")
+                || d.ends_with(".internal")
+            {
                 return false;
             }
             // In a production environment, we should also resolve the domain to check IPs
@@ -61,7 +65,10 @@ fn is_private_ipv4(ip: std::net::Ipv4Addr) -> bool {
 }
 
 fn is_private_ipv6(ip: std::net::Ipv6Addr) -> bool {
-    ip.is_loopback() || ip.is_unspecified() || (ip.segments()[0] & 0xfe00) == 0xfc00 || (ip.segments()[0] & 0xffc0) == 0xfe80
+    ip.is_loopback()
+        || ip.is_unspecified()
+        || (ip.segments()[0] & 0xfe00) == 0xfc00
+        || (ip.segments()[0] & 0xffc0) == 0xfe80
 }
 
 /// Classify error type for routing decisions

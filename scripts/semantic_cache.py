@@ -229,7 +229,7 @@ class SemanticCache:
             raise RuntimeError("Embedding model not available")
 
         embedding = model.encode(text, convert_to_numpy=True, normalize_embeddings=True)
-        return embedding.tolist()
+        return list(map(float, embedding.tolist()))
 
     def query(self, query_str: str) -> SemanticCacheEntry | None:
         """
@@ -382,7 +382,7 @@ class SemanticCache:
         """Close database connection."""
         if hasattr(self, "_conn") and self._conn:
             self._conn.close()
-            self._conn = None
+            self._conn = None  # type: ignore
 
     def clear(self) -> bool:
         """
@@ -416,10 +416,12 @@ class SemanticCache:
 
         try:
             cursor = self._conn.execute("SELECT COUNT(*) as count FROM cache_entries")
-            total_entries = cursor.fetchone()["count"]
+            row = cursor.fetchone()
+            total_entries = row["count"] if row else 0
 
             cursor = self._conn.execute("SELECT AVG(access_count) as avg_access FROM cache_entries")
-            avg_access = cursor.fetchone()["avg_access"] or 0
+            row = cursor.fetchone()
+            avg_access = (row["avg_access"] if row else 0) or 0
 
             return {
                 "enabled": True,
@@ -428,7 +430,7 @@ class SemanticCache:
                 "threshold": self.threshold,
                 "model": self._model_name,
                 "embedding_dimension": self._embedding_dimension,
-                "avg_access_count": round(avg_access, 2),
+                "avg_access_count": round(float(avg_access), 2),
                 "db_path": self.db_path,
             }
         except Exception as e:

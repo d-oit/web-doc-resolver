@@ -263,11 +263,12 @@ def resolve_with_mistral_browser(url: str, max_chars: int = MAX_CHARS) -> Resolv
         client = Mistral(api_key=api_key)
 
         # Create an agent with web_search tool
+        from mistralai.client.models import WebSearchTool
         agent = client.beta.agents.create(
             model="mistral-small-latest",
             name="url-extractor",
             instructions="Extract and summarize content from web pages. Return clean markdown.",
-            tools=[{"type": "web_search"}],
+            tools=[WebSearchTool()],  # type: ignore
         )
 
         try:
@@ -311,10 +312,18 @@ def resolve_with_mistral_websearch(query: str, max_chars: int = MAX_CHARS) -> Re
         from mistralai.client.models import UserMessage
 
         client = Mistral(api_key=api_key)
+        from typing import Any
+        messages: list[Any] = [UserMessage(content=f"Search: {query}")]
         resp = client.chat.complete(
-            model="mistral-small-latest", messages=[UserMessage(content=f"Search: {query}")]
+            model="mistral-small-latest", messages=messages  # type: ignore
         )
-        content = resp.choices[0].message.content if resp.choices else ""
+        content = ""
+        if resp.choices:
+            msg_content = resp.choices[0].message.content
+            if isinstance(msg_content, str):
+                content = msg_content
+            elif isinstance(msg_content, list):
+                content = "".join([str(c) for c in msg_content])
         result = ResolvedResult(
             source="mistral-websearch", content=content[:max_chars], query=query
         )

@@ -138,7 +138,7 @@ def _store_in_semantic_cache(query_or_url: str, result: dict[str, Any]) -> bool:
         return False
 
     try:
-        return cache.store(query_or_url, result)
+        return bool(cache.store(query_or_url, result))
     except Exception as e:
         logger.debug(f"Failed to store in semantic cache: {e}")
         return False

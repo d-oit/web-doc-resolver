@@ -12,11 +12,12 @@ Usage:
 
 import re
 import sys
+from typing import Any
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-VERSION_FILES: list[dict[str, str]] = [
+VERSION_FILES: list[dict[str, str | None]] = [
     {
         "path": "pyproject.toml",
         "pattern": r'^version\s*=\s*"([^"]+)"',
@@ -41,21 +42,26 @@ VERSION_FILES: list[dict[str, str]] = [
         "template": '#[command(version = "{version}")]',
         "label": "cli/src/cli.rs",
     },
-]
+]  # type: ignore
 
 SOURCE_INDEX = 0  # pyproject.toml is source of truth
 
 
-def read_version(entry: dict[str, str]) -> str | None:
+def read_version(entry: dict[str, Any]) -> str | None:
     """Extract version string from a file using its regex pattern."""
-    filepath = ROOT / entry["path"]
+    path_val = entry.get("path")
+    if path_val is None:
+        return None
+    filepath = ROOT / path_val
     if not filepath.exists():
         return None
     text = filepath.read_text()
     for line in text.splitlines():
-        m = re.search(entry["pattern"], line)
-        if m:
-            return m.group(1)
+        pattern = entry.get("pattern")
+        if pattern:
+            m = re.search(pattern, line)
+            if m:
+                return str(m.group(1))
     return None
 
 
@@ -95,9 +101,12 @@ def write_version_rs(filepath: Path, new_version: str) -> None:
     filepath.write_text(updated)
 
 
-def write_version(entry: dict[str, str], new_version: str) -> None:
+def write_version(entry: dict[str, Any], new_version: str) -> None:
     """Write version to the appropriate file type."""
-    filepath = ROOT / entry["path"]
+    path_val = entry.get("path")
+    if path_val is None:
+        return
+    filepath = ROOT / path_val
     if entry["path"].endswith(".json"):
         write_version_json(filepath, new_version)
     elif entry["path"].endswith(".rs"):
@@ -110,9 +119,11 @@ def check_versions() -> tuple[dict[str, str | None], bool]:
     """Read all versions and check if they match the source of truth."""
     versions: dict[str, str | None] = {}
     for entry in VERSION_FILES:
-        versions[entry["label"]] = read_version(entry)
+        label = entry.get("label")
+        if label:
+            versions[label] = read_version(entry)
 
-    source_label = VERSION_FILES[SOURCE_INDEX]["label"]
+    source_label = VERSION_FILES[SOURCE_INDEX].get("label") or ""
     source_version = versions[source_label]
     if source_version is None:
         print(f"❌ Cannot read source of truth: {source_label}")
@@ -143,16 +154,20 @@ def fix_versions(target_version: str | None = None) -> bool:
 
     print(f"Setting all versions to: {target_version}")
     for entry in VERSION_FILES:
-        filepath = ROOT / entry["path"]
+        path_val = entry.get("path")
+        label = entry.get("label") or "unknown"
+        if not path_val:
+            continue
+        filepath = ROOT / path_val
         if not filepath.exists():
-            print(f"⚠️  {entry['label']}: file not found, skipping")
+            print(f"⚠️  {label}: file not found, skipping")
             continue
         current = read_version(entry)
         if current == target_version:
-            print(f"  ✅ {entry['label']}: already {target_version}")
+            print(f"  ✅ {label}: already {target_version}")
         else:
             write_version(entry, target_version)
-            print(f"  🔧 {entry['label']}: {current} → {target_version}")
+            print(f"  🔧 {label}: {current} → {target_version}")
 
     return True
 
@@ -178,7 +193,7 @@ def main() -> None:
         sys.exit(0 if ok else 1)
 
     print("=== Version Sync Check ===")
-    _, all_match = check_versions()
+    results, all_match = check_versions()
     print()
     if all_match:
         print("✅ All versions in sync")
