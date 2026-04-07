@@ -19,58 +19,6 @@ pub fn extract_domain_or_default(target: &str) -> String {
         .unwrap_or_default()
 }
 
-/// Check if a URL is safe from SSRF (no localhost or private IP ranges)
-pub fn is_safe_url(url_str: &str) -> bool {
-    let parsed = match url::Url::parse(url_str) {
-        Ok(u) => u,
-        Err(_) => return false,
-    };
-
-    let scheme = parsed.scheme().to_lowercase();
-    if scheme != "http" && scheme != "https" {
-        return false;
-    }
-
-    let host = match parsed.host() {
-        Some(h) => h,
-        None => return false,
-    };
-
-    match host {
-        url::Host::Domain(d) => {
-            let d = d.to_lowercase();
-            if d == "localhost"
-                || d == "localhost.localdomain"
-                || d.ends_with(".local")
-                || d.ends_with(".internal")
-            {
-                return false;
-            }
-            // In a production environment, we should also resolve the domain to check IPs
-            // For now, we rely on the providers to handle IP-based SSRF or add resolution here if needed
-            true
-        }
-        url::Host::Ipv4(ip) => !is_private_ipv4(ip),
-        url::Host::Ipv6(ip) => !is_private_ipv6(ip),
-    }
-}
-
-fn is_private_ipv4(ip: std::net::Ipv4Addr) -> bool {
-    ip.is_loopback()
-        || ip.is_private()
-        || ip.is_link_local()
-        || ip.is_documentation()
-        || ip.is_broadcast()
-        || ip.is_unspecified()
-}
-
-fn is_private_ipv6(ip: std::net::Ipv6Addr) -> bool {
-    ip.is_loopback()
-        || ip.is_unspecified()
-        || (ip.segments()[0] & 0xfe00) == 0xfc00
-        || (ip.segments()[0] & 0xffc0) == 0xfe80
-}
-
 /// Classify error type for routing decisions
 pub fn classify_error(err: &ResolverError) -> String {
     let s = err.to_string().to_lowercase();
@@ -119,28 +67,6 @@ mod tests {
             "example.com"
         );
         assert_eq!(extract_domain_or_default("not a url"), "");
-    }
-
-    #[test]
-    fn test_is_safe_url() {
-        assert!(is_safe_url("https://example.com"));
-        assert!(is_safe_url("http://example.com/path"));
-
-        // Blocked schemes
-        assert!(!is_safe_url("file:///etc/passwd"));
-        assert!(!is_safe_url("javascript:alert(1)"));
-
-        // Localhost
-        assert!(!is_safe_url("http://localhost"));
-        assert!(!is_safe_url("http://localhost:8080"));
-        assert!(!is_safe_url("http://127.0.0.1"));
-        assert!(!is_safe_url("http://[::1]"));
-
-        // Private IPs
-        assert!(!is_safe_url("http://192.168.1.1"));
-        assert!(!is_safe_url("http://10.0.0.1"));
-        assert!(!is_safe_url("http://172.16.0.1"));
-        assert!(!is_safe_url("http://169.254.169.254"));
     }
 
     #[test]

@@ -17,7 +17,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 
-VERSION_FILES: list[dict[str, str | None]] = [
+VERSION_FILES: list[dict[str, Any]] = [
     {
         "path": "pyproject.toml",
         "pattern": r'^version\s*=\s*"([^"]+)"',
@@ -42,7 +42,7 @@ VERSION_FILES: list[dict[str, str | None]] = [
         "template": '#[command(version = "{version}")]',
         "label": "cli/src/cli.rs",
     },
-]  # type: ignore
+]
 
 SOURCE_INDEX = 0  # pyproject.toml is source of truth
 
@@ -50,7 +50,7 @@ SOURCE_INDEX = 0  # pyproject.toml is source of truth
 def read_version(entry: dict[str, Any]) -> str | None:
     """Extract version string from a file using its regex pattern."""
     path_val = entry.get("path")
-    if path_val is None:
+    if not path_val:
         return None
     filepath = ROOT / path_val
     if not filepath.exists():
@@ -104,10 +104,10 @@ def write_version_rs(filepath: Path, new_version: str) -> None:
 def write_version(entry: dict[str, Any], new_version: str) -> None:
     """Write version to the appropriate file type."""
     path_val = entry.get("path")
-    if path_val is None:
+    if not path_val:
         return
     filepath = ROOT / path_val
-    if entry["path"].endswith(".json"):
+    if str(path_val).endswith(".json"):
         write_version_json(filepath, new_version)
     elif entry["path"].endswith(".rs"):
         write_version_rs(filepath, new_version)
@@ -123,7 +123,7 @@ def check_versions() -> tuple[dict[str, str | None], bool]:
         if label:
             versions[label] = read_version(entry)
 
-    source_label = VERSION_FILES[SOURCE_INDEX].get("label") or ""
+    source_label = VERSION_FILES[SOURCE_INDEX].get("label", "")
     source_version = versions[source_label]
     if source_version is None:
         print(f"❌ Cannot read source of truth: {source_label}")
@@ -155,7 +155,7 @@ def fix_versions(target_version: str | None = None) -> bool:
     print(f"Setting all versions to: {target_version}")
     for entry in VERSION_FILES:
         path_val = entry.get("path")
-        label = entry.get("label") or "unknown"
+        label = entry.get("label", "unknown")
         if not path_val:
             continue
         filepath = ROOT / path_val
@@ -193,7 +193,7 @@ def main() -> None:
         sys.exit(0 if ok else 1)
 
     print("=== Version Sync Check ===")
-    results, all_match = check_versions()
+    _, all_match = check_versions()
     print()
     if all_match:
         print("✅ All versions in sync")

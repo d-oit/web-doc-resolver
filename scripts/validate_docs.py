@@ -89,7 +89,7 @@ class Issue:
 @dataclass
 class Report:
     issues: list[Issue] = field(default_factory=list)
-    _seen: set[tuple[str, str, str, int | None]] = field(default_factory=set)
+    _seen: set = field(default_factory=set)
 
     def add(self, severity, category, doc, detail, line=None):
         issue = Issue(severity, category, doc, detail, line)

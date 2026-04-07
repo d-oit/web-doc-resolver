@@ -214,8 +214,13 @@ export async function POST(request: NextRequest) {
     const maxChars = parseInt(body.maxChars) || DEFAULT_MAX_CHARS;
     const profile = body.profile || "balanced";
 
-    if (!input) {
+    if (!input || typeof input !== "string") {
       return NextResponse.json({ error: "No query or URL provided" }, { status: 400 });
+    }
+
+    // Security: Input length limit to prevent DoS/excessive resource usage
+    if (input.length > 2048) {
+      return NextResponse.json({ error: "Query or URL too long (max 2048 chars)" }, { status: 400 });
     }
 
     const skipCache: boolean = body.skipCache || false;
