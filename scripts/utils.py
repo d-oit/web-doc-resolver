@@ -2,6 +2,7 @@
 Utility functions for the Web Doc Resolver.
 """
 
+import concurrent.futures
 import hashlib
 import ipaddress
 import logging
@@ -165,19 +166,33 @@ def validate_url(url: str, timeout: int = 10, check_ssrf: bool = True) -> Valida
         return ValidationResult(is_valid=False, error=str(e))
 
 
+def _validate_single_link(link: str, timeout: int) -> str | None:
+    """Helper to validate a single link for parallel execution."""
+    try:
+        if not is_safe_url(link):
+            return None
+        session = get_session()
+        response = session.head(link, timeout=timeout, allow_redirects=True)
+        if response.status_code < 400:
+            return link
+    except Exception:
+        pass
+    return None
+
+
 def validate_links(links: list[str], timeout: int = 5) -> list[str]:
-    valid_links = []
-    session = get_session()
-    for link in links:
-        try:
-            if not is_safe_url(link):
-                continue
-            response = session.head(link, timeout=timeout, allow_redirects=True)
-            if response.status_code < 400:
-                valid_links.append(link)
-        except Exception:
-            pass
-    return valid_links
+    """Validate a list of links in parallel using a thread pool, preserving order."""
+    if not links:
+        return []
+
+    # Use a small pool to avoid overwhelming the network
+    max_workers = min(10, len(links))
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Use executor.map to preserve order
+        results = executor.map(lambda link: _validate_single_link(link, timeout), links)
+
+    # Filter out None results and return valid links
+    return [link for link in results if link is not None]
 
 
 def score_result(url: str | None, content: str) -> float:
