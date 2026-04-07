@@ -22,6 +22,7 @@ export default function History({ onLoad }: HistoryProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -45,9 +46,16 @@ export default function History({ onLoad }: HistoryProps) {
   }, [isOpen, search]);
 
   const handleDelete = async (id: string) => {
+    if (deletingId !== id) {
+      setDeletingId(id);
+      setTimeout(() => setDeletingId(null), 3000);
+      return;
+    }
+
     try {
       await fetch(`/api/history?id=${id}`, { method: "DELETE" });
       setEntries((prev) => prev.filter((e) => e.id !== id));
+      setDeletingId(null);
     } catch {
       // Silent fail
     }
@@ -107,10 +115,14 @@ export default function History({ onLoad }: HistoryProps) {
                   </div>
                   <button
                     onClick={() => handleDelete(entry.id)}
-                    className="text-[10px] text-[#444] hover:text-[#ff4444] opacity-0 group-hover:opacity-100 transition-opacity min-h-[44px] min-w-[44px] flex items-center justify-center"
-                    aria-label={`Delete ${entry.query}`}
+                    className={`text-[10px] transition-all min-h-[44px] px-2 flex items-center justify-center font-bold ${
+                      deletingId === entry.id
+                        ? "text-[#ff4444] bg-[#2a1a1a] opacity-100"
+                        : "text-[#444] hover:text-[#ff4444] opacity-0 group-hover:opacity-100 focus:opacity-100"
+                    }`}
+                    aria-label={deletingId === entry.id ? `Confirm delete ${entry.query}` : `Delete ${entry.query}`}
                   >
-                    ×
+                    {deletingId === entry.id ? "CONFIRM" : "×"}
                   </button>
                 </div>
               ))

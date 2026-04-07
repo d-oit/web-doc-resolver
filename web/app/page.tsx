@@ -320,10 +320,19 @@ export default function Home() {
         ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}>
         {/* Sidebar Header - Toggle */}
-        <button
+        <div
           data-testid="sidebar-toggle"
+          role="button"
+          tabIndex={0}
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors min-h-[44px]"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              setSidebarOpen(!sidebarOpen);
+            }
+          }}
+          className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors min-h-[44px] cursor-pointer focus-visible:ring-2 focus-visible:ring-[#00ff41] outline-none"
+          aria-label={sidebarOpen ? "Collapse configuration" : "Expand configuration"}
         >
           <span className="text-[11px] uppercase tracking-[0.1em] text-[#666]">
             Configuration
@@ -342,7 +351,7 @@ export default function Home() {
               ✕
             </button>
           </div>
-        </button>
+        </div>
 
         {sidebarOpen && (
           <div className="px-4 pb-4 flex flex-col gap-4">
