@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ResolutionBudget, planProviderOrder, detectJsHeavy, isPaidProvider } from "@/lib/routing";
+import { isUrl, queryProviders, urlProviders, ProviderKeys } from "@/lib/resolvers/index";
 import { CircuitBreakerRegistry } from "@/lib/circuit-breaker";
 import { scoreContent, QualityScore } from "@/lib/quality";
 import * as cache from "@/lib/cache";
 import { save as saveRecord } from "@/lib/records";
 import { Logger } from "@/lib/log";
 import { searchViaExaMcpWithMistral } from "@/lib/resolvers/query";
-import { validateUrl, queryProviders, urlProviders, ProviderKeys } from "@/lib/resolvers/index";
+import { validateResolveRequest } from "@/lib/validation";
 
 // Allow up to 60 seconds for resolver operations
 export const maxDuration = 60;
@@ -15,10 +16,6 @@ const DEFAULT_MAX_CHARS = parseInt(process.env.WEB_RESOLVER_MAX_CHARS || "8000")
 
 // Singleton circuit breaker registry (survives across warm invocations)
 const circuitBreakers = new CircuitBreakerRegistry();
-
-function isUrl(input: string): boolean {
-  return /^https?:\/\/\S+$/i.test(input.trim());
-}
 
 // Query provider functions using Logger
 async function runQueryProvider(
@@ -210,25 +207,21 @@ export async function POST(request: NextRequest) {
   const log = new Logger();
   try {
     const body = await request.json();
-    const input = body.query?.trim() || body.url?.trim();
-    const maxChars = parseInt(body.maxChars) || DEFAULT_MAX_CHARS;
-    const profile = body.profile || "balanced";
-
-    if (!input) {
-      return NextResponse.json({ error: "No query or URL provided" }, { status: 400 });
+    const validation = validateResolveRequest(body);
+    if (!validation.success) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
-    const skipCache: boolean = body.skipCache || false;
+    const data = validation.data!;
+    const input = (data.query || data.url) as string;
+    const maxChars = data.maxChars || DEFAULT_MAX_CHARS;
+    const profile = data.profile || "balanced";
+    const skipCache = data.skipCache || false;
+    const deepResearch = data.deepResearch || false;
+    const providers = data.providers || [];
+
     const urlMode = isUrl(input);
     const source = urlMode ? "url" : "query";
-
-    // Validate URL for SSRF protection
-    if (urlMode) {
-      const validation = validateUrl(input);
-      if (!validation.valid) {
-        return NextResponse.json({ error: validation.error || "Invalid URL" }, { status: 400 });
-      }
-    }
 
     // Check cache first
     if (!skipCache) {
@@ -256,8 +249,6 @@ export async function POST(request: NextRequest) {
       markdown = await resolveUrl(input, userKeys, maxChars, budget, log);
       provider = "cascade";
     } else {
-      const providers: string[] = body.providers || [];
-      const deepResearch: boolean = body.deepResearch || false;
       const normalizedProviders = normalizeQueryProviders(providers, userKeys);
 
       if (normalizedProviders.length === 0) {
