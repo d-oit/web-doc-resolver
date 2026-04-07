@@ -23,6 +23,11 @@ function isPrivateIp(hostname: string): boolean {
   return PRIVATE_IP_RANGES.some((range) => range.test(hostname));
 }
 
+function isBlockedInternalHostname(hostname: string): boolean {
+  const normalized = hostname.toLowerCase();
+  return normalized.endsWith(".local") || normalized.endsWith(".internal");
+}
+
 /**
  * Sanitize user input by removing control characters and limiting length
  */
@@ -49,8 +54,8 @@ export function validateUrl(url: string): { valid: boolean; error?: string } {
       return { valid: false, error: "Only HTTP and HTTPS URLs are allowed" };
     }
 
-    // Block private/internal IPs
-    if (isPrivateIp(parsed.hostname)) {
+    // Block private/internal IPs and internal DNS hostnames
+    if (isPrivateIp(parsed.hostname) || isBlockedInternalHostname(parsed.hostname)) {
       return { valid: false, error: "Private/internal URLs are not allowed" };
     }
 

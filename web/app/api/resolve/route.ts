@@ -7,7 +7,7 @@ import * as cache from "@/lib/cache";
 import { save as saveRecord } from "@/lib/records";
 import { Logger } from "@/lib/log";
 import { searchViaExaMcpWithMistral } from "@/lib/resolvers/query";
-import { validateResolveRequest } from "@/lib/validation";
+import { validateResolveRequest, validateUrl } from "@/lib/validation";
 
 // Allow up to 60 seconds for resolver operations
 export const maxDuration = 60;
@@ -222,6 +222,14 @@ export async function POST(request: NextRequest) {
 
     const urlMode = isUrl(input);
     const source = urlMode ? "url" : "query";
+
+    // Ensure URL-like query values receive full SSRF validation too.
+    if (urlMode) {
+      const urlValidation = validateUrl(input);
+      if (!urlValidation.valid) {
+        return NextResponse.json({ error: urlValidation.error || "Invalid URL" }, { status: 400 });
+      }
+    }
 
     // Check cache first
     if (!skipCache) {
