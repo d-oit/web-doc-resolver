@@ -1,0 +1,3 @@
+## 2025-05-14 - Two-click confirmation for destructive actions
+**Learning:** Implementing a two-click confirmation pattern for destructive UI actions (like history deletion) provides a safety net against accidental data loss without the jarring interruption of a modal dialog. This is especially effective for low-stakes but irreversible actions in a dense list view.
+**Action:** Use a visual state change on the button itself (e.g., showing 'CONFIRM' and changing color) with a timeout to reset the state. Ensure the confirm state is also accessible via keyboard by making the button visible on focus.

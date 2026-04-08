@@ -22,6 +22,7 @@ export default function History({ onLoad }: HistoryProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState<string | null>(null);
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -44,12 +45,21 @@ export default function History({ onLoad }: HistoryProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, search]);
 
-  const handleDelete = async (id: string) => {
-    try {
-      await fetch(`/api/history?id=${id}`, { method: "DELETE" });
-      setEntries((prev) => prev.filter((e) => e.id !== id));
-    } catch {
-      // Silent fail
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirmingDelete === id) {
+      try {
+        await fetch(`/api/history?id=${id}`, { method: "DELETE" });
+        setEntries((prev) => prev.filter((e) => e.id !== id));
+        setConfirmingDelete(null);
+      } catch {
+        // Silent fail
+      }
+    } else {
+      setConfirmingDelete(id);
+      setTimeout(() => {
+        setConfirmingDelete((current) => (current === id ? null : current));
+      }, 3000);
     }
   };
 
@@ -106,11 +116,19 @@ export default function History({ onLoad }: HistoryProps) {
                     </div>
                   </div>
                   <button
-                    onClick={() => handleDelete(entry.id)}
-                    className="text-[10px] text-[#444] hover:text-[#ff4444] opacity-0 group-hover:opacity-100 transition-opacity min-h-[44px] min-w-[44px] flex items-center justify-center"
-                    aria-label={`Delete ${entry.query}`}
+                    onClick={(e) => handleDelete(entry.id, e)}
+                    className={`text-[10px] transition-all min-h-[44px] px-2 flex items-center justify-center ${
+                      confirmingDelete === entry.id
+                        ? "text-[#0c0c0c] bg-[#ff4444] opacity-100 font-bold"
+                        : "text-[#444] hover:text-[#ff4444] opacity-0 group-hover:opacity-100 focus:opacity-100"
+                    }`}
+                    aria-label={
+                      confirmingDelete === entry.id
+                        ? `Confirm delete ${entry.query}`
+                        : `Delete ${entry.query}`
+                    }
                   >
-                    ×
+                    {confirmingDelete === entry.id ? "CONFIRM" : "×"}
                   </button>
                 </div>
               ))
