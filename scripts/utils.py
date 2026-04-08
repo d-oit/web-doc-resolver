@@ -8,9 +8,10 @@ import logging
 import os
 import re
 import socket
+from concurrent.futures import ThreadPoolExecutor
 from html.parser import HTMLParser
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -109,7 +110,7 @@ def is_safe_url(url: str) -> bool:
                 return False
         except ValueError:
             try:
-                socket.setdefaulttimeout(5)
+                # Note: We don't use setdefaulttimeout here to avoid race conditions in multi-threaded contexts
                 infos = socket.getaddrinfo(hostname, None)
                 for _family, _socktype, _proto, _canonname, sockaddr in infos:
                     ip = ipaddress.ip_address(sockaddr[0])
@@ -117,8 +118,6 @@ def is_safe_url(url: str) -> bool:
                         return False
             except Exception:
                 pass
-            finally:
-                socket.setdefaulttimeout(None)
         return True
     except Exception:
         return False
@@ -166,18 +165,24 @@ def validate_url(url: str, timeout: int = 10, check_ssrf: bool = True) -> Valida
 
 
 def validate_links(links: list[str], timeout: int = 5) -> list[str]:
-    valid_links = []
-    session = get_session()
-    for link in links:
+    """Validate a list of links in parallel using HTTP HEAD requests."""
+
+    def check_link(link: str) -> str | None:
         try:
             if not is_safe_url(link):
-                continue
+                return None
+            session = get_session()
             response = session.head(link, timeout=timeout, allow_redirects=True)
             if response.status_code < 400:
-                valid_links.append(link)
+                return link
         except Exception:
             pass
-    return valid_links
+        return None
+
+    with ThreadPoolExecutor(max_workers=min(10, len(links) or 1)) as executor:
+        results = list(executor.map(check_link, links))
+
+    return [r for r in results if r is not None]
 
 
 def score_result(url: str | None, content: str) -> float:
@@ -343,8 +348,6 @@ def normalize_url(url: str) -> str:
         parsed = urlparse(url)
         # Strip all known tracking params
         if parsed.query:
-            from urllib.parse import parse_qs, urlencode
-
             params = parse_qs(parsed.query)
             filtered_params = {
                 k: v
