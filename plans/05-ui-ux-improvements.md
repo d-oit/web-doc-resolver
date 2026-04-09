@@ -960,3 +960,180 @@ indicatif = "0.17"
 - [ ] CLI color support
 - [ ] Reduced motion support
 - [ ] High contrast support
+
+---
+
+## Phase 5: Result Experience Enhancements (Week 5)
+
+### Improvement 11: Result Canonicalization & Deduplication
+
+**Description:** Normalize URLs, strip redundant mirrors (e.g., `llm-digest` prefixes), and collapse duplicate entries before rendering cards or history rows. This keeps provider output readable even when upstream feeds surface the same document multiple ways.
+
+```typescript
+// web/app/lib/normalizeResults.ts
+
+const NORMALIZERS = [
+  (url: URL) => {
+    if (url.hostname === 'nextjs.org' && url.pathname.startsWith('/docs/llm-digest/')) {
+      url.pathname = url.pathname.replace('/docs/llm-digest', '/docs');
+    }
+    return url;
+  },
+  (url: URL) => {
+    url.hash = '';
+    return url;
+  },
+];
+
+export function normalizeResult(result: ProviderResult) {
+  try {
+    const url = NORMALIZERS.reduce((acc, fn) => fn(acc), new URL(result.url));
+    const normalizedUrl = url.toString();
+    return { ...result, url: normalizedUrl, dedupeKey: normalizedUrl.toLowerCase() };
+  } catch (_) {
+    return { ...result, dedupeKey: result.url.toLowerCase() };
+  }
+}
+
+export function dedupeResults(results: ProviderResult[]) {
+  const seen = new Map<string, ProviderResult>();
+  results.forEach((raw) => {
+    const normalized = normalizeResult(raw);
+    if (!seen.has(normalized.dedupeKey)) {
+      seen.set(normalized.dedupeKey, normalized);
+    }
+  });
+  return Array.from(seen.values());
+}
+```
+
+### Improvement 12: Provider Status Tooltips & CTA
+
+**Description:** Replace the static "provider unavailable" buttons with contextual tooltips explaining why they are disabled (e.g., missing API key) plus a single-click CTA to open the API Keys panel.
+
+```tsx
+<ProviderPill
+  disabled={!hasTavilyKey}
+  description={hasTavilyKey ? 'Ready' : 'Add API key to unlock Tavily search'}
+  onClick={hasTavilyKey ? enableProvider : () => setPanel('keys')}
+  tooltip={!hasTavilyKey ? 'Click to open API key drawer' : undefined}
+  aria-describedby={!hasTavilyKey ? 'tavily-help' : undefined}
+/>
+
+<VisuallyHidden id="tavily-help">
+  Tavily requires `TAVILY_API_KEY`. Open the API Keys drawer to add it.
+</VisuallyHidden>
+```
+
+### Improvement 13: Search Profile Combobox Refactor
+
+**Description:** Swap the current native select + textbox hack for a headless combobox so keyboard users can change profiles without polluting the query field. Capture arrow keys, typeahead, and announce the active profile via `aria-live`.
+
+```tsx
+// web/app/components/ProfileCombobox.tsx
+
+import { useCombobox } from 'downshift';
+
+export function ProfileCombobox({ options, value, onChange }: Props) {
+  const combobox = useCombobox({
+    items: options,
+    selectedItem: options.find((opt) => opt.value === value),
+    onSelectedItemChange: ({ selectedItem }) => selectedItem && onChange(selectedItem.value),
+  });
+
+  return (
+    <div {...combobox.getComboboxProps()} className="profile-combobox">
+      <button {...combobox.getToggleButtonProps()} aria-label="Change search profile">
+        {combobox.selectedItem?.label}
+      </button>
+      <ul {...combobox.getMenuProps()}>
+        {combobox.isOpen && options.map((item, index) => (
+          <li
+            key={item.value}
+            {...combobox.getItemProps({ item, index })}
+            className={item.value === value ? 'active' : ''}
+          >
+            {item.label}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+### Improvement 14: Quick Toggles for Advanced Flags
+
+**Description:** Surface `Skip cache`, `Deep research`, and latency budget presets directly next to the profile selector so power users can run "Balanced + Deep research" without reopening the drawer.
+
+```tsx
+<div className="profile-flags">
+  <ToggleChip
+    label="Deep research"
+    pressed={settings.deepResearch}
+    onPressedChange={(pressed) => updateSettings({ deepResearch: pressed })}
+  />
+  <ToggleChip
+    label="Skip cache"
+    pressed={settings.skipCache}
+    onPressedChange={(pressed) => updateSettings({ skipCache: pressed })}
+  />
+  <LatencyPresetSelect
+    value={settings.latencyBudget}
+    options={[8000, 12000, 20000]}
+    onChange={(latencyBudget) => updateSettings({ latencyBudget })}
+  />
+</div>
+```
+
+### Improvement 15: Result Cards Instead of Textarea
+
+**Description:** Replace the monolithic textarea with discrete cards so each hit can show metadata, actions, and accessible markup. Enables per-result copy, open-in-new-tab, and "helpful" toggles.
+
+```tsx
+// web/app/components/ResultCard.tsx
+
+export function ResultCard({ result }: { result: ProviderResult }) {
+  return (
+    <article className="result-card" aria-labelledby={`result-${result.id}-title`}>
+      <header>
+        <a id={`result-${result.id}-title`} href={result.url} target="_blank" rel="noreferrer">
+          {result.title}
+        </a>
+        <span className="result-meta">{result.provider}</span>
+      </header>
+      <p className="result-snippet">{result.summary}</p>
+      <footer>
+        <button onClick={() => copyMarkdown(result)}>Copy Markdown</button>
+        <button onClick={() => markHelpful(result.id)}>Helpful</button>
+      </footer>
+    </article>
+  );
+}
+```
+
+### Improvement 16: History Storage Cleanup
+
+**Description:** Store normalized URLs + profile metadata in history entries so duplicates collapse automatically and filters (by profile or flags) work. This also lets us highlight which providers fed each response without fetching new data.
+
+```ts
+type HistoryEntry = {
+  id: string;
+  input: string;
+  profile: SearchProfile;
+  flags: { deepResearch: boolean; skipCache: boolean };
+  providers: string[];
+  normalizedUrlHashes: string[];
+};
+
+export function addHistoryEntry(entry: Omit<HistoryEntry, 'id'>) {
+  const id = crypto.randomUUID();
+  const payload = { ...entry, id };
+  historyStore.update((current) => {
+    const deduped = current.filter((existing) => !hasSameUrls(existing, payload));
+    return [payload, ...deduped].slice(0, 50);
+  });
+}
+```
+
+---

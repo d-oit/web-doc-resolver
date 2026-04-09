@@ -42,6 +42,7 @@ This project implements a v4 cascade resolver with Python core, Rust CLI, and we
 - **Circuit Breakers**: Per-provider failure tracking with cooldowns
 - **Routing Memory**: Per-domain provider success/latency learning
 - **Web UI**: Browser-based resolver with dark mode, PWA support, and help/FAQ
+- **Result Canonicalization**: Normalizes and deduplicates search hits with card-based previews and per-result actions
 
 ## Installation
 
@@ -235,7 +236,8 @@ The web UI provides a browser-based interface with:
 - Collapsible API keys section for paid providers
 - All UI state persisted to localStorage (sidebar, profile, providers, options)
 - Text input for URLs or search queries
-- Markdown result display
+- Card-based result display with per-link copy/open actions plus a raw markdown toggle
+- Inline toggles for deep research, skip cache, and max character presets
 - Dark mode support
 - Help & FAQ page (`/help`)
 - PWA support for installable app
