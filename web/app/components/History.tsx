@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export interface HistoryEntry {
   id: string;
@@ -22,6 +22,8 @@ export default function History({ onLoad }: HistoryProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const deleteTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -44,12 +46,35 @@ export default function History({ onLoad }: HistoryProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, search]);
 
+  useEffect(() => {
+    return () => {
+      if (deleteTimeoutRef.current) clearTimeout(deleteTimeoutRef.current);
+    };
+  }, []);
+
   const handleDelete = async (id: string) => {
+    if (confirmDeleteId !== id) {
+      if (deleteTimeoutRef.current) clearTimeout(deleteTimeoutRef.current);
+      setConfirmDeleteId(id);
+      deleteTimeoutRef.current = setTimeout(() => {
+        setConfirmDeleteId(null);
+        deleteTimeoutRef.current = null;
+      }, 3000);
+      return;
+    }
+
     try {
-      await fetch(`/api/history?id=${id}`, { method: "DELETE" });
+      if (deleteTimeoutRef.current) clearTimeout(deleteTimeoutRef.current);
+      const res = await fetch(`/api/history?id=${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Delete failed");
+
       setEntries((prev) => prev.filter((e) => e.id !== id));
+      setConfirmDeleteId(null);
+      deleteTimeoutRef.current = null;
     } catch {
-      // Silent fail
+      // Silent fail but reset state
+      setConfirmDeleteId(null);
+      deleteTimeoutRef.current = null;
     }
   };
 
@@ -107,10 +132,14 @@ export default function History({ onLoad }: HistoryProps) {
                   </div>
                   <button
                     onClick={() => handleDelete(entry.id)}
-                    className="text-[10px] text-[#444] hover:text-[#ff4444] opacity-0 group-hover:opacity-100 transition-opacity min-h-[44px] min-w-[44px] flex items-center justify-center"
-                    aria-label={`Delete ${entry.query}`}
+                    className={`text-[10px] min-h-[44px] min-w-[44px] flex items-center justify-center transition-all ${
+                      confirmDeleteId === entry.id
+                        ? "text-[#ff4444] font-bold"
+                        : "text-[#444] hover:text-[#ff4444] opacity-0 group-hover:opacity-100"
+                    }`}
+                    aria-label={confirmDeleteId === entry.id ? `Confirm delete ${entry.query}` : `Delete ${entry.query}`}
                   >
-                    ×
+                    {confirmDeleteId === entry.id ? "CONFIRM" : "×"}
                   </button>
                 </div>
               ))
