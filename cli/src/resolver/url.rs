@@ -23,8 +23,8 @@ use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 use super::cascade::{
-    CIRCUIT_BREAKER_FAILURE_THRESHOLD, CIRCUIT_BREAKER_RECOVERY_TTL, NEGATIVE_CACHE_FAILURE_TTL,
-    NEGATIVE_CACHE_THIN_TTL, classify_error, extract_domain_or_default,
+    classify_error, extract_domain_or_default, is_safe_url, CIRCUIT_BREAKER_FAILURE_THRESHOLD,
+    CIRCUIT_BREAKER_RECOVERY_TTL, NEGATIVE_CACHE_FAILURE_TTL, NEGATIVE_CACHE_THIN_TTL,
 };
 
 /// URL cascade resolver
@@ -144,6 +144,10 @@ impl UrlCascade {
         min_chars: usize,
     ) -> Result<ResolvedResult, ResolverError> {
         let mut metrics = ResolveMetrics::new();
+
+        if !is_safe_url(url) {
+            return Err(ResolverError::Auth(format!("URL blocked (SSRF): {url}")));
+        }
 
         // Check for document or image format first
         if let Some(provider_type) = Self::check_format(url) {

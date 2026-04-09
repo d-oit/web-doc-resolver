@@ -241,7 +241,7 @@ class SemanticCache:
         Returns:
             SemanticCacheEntry if similar entry found above threshold, None otherwise
         """
-        if not self.enabled or not self._model:
+        if not self.enabled:
             return None
 
         try:
@@ -309,7 +309,7 @@ class SemanticCache:
         Returns:
             True if stored successfully, False otherwise
         """
-        if not self.enabled or not self._model:
+        if not self.enabled:
             return False
 
         try:

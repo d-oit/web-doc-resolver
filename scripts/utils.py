@@ -8,9 +8,10 @@ import logging
 import os
 import re
 import socket
+from concurrent.futures import ThreadPoolExecutor
 from html.parser import HTMLParser
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -87,6 +88,45 @@ def close_session() -> None:
         _global_session = None
 
 
+def _safe_request(
+    method: str,
+    url: str,
+    session: requests.Session | None = None,
+    *,
+    max_redirects: int = 5,
+    **kwargs,
+) -> requests.Response:
+    """Perform an HTTP request while validating each redirect hop for SSRF."""
+
+    current_url = url
+    history: list[requests.Response] = []
+    # Ensure we control redirect behavior
+    kwargs.pop("allow_redirects", None)
+    active_session = session or get_session()
+
+    for _ in range(max_redirects + 1):
+        if not is_safe_url(current_url):
+            raise requests.RequestException(f"SSRF blocked: {current_url}")
+
+        response = active_session.request(method, current_url, allow_redirects=False, **kwargs)
+        response.history = list(history)
+
+        if response.is_redirect:
+            history.append(response)
+            location = response.headers.get("Location")
+            if not location:
+                break
+            next_url = location
+            if not urlparse(next_url).netloc:
+                next_url = urljoin(current_url, next_url)
+            current_url = next_url
+            continue
+
+        return response
+
+    raise requests.TooManyRedirects(f"Exceeded {max_redirects} redirects")
+
+
 def is_safe_url(url: str) -> bool:
     try:
         parsed = urlparse(url)
@@ -94,8 +134,11 @@ def is_safe_url(url: str) -> bool:
             return False
         if parsed.scheme not in ("http", "https"):
             return False
-        hostname = parsed.netloc.split(":")[0]
-        if hostname.lower() in (
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+        normalized = hostname.lower()
+        if normalized in (
             "localhost",
             "localhost.localdomain",
             "127.0.0.1",
@@ -104,12 +147,11 @@ def is_safe_url(url: str) -> bool:
         ):
             return False
         try:
-            ip = ipaddress.ip_address(hostname)
+            ip = ipaddress.ip_address(normalized)
             if any(ip in network for network in BLOCKED_NETWORKS):
                 return False
         except ValueError:
             try:
-                socket.setdefaulttimeout(5)
                 infos = socket.getaddrinfo(hostname, None)
                 for _family, _socktype, _proto, _canonname, sockaddr in infos:
                     ip = ipaddress.ip_address(sockaddr[0])
@@ -117,8 +159,8 @@ def is_safe_url(url: str) -> bool:
                         return False
             except Exception:
                 pass
-            finally:
-                socket.setdefaulttimeout(None)
+        if normalized.endswith(".local") or normalized.endswith(".internal"):
+            return False
         return True
     except Exception:
         return False
@@ -139,12 +181,12 @@ def validate_url(url: str, timeout: int = 10, check_ssrf: bool = True) -> Valida
         return ValidationResult(is_valid=False, error="Empty URL")
     if not is_url(url):
         return ValidationResult(is_valid=False, error="Invalid URL format")
-    if check_ssrf and not is_safe_url(url):
-        return ValidationResult(is_valid=False, error="URL blocked (SSRF)")
-
-    session = get_session()
     try:
-        response = session.head(url, timeout=timeout, allow_redirects=True, verify=True)
+        session = get_session()
+        if check_ssrf:
+            response = _safe_request("HEAD", url, session=session, timeout=timeout, verify=True)
+        else:
+            response = session.head(url, timeout=timeout, allow_redirects=True, verify=True)
         redirect_chain = [h.url for h in response.history] + [response.url]
         if response.status_code >= 400:
             return ValidationResult(
@@ -165,19 +207,29 @@ def validate_url(url: str, timeout: int = 10, check_ssrf: bool = True) -> Valida
         return ValidationResult(is_valid=False, error=str(e))
 
 
+def _validate_single_link(link: str, timeout: int) -> str | None:
+    session = create_session_with_retry()
+    try:
+        response = _safe_request("HEAD", link, session=session, timeout=timeout, verify=True)
+        if response.status_code < 400:
+            return link
+    except Exception:
+        return None
+    finally:
+        session.close()
+    return None
+
+
 def validate_links(links: list[str], timeout: int = 5) -> list[str]:
-    valid_links = []
-    session = get_session()
-    for link in links:
-        try:
-            if not is_safe_url(link):
-                continue
-            response = session.head(link, timeout=timeout, allow_redirects=True)
-            if response.status_code < 400:
-                valid_links.append(link)
-        except Exception:
-            pass
-    return valid_links
+    """Validate a list of links in parallel, preserving input order."""
+    if not links:
+        return []
+
+    max_workers = min(10, len(links))
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        results = list(executor.map(lambda link: _validate_single_link(link, timeout), links))
+
+    return [link for link in results if link]
 
 
 def score_result(url: str | None, content: str) -> float:
@@ -250,9 +302,9 @@ def fetch_url_content(
     validation = validate_url(url, timeout=timeout // 2)
     if not validation.is_valid:
         return None
-    session = get_session()
     try:
-        response = session.get(url, timeout=timeout, allow_redirects=True, verify=True)
+        session = get_session()
+        response = _safe_request("GET", url, session=session, timeout=timeout, verify=True)
         if response.status_code >= 400:
             return None
         content = (
@@ -272,6 +324,8 @@ def fetch_url_content(
 
 def fetch_llms_txt(url: str) -> str | None:
     try:
+        if not is_safe_url(url):
+            return None
         parsed = urlparse(url)
         base_url = f"{parsed.scheme}://{parsed.netloc}"
         llms_url = f"{base_url}/llms.txt"
@@ -281,7 +335,7 @@ def fetch_llms_txt(url: str) -> str | None:
                 return str(cached.get("content", ""))
             return None
         session = get_session()
-        response = session.get(llms_url, timeout=10, allow_redirects=True)
+        response = _safe_request("GET", llms_url, session=session, timeout=10)
         if response.status_code == 200:
             content_type = response.headers.get("Content-Type", "")
             if "text" in content_type or "markdown" in content_type:

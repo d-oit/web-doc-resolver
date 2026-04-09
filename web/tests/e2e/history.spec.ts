@@ -226,8 +226,8 @@ test.describe("History Search", () => {
 });
 
 test.describe("History Delete", () => {
-  test("delete button removes entry", async ({ page }) => {
-    let entries = [{
+  test("delete button requires confirmation", async ({ page }) => {
+    const testEntry = {
       id: "test-id-1",
       query: "test entry to delete",
       result: "Test content",
@@ -235,44 +235,35 @@ test.describe("History Delete", () => {
       timestamp: Date.now(),
       charCount: 12,
       resolveTime: 100,
-    }];
+    };
+    let entries = [testEntry];
 
-    await page.route("**/api/history**", async (route) => {
+    await page.route("**/api/history*", async (route) => {
       const method = route.request().method();
-      const url = new URL(route.request().url());
-
       if (method === "DELETE") {
-        const id = url.searchParams.get("id");
-        entries = entries.filter(e => e.id !== id);
+        entries = [];
         return route.fulfill({
           status: 200,
+          contentType: "application/json",
           body: JSON.stringify({ ok: true }),
         });
       }
 
-      if (method === "GET") {
-        return route.fulfill({
-          status: 200,
-          body: JSON.stringify({ entries }),
-        });
-      }
-
-      return route.fulfill({ status: 200, body: "{}" });
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ entries }),
+      });
     });
 
     await page.goto("/");
     await page.getByRole("button", { name: /History/ }).click();
     await expect(page.locator("text=test entry to delete")).toBeVisible();
 
-    // Hover over entry to reveal delete button
-    const entryRow = page.locator("div").filter({ hasText: "test entry to delete" }).first();
-    await entryRow.hover();
+    await page.getByLabel("Delete test entry to delete").click({ force: true });
+    await expect(page.getByRole("button", { name: /Confirm delete/ })).toBeVisible();
+    await page.getByRole("button", { name: /Confirm delete/ }).click();
 
-    // Click delete button
-    const deleteButton = page.locator("button[aria-label*='Delete']");
-    await deleteButton.click();
-
-    // Entry should be removed
     await expect(page.locator("text=test entry to delete")).not.toBeVisible();
   });
 });

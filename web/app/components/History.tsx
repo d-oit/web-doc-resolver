@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export interface HistoryEntry {
   id: string;
@@ -11,6 +11,13 @@ export interface HistoryEntry {
   timestamp: number;
   charCount: number;
   resolveTime: number;
+  profile?: string;
+  flags?: {
+    skipCache?: boolean;
+    deepResearch?: boolean;
+  };
+  providers?: string[];
+  normalizedUrlHashes?: string[];
 }
 
 interface HistoryProps {
@@ -22,6 +29,8 @@ export default function History({ onLoad }: HistoryProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const deleteTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -44,12 +53,35 @@ export default function History({ onLoad }: HistoryProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, search]);
 
+  useEffect(() => {
+    return () => {
+      if (deleteTimeoutRef.current) {
+        clearTimeout(deleteTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleDelete = async (id: string) => {
+    if (confirmDeleteId !== id) {
+      if (deleteTimeoutRef.current) clearTimeout(deleteTimeoutRef.current);
+      setConfirmDeleteId(id);
+      deleteTimeoutRef.current = setTimeout(() => {
+        setConfirmDeleteId(null);
+        deleteTimeoutRef.current = null;
+      }, 3000);
+      return;
+    }
+
     try {
-      await fetch(`/api/history?id=${id}`, { method: "DELETE" });
+      if (deleteTimeoutRef.current) clearTimeout(deleteTimeoutRef.current);
+      const res = await fetch(`/api/history?id=${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Delete failed");
       setEntries((prev) => prev.filter((e) => e.id !== id));
+      setConfirmDeleteId(null);
+      deleteTimeoutRef.current = null;
     } catch {
-      // Silent fail
+      setConfirmDeleteId(null);
+      deleteTimeoutRef.current = null;
     }
   };
 
@@ -82,36 +114,62 @@ export default function History({ onLoad }: HistoryProps) {
           />
 
           {/* List */}
-          <div className="max-h-[300px] overflow-y-auto">
+          <div className="max-h-[320px] overflow-y-auto flex flex-col gap-2">
             {loading ? (
               <div className="text-[10px] text-[#555] py-2">Loading...</div>
             ) : entries.length === 0 ? (
               <div className="text-[10px] text-[#555] py-2">No history yet</div>
             ) : (
               entries.map((entry) => (
-                <div
-                  key={entry.id}
-                  className="border-b border-[#222] py-2 flex items-start gap-2 group"
-                >
-                  <div className="flex-1 min-w-0">
+                <div key={entry.id} className="border border-[#222] p-3 bg-[#101010] group">
+                  <div className="flex items-start justify-between gap-2">
                     <button
                       onClick={() => handleLoad(entry)}
-                      className="text-left text-[11px] text-[#e8e6e3] hover:text-[#00ff41] truncate block w-full"
+                      className="text-left text-[11px] text-[#e8e6e3] hover:text-[#00ff41] flex-1"
                     >
                       {entry.query}
                     </button>
-                    <div className="text-[9px] text-[#555] mt-1">
-                      {entry.provider} · {entry.charCount.toLocaleString()} chars ·{" "}
-                      {new Date(entry.timestamp).toLocaleDateString()}
-                    </div>
+                    <button
+                      onClick={() => handleDelete(entry.id)}
+                      className={`text-[10px] min-h-[32px] min-w-[32px] flex items-center justify-center transition-all ${
+                        confirmDeleteId === entry.id
+                          ? "text-[#ff4444] font-bold"
+                          : "text-[#444] hover:text-[#ff4444] opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                      }`}
+                      aria-label={
+                        confirmDeleteId === entry.id ? `Confirm delete ${entry.query}` : `Delete ${entry.query}`
+                      }
+                    >
+                      {confirmDeleteId === entry.id ? "CONFIRM" : "×"}
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleDelete(entry.id)}
-                    className="text-[10px] text-[#444] hover:text-[#ff4444] opacity-0 group-hover:opacity-100 transition-opacity min-h-[44px] min-w-[44px] flex items-center justify-center"
-                    aria-label={`Delete ${entry.query}`}
-                  >
-                    ×
-                  </button>
+                  <div className="text-[9px] text-[#555] mt-1 flex flex-wrap gap-2">
+                    <span>{entry.provider}</span>
+                    <span>{entry.charCount.toLocaleString()} chars</span>
+                    <span>{entry.resolveTime}ms</span>
+                    <span>{new Date(entry.timestamp).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {entry.profile && (
+                      <span className="text-[9px] uppercase tracking-wide border border-[#333] px-2 py-1">
+                        {entry.profile}
+                      </span>
+                    )}
+                    {entry.flags?.deepResearch && (
+                      <span className="text-[9px] border border-[#333] px-2 py-1">Deep research</span>
+                    )}
+                    {entry.flags?.skipCache && (
+                      <span className="text-[9px] border border-[#333] px-2 py-1">Skip cache</span>
+                    )}
+                    {entry.providers?.slice(0, 3).map((provider) => (
+                      <span key={`${entry.id}-${provider}`} className="text-[9px] border border-[#222] px-2 py-1 text-[#888]">
+                        {provider}
+                      </span>
+                    ))}
+                    {entry.providers && entry.providers.length > 3 && (
+                      <span className="text-[9px] text-[#666]">+{entry.providers.length - 3}</span>
+                    )}
+                  </div>
                 </div>
               ))
             )}

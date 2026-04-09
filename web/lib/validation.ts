@@ -10,6 +10,7 @@ const PRIVATE_IP_RANGES = [
   /^10\./,
   /^172\.(1[6-9]|2[0-9]|3[0-1])\./,
   /^192\.168\./,
+  /^169\.254\./,
   /^::1$/,
   /^fc/i,
   /^fd/i,
@@ -20,6 +21,11 @@ const PRIVATE_IP_RANGES = [
 
 function isPrivateIp(hostname: string): boolean {
   return PRIVATE_IP_RANGES.some((range) => range.test(hostname));
+}
+
+function isBlockedInternalHostname(hostname: string): boolean {
+  const normalized = hostname.toLowerCase();
+  return normalized.endsWith(".local") || normalized.endsWith(".internal");
 }
 
 /**
@@ -49,7 +55,7 @@ export function validateUrl(url: string): { valid: boolean; error?: string } {
     }
 
     // Block private/internal IPs
-    if (isPrivateIp(parsed.hostname)) {
+    if (isPrivateIp(parsed.hostname) || isBlockedInternalHostname(parsed.hostname)) {
       return { valid: false, error: "Private/internal URLs are not allowed" };
     }
 

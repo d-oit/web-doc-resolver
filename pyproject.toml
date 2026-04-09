@@ -78,6 +78,7 @@ exclude = '''
     | build
     | dist
     | __pycache__
+    | web/node_modules
     | \.agents/skills
     | \.blackbox/skills
     | \.claude/skills
@@ -120,4 +121,5 @@ python_functions = ["test_*"]
 addopts = "-v --tb=short"
 markers = [
     "live: marks tests as live integration tests requiring real API keys (deselect with '-m not live')",
+    "benchmark: enables pytest-benchmark style tests without plugin",
 ]

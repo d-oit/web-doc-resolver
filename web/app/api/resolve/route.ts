@@ -6,7 +6,8 @@ import * as cache from "@/lib/cache";
 import { save as saveRecord } from "@/lib/records";
 import { Logger } from "@/lib/log";
 import { searchViaExaMcpWithMistral } from "@/lib/resolvers/query";
-import { validateUrl, queryProviders, urlProviders, ProviderKeys } from "@/lib/resolvers/index";
+import { isUrl, queryProviders, urlProviders, ProviderKeys } from "@/lib/resolvers/index";
+import { validateResolveRequest } from "@/lib/validation";
 
 // Allow up to 60 seconds for resolver operations
 export const maxDuration = 60;
@@ -15,10 +16,6 @@ const DEFAULT_MAX_CHARS = parseInt(process.env.WEB_RESOLVER_MAX_CHARS || "8000")
 
 // Singleton circuit breaker registry (survives across warm invocations)
 const circuitBreakers = new CircuitBreakerRegistry();
-
-function isUrl(input: string): boolean {
-  return /^https?:\/\/\S+$/i.test(input.trim());
-}
 
 // Query provider functions using Logger
 async function runQueryProvider(
@@ -210,29 +207,29 @@ export async function POST(request: NextRequest) {
   const log = new Logger();
   try {
     const body = await request.json();
-    const input = body.query?.trim() || body.url?.trim();
-    const maxChars = parseInt(body.maxChars) || DEFAULT_MAX_CHARS;
-    const profile = body.profile || "balanced";
+    const validation = validateResolveRequest(body);
+    if (!validation.success || !validation.data) {
+      return NextResponse.json({ error: validation.error || "Invalid request" }, { status: 400 });
+    }
 
-    if (!input) {
+    const data = validation.data;
+    const rawInput = (data.query || data.url || "").trim();
+    if (!rawInput) {
       return NextResponse.json({ error: "No query or URL provided" }, { status: 400 });
     }
 
-    const skipCache: boolean = body.skipCache || false;
-    const urlMode = isUrl(input);
-    const source = urlMode ? "url" : "query";
+    const maxChars = data.maxChars || DEFAULT_MAX_CHARS;
+    const profile = data.profile || "balanced";
+    const skipCache = data.skipCache || false;
+    const deepResearch = data.deepResearch || false;
+    const providers = data.providers || [];
 
-    // Validate URL for SSRF protection
-    if (urlMode) {
-      const validation = validateUrl(input);
-      if (!validation.valid) {
-        return NextResponse.json({ error: validation.error || "Invalid URL" }, { status: 400 });
-      }
-    }
+    const urlMode = isUrl(rawInput);
+    const source = urlMode ? "url" : "query";
 
     // Check cache first
     if (!skipCache) {
-      const cached = await cache.get(input, source);
+      const cached = await cache.get(rawInput, source);
       if (cached) {
         return NextResponse.json({ ...(cached as object), cache_hit: true });
       }
@@ -253,22 +250,20 @@ export async function POST(request: NextRequest) {
     let provider: string;
 
     if (urlMode) {
-      markdown = await resolveUrl(input, userKeys, maxChars, budget, log);
+      markdown = await resolveUrl(rawInput, userKeys, maxChars, budget, log);
       provider = "cascade";
     } else {
-      const providers: string[] = body.providers || [];
-      const deepResearch: boolean = body.deepResearch || false;
       const normalizedProviders = normalizeQueryProviders(providers, userKeys);
 
       if (normalizedProviders.length === 0) {
-        markdown = await resolveQuery(input, userKeys, maxChars, budget, log);
+        markdown = await resolveQuery(rawInput, userKeys, maxChars, budget, log);
         provider = "cascade";
       } else if (deepResearch) {
-        const res = await runProvidersParallel(input, userKeys, normalizedProviders, maxChars, budget, log);
+        const res = await runProvidersParallel(rawInput, userKeys, normalizedProviders, maxChars, budget, log);
         markdown = res.content;
         provider = res.provider;
       } else {
-        const res = await runProvidersSequential(input, userKeys, normalizedProviders, maxChars, budget, log);
+        const res = await runProvidersSequential(rawInput, userKeys, normalizedProviders, maxChars, budget, log);
         markdown = res.content;
         provider = res.provider;
       }
@@ -286,12 +281,12 @@ export async function POST(request: NextRequest) {
     };
 
     // Store successful result in cache
-    await cache.set(input, source, { markdown, provider, quality, budget: budgetState });
+    await cache.set(rawInput, source, { markdown, provider, quality, budget: budgetState });
 
     // Auto-save as a record
     saveRecord({
-      query: input,
-      url: urlMode ? input : null,
+      query: rawInput,
+      url: urlMode ? rawInput : null,
       content: markdown,
       source: provider,
       score: quality.score,
