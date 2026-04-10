@@ -44,16 +44,14 @@ class TestIsUrl:
 class TestFetchLlmsTxt:
     """Test llms.txt fetching."""
 
-    @patch("scripts.utils.get_session")
-    def test_llms_txt_found(self, mock_get_session):
+    @patch("scripts.utils._safe_request")
+    def test_llms_txt_found(self, mock_safe_request):
         """Test successful llms.txt fetch."""
-        mock_session = Mock()
         mock_response = Mock()
         mock_response.status_code = 200
         mock_response.text = "# Example llms.txt\nContent here"
         mock_response.headers = {"Content-Type": "text/plain"}
-        mock_session.get.return_value = mock_response
-        mock_get_session.return_value = mock_session
+        mock_safe_request.return_value = mock_response
 
         # Clear cache to ensure fresh test
         import scripts.resolve
@@ -64,14 +62,12 @@ class TestFetchLlmsTxt:
         assert result is not None
         assert "Example llms.txt" in result
 
-    @patch("scripts.utils.get_session")
-    def test_llms_txt_not_found(self, mock_get_session):
+    @patch("scripts.utils._safe_request")
+    def test_llms_txt_not_found(self, mock_safe_request):
         """Test when llms.txt doesn't exist."""
-        mock_session = Mock()
         mock_response = Mock()
         mock_response.status_code = 404
-        mock_session.get.return_value = mock_response
-        mock_get_session.return_value = mock_session
+        mock_safe_request.return_value = mock_response
 
         # Clear cache to ensure fresh test
         import scripts.resolve
