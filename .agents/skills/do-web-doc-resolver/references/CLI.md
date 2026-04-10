@@ -46,6 +46,19 @@ python scripts/cli.py "query" --profile balanced
 python scripts/cli.py "query" --profile quality
 ```
 
+### Advanced Controls
+
+These flags allow fine-tuning the resolution process beyond execution profiles:
+
+- `--max-provider-attempts <N>`: Maximum number of providers to try in the cascade.
+- `--max-paid-attempts <N>`: Maximum number of paid providers to attempt.
+- `--max-total-latency-ms <MS>`: Hard timeout for the entire resolution process in milliseconds.
+- `--min-chars <N>`: Minimum content length for a result to be considered successful.
+- `--quality-threshold <F>`: Minimum quality score (0.0-1.0) for a result to be accepted.
+- `--metrics-file <PATH>`: Save resolution metrics to a JSON file.
+- `--skip-cache`: Bypass both traditional and semantic caches.
+- `--disable-routing-memory`: Do not use or update domain-level performance memory.
+
 ### Skip Providers
 
 ```bash

@@ -15,7 +15,7 @@ This directory contains comprehensive implementation plans for improving the do-
 | **Architecture** | [01-architecture-improvements.md](01-architecture-improvements.md) | P0 | 6 weeks | PyO3 bindings, async optimization, unified provider trait |
 | **Performance** | [03-performance-optimization.md](03-performance-optimization.md) | P1 | 4 weeks | 30-50% latency reduction, L1 cache, HTTP/2 |
 | **New Features** | [04-new-features.md](04-new-features.md) | P2 | 8 weeks | Batch API, streaming, webhooks, metrics dashboard |
-| **UI/UX** | [05-ui-ux-improvements.md](05-ui-ux-improvements.md) | P2 | 4 weeks | Stepper, streaming UI, syntax highlighting, accessibility |
+| **UI/UX** | [05-ui-ux-improvements.md](05-ui-ux-improvements.md) | P2 | 4 weeks | Stepper, streaming UI, syntax highlighting, accessibility, result dedupe |
 | **Testing** | [06-testing-improvements.md](06-testing-improvements.md) | P1 | 4 weeks | Security tests, parity tests, performance benchmarks |
 | **Documentation** | [07-documentation-improvements.md](07-documentation-improvements.md) | P2 | 4 weeks | Tutorial, ADRs, dev container, OpenAPI spec |
 | **Deep Research** | [08-deep-research.md](08-deep-research.md) | P0 | 2 weeks | Deep research capabilities, evaluation framework |

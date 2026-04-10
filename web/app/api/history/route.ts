@@ -12,6 +12,13 @@ interface HistoryEntry {
   timestamp: number;
   charCount: number;
   resolveTime: number;
+  profile?: string;
+  flags?: {
+    skipCache?: boolean;
+    deepResearch?: boolean;
+  };
+  providers?: string[];
+  normalizedUrlHashes?: string[];
 }
 
 const MAX_HISTORY = 100;
@@ -63,6 +70,21 @@ export async function GET(request: NextRequest) {
   return response;
 }
 
+function normalizeHashes(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+  const values = input
+    .filter((value) => typeof value === "string")
+    .map((value: string) => value.trim())
+    .filter(Boolean);
+  return Array.from(new Set(values));
+}
+
+function hasOverlap(a: string[] = [], b: string[] = []): boolean {
+  if (a.length === 0 || b.length === 0) return false;
+  const set = new Set(a);
+  return b.some((hash) => set.has(hash));
+}
+
 // POST /api/history - Save new history entry
 export async function POST(request: NextRequest) {
   const sessionId = getSessionId(request);
@@ -70,6 +92,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const id = crypto.randomUUID();
+    const normalizedUrlHashes = normalizeHashes(body.normalizedUrlHashes);
     const entry: HistoryEntry = {
       id,
       query: body.query || "",
@@ -79,10 +102,19 @@ export async function POST(request: NextRequest) {
       timestamp: Date.now(),
       charCount: body.charCount || 0,
       resolveTime: body.resolveTime || 0,
+      profile: body.profile || undefined,
+      flags: body.flags || undefined,
+      providers: Array.isArray(body.providers) ? body.providers : undefined,
+      normalizedUrlHashes,
     };
 
     // Get or create history list
     let entries = memoryHistory.get(sessionId) || [];
+
+    // Remove duplicates that target the same set of URLs
+    if (normalizedUrlHashes.length > 0) {
+      entries = entries.filter((existing) => !hasOverlap(existing.normalizedUrlHashes, normalizedUrlHashes));
+    }
 
     // Add to front
     entries.unshift(entry);

@@ -35,34 +35,6 @@ export function isUrl(input: string): boolean {
   return /^https?:\/\/\S+$/i.test(input.trim());
 }
 
-function isPrivateHost(hostname: string): boolean {
-  return (
-    hostname === "localhost" ||
-    hostname === "127.0.0.1" ||
-    hostname === "::1" ||
-    hostname.startsWith("10.") ||
-    hostname.startsWith("192.168.") ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(hostname) ||
-    hostname.endsWith(".local") ||
-    hostname.endsWith(".internal")
-  );
-}
-
-export function validateUrl(url: string): { valid: boolean; error?: string } {
-  try {
-    const parsed = new URL(url);
-    if (!["http:", "https:"].includes(parsed.protocol)) {
-      return { valid: false, error: `Blocked scheme: ${parsed.protocol}` };
-    }
-    if (isPrivateHost(parsed.hostname)) {
-      return { valid: false, error: "SSRF protection: private/internal addresses blocked" };
-    }
-    return { valid: true };
-  } catch {
-    return { valid: false, error: "Invalid URL format" };
-  }
-}
-
 export const queryProviders: Record<string, ProviderFn> = {
   exa_mcp: async (q, _k, log) => searchViaExaMcp(q, log),
   exa: async (q, k, log) => searchViaExaSdk(q, k.EXA_API_KEY || "", log),

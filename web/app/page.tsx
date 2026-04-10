@@ -5,6 +5,10 @@ import Link from "next/link";
 import { loadApiKeys, saveApiKeys, ApiKeys, resolveKeySource, KeySource } from "@/lib/keys";
 import { loadUIState, saveUIState, type UIState } from "@/lib/ui-state";
 import History, { HistoryEntry } from "@/app/components/History";
+import ProfileCombobox from "@/app/components/ProfileCombobox";
+import ToggleChip from "@/app/components/ToggleChip";
+import ResultCard from "@/app/components/ResultCard";
+import { parseProviderResults, extractNormalizedUrls, type ProviderResult } from "@/lib/results";
 
 type ProfileId = "free" | "balanced" | "fast" | "quality" | "custom";
 
@@ -65,6 +69,9 @@ export default function Home() {
   const [skipCache, setSkipCache] = useState(false);
   const [deepResearch, setDeepResearch] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [parsedResults, setParsedResults] = useState<ProviderResult[]>([]);
+  const [viewRaw, setViewRaw] = useState(false);
+  const [helpfulIds, setHelpfulIds] = useState<Set<string>>(new Set());
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -200,7 +207,13 @@ export default function Home() {
         return;
       }
 
-      setResult(data.markdown || data.result || "");
+      const markdown = data.markdown || data.result || "";
+      const parsed = parseProviderResults(markdown);
+      const normalizedUrlHashes = extractNormalizedUrls(parsed);
+
+      setResult(markdown);
+      setParsedResults(parsed);
+      setViewRaw(false);
       setSourceProvider(data.provider || (activeProviders.length > 0 ? activeProviders.join(", ") : profile));
       setQualityScore(data.quality?.score ?? null);
       const elapsed = Date.now() - startTime;
@@ -210,10 +223,15 @@ export default function Home() {
       // Save to history
       saveToHistory({
         query: query.trim(),
-        result: data.markdown || data.result || "",
+        result: markdown,
         provider: data.provider || activeProviders.join(", "),
-        charCount: (data.markdown || data.result || "").length,
+        charCount: markdown.length,
         resolveTime: elapsed,
+        url: isUrl ? query.trim() : null,
+        profile,
+        flags: { skipCache, deepResearch },
+        providers: activeProviders,
+        normalizedUrlHashes,
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Request failed");
@@ -223,22 +241,40 @@ export default function Home() {
     }
   };
 
-  const handleCopy = async () => {
-    if (!result) return;
+  const copyText = async (value: string) => {
     try {
-      await navigator.clipboard.writeText(result);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1000);
+      await navigator.clipboard.writeText(value);
     } catch {
       const ta = document.createElement("textarea");
-      ta.value = result;
+      ta.value = value;
       document.body.appendChild(ta);
       ta.select();
       document.execCommand("copy");
       document.body.removeChild(ta);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1000);
     }
+  };
+
+  const handleCopyResult = async () => {
+    if (!result) return;
+    await copyText(result);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1000);
+  };
+
+  const handleCardCopy = async (value: string) => {
+    await copyText(value);
+  };
+
+  const toggleHelpful = (id: string) => {
+    setHelpfulIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
   };
 
   const saveToHistory = async (data: {
@@ -247,6 +283,11 @@ export default function Home() {
     provider: string;
     charCount: number;
     resolveTime: number;
+    url: string | null;
+    profile: ProfileId;
+    flags: { skipCache: boolean; deepResearch: boolean };
+    providers: string[];
+    normalizedUrlHashes: string[];
   }) => {
     try {
       await fetch("/api/history", {
@@ -262,8 +303,11 @@ export default function Home() {
   const handleHistoryLoad = (entry: HistoryEntry) => {
     setQuery(entry.query);
     setResult(entry.result);
+    setParsedResults(parseProviderResults(entry.result));
     setSourceProvider(entry.provider);
     setResolveTime(entry.resolveTime);
+    setViewRaw(false);
+    setHelpfulIds(new Set());
     inputRef.current?.focus();
   };
 
@@ -294,10 +338,14 @@ export default function Home() {
   const requestProviders = activeProviders.map((id) => toApiProviderId(id));
   const isCustomSelection = selectedProviders.length > 0;
 
-  if (!loaded) return null;
+  if (!loaded) return (
+    <main className="min-h-screen bg-[#0c0c0c] flex items-center justify-center">
+      <div className="text-[#666] text-sm" data-testid="app-loading">Loading...</div>
+    </main>
+  );
 
   return (
-    <main className="min-h-screen bg-[#0c0c0c] text-[#e8e6e3] font-mono flex flex-col lg:flex-row">
+    <main className="min-h-screen bg-[#0c0c0c] text-[#e8e6e3] font-mono flex flex-col lg:flex-row" data-testid="app-loaded">
       {/* Skip to content link for accessibility */}
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-[#0c0c0c] focus:text-[#00ff41] focus:px-2 focus:py-1 focus:border-2 focus:border-[#00ff41]">
         Skip to main content
@@ -320,10 +368,18 @@ export default function Home() {
         ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       `}>
         {/* Sidebar Header - Toggle */}
-        <button
+        <div
+          role="button"
           data-testid="sidebar-toggle"
+          tabIndex={0}
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors min-h-[44px]"
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              setSidebarOpen((prev) => !prev);
+            }
+          }}
+          className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors min-h-[44px] focus:outline-none"
         >
           <span className="text-[11px] uppercase tracking-[0.1em] text-[#666]">
             Configuration
@@ -342,28 +398,39 @@ export default function Home() {
               ✕
             </button>
           </div>
-        </button>
+        </div>
 
         {sidebarOpen && (
           <div className="px-4 pb-4 flex flex-col gap-4">
             {/* Profile Selector */}
             <div className="flex flex-col gap-2">
               <label className="text-[11px] text-[#888]">Profile</label>
-              <select
+              <ProfileCombobox
                 value={profile}
-                onChange={(e) => {
-                  const nextProfile = e.target.value as ProfileId;
+                options={PROFILES.map((p) => ({ id: p.id, label: p.label, description: `${p.providers.length || 0} providers` }))}
+                onChange={(nextProfile) => {
                   setProfile(nextProfile);
                   if (nextProfile !== "custom") {
                     setSelectedProviders([]);
                   }
                 }}
-                className="bg-[#141414] border-2 border-[#333] px-2 py-2 text-[13px] text-[#e8e6e3] focus:border-[#00ff41] focus:outline-none min-h-[44px]"
-              >
-                {PROFILES.map((p) => (
-                  <option key={p.id} value={p.id}>{p.label}</option>
-                ))}
-              </select>
+              />
+              <div className="flex flex-wrap gap-2 mt-2" aria-label="Advanced search toggles">
+                <ToggleChip label="Deep research" pressed={deepResearch} onPressedChange={setDeepResearch} />
+                <ToggleChip label="Skip cache" pressed={skipCache} onPressedChange={setSkipCache} />
+                <div className="flex items-center gap-2">
+                  <label className="text-[9px] text-[#777]">Max chars</label>
+                  <select
+                    value={maxChars}
+                    onChange={(e) => setMaxChars(parseInt(e.target.value) || 8000)}
+                    className="bg-[#141414] border border-[#333] px-2 py-1 text-[11px] text-[#e8e6e3] focus:border-[#00ff41] focus:outline-none"
+                  >
+                    {[4000, 8000, 12000].map((value) => (
+                      <option key={value} value={value}>{value.toLocaleString()}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
 
             {/* Provider Selection */}
@@ -375,27 +442,42 @@ export default function Home() {
                   const isActive = activeProviders.includes(provider.id);
                   const isManual = selectedProviders.includes(provider.id);
                   const needsKey = !provider.free && !available;
+                  const tooltipId = `provider-hint-${provider.id}`;
                   return (
-                    <button
-                      key={provider.id}
-                      onClick={() => available && handleProviderToggle(provider.id)}
-                      disabled={!available}
-                      title={needsKey ? `${provider.label} needs API key` : undefined}
-                      aria-pressed={isManual}
-                      aria-label={`${provider.label} provider ${isManual ? 'selected' : available ? 'available' : 'unavailable'}`}
-                      className={`px-2 py-2 text-[11px] border-2 min-h-[44px] ${
-                        isManual
-                          ? "bg-[#00ff41] text-[#0c0c0c] border-[#00ff41]"
-                          : isActive
-                          ? "bg-[#1a3a1a] text-[#00ff41] border-[#00ff41]"
-                          : available
-                          ? "bg-transparent text-[#888] border-[#333] hover:border-[#00ff41]"
-                          : "bg-transparent text-[#444] border-[#222] cursor-not-allowed"
-                      }`}
-                    >
-                      <span>{provider.label}</span>
-                      {needsKey && <span className="ml-1 text-[9px]">(needs key)</span>}
-                    </button>
+                    <div key={provider.id} className="relative">
+                      <button
+                        onClick={() => {
+                          if (!available) {
+                            setSidebarOpen(true);
+                            setApiKeysOpen(true);
+                            setProviderStatus(`${provider.label} needs API key`);
+                            return;
+                          }
+                          handleProviderToggle(provider.id);
+                        }}
+                        title={needsKey ? `${provider.label} needs API key` : undefined}
+                        aria-pressed={isManual}
+                        aria-describedby={!available ? tooltipId : undefined}
+                        aria-label={`${provider.label} provider ${isManual ? "selected" : available ? "available" : "requires API key"}`}
+                        className={`px-2 py-2 text-[11px] border-2 min-h-[44px] ${
+                          isManual
+                            ? "bg-[#00ff41] text-[#0c0c0c] border-[#00ff41]"
+                            : isActive
+                            ? "bg-[#1a3a1a] text-[#00ff41] border-[#00ff41]"
+                            : available
+                            ? "bg-transparent text-[#888] border-[#333] hover:border-[#00ff41]"
+                            : "bg-transparent text-[#444] border-[#222]"
+                        }`}
+                      >
+                        <span>{provider.label}</span>
+                        {needsKey && <span className="ml-1 text-[9px]">(needs key)</span>}
+                      </button>
+                      {!available && (
+                        <span id={tooltipId} className="sr-only">
+                          {provider.label} requires an API key. Click to open API keys panel.
+                        </span>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -539,6 +621,9 @@ export default function Home() {
                     setResolveTime(null);
                     setSourceProvider(null);
                     setQualityScore(null);
+                    setParsedResults([]);
+                    setHelpfulIds(new Set());
+                    setViewRaw(false);
                   }}
                   aria-label="Clear input and results"
                   className="bg-transparent text-[#888] px-4 py-2 text-[13px] border-2 border-[#333] hover:border-[#00ff41] hover:text-[#00ff41] min-h-[44px]"
@@ -572,8 +657,8 @@ export default function Home() {
           {result ? (
             <>
               {/* Metadata bar */}
-              <div className="flex items-center justify-between px-4 py-2 border-b-2 border-[#333] text-[11px] text-[#666]">
-                <div className="flex items-center gap-4">
+              <div className="flex items-center justify-between flex-wrap gap-3 px-4 py-2 border-b-2 border-[#333] text-[11px] text-[#666]">
+                <div className="flex items-center gap-4 flex-wrap">
                   <span>
                     Source: <span className="text-[#00ff41]">{sourceProvider}</span>
                   </span>
@@ -585,21 +670,50 @@ export default function Home() {
                     </span>
                   )}
                 </div>
-                <button
-                  onClick={handleCopy}
-                  aria-label={copied ? "Copied to clipboard" : "Copy to clipboard"}
-                  aria-live="polite"
-                  className="hover:text-[#e8e6e3] transition-colors min-h-[44px] px-2"
-                >
-                  {copied ? "Copied" : "Copy"}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setViewRaw(false)}
+                    className={`px-3 py-1 border border-[#333] ${!viewRaw ? "text-[#00ff41] border-[#00ff41]" : "text-[#666]"}`}
+                    aria-pressed={!viewRaw}
+                  >
+                    Cards
+                  </button>
+                  <button
+                    onClick={() => setViewRaw(true)}
+                    className={`px-3 py-1 border border-[#333] ${viewRaw ? "text-[#00ff41] border-[#00ff41]" : "text-[#666]"}`}
+                    aria-pressed={viewRaw}
+                  >
+                    Raw
+                  </button>
+                  <button
+                    onClick={handleCopyResult}
+                    aria-label={copied ? "Copied to clipboard" : "Copy to clipboard"}
+                    aria-live="polite"
+                    className="hover:text-[#e8e6e3] transition-colors min-h-[36px] px-2"
+                  >
+                    {copied ? "Copied" : "Copy"}
+                  </button>
+                </div>
               </div>
-              {/* Output textarea */}
-              <textarea
-                readOnly
-                value={result}
-                className="flex-1 bg-[#141414] p-4 text-[13px] text-[#e8e6e3] font-mono resize-none focus:outline-none whitespace-pre-wrap overflow-auto min-h-[200px]"
-              />
+              {viewRaw || parsedResults.length === 0 ? (
+                <textarea
+                  readOnly
+                  value={result}
+                  className="flex-1 bg-[#141414] p-4 text-[13px] text-[#e8e6e3] font-mono resize-none focus:outline-none whitespace-pre-wrap overflow-auto min-h-[200px]"
+                />
+              ) : (
+                <div className="flex-1 overflow-auto bg-[#0c0c0c] p-4 space-y-4">
+                  {parsedResults.map((parsed) => (
+                    <ResultCard
+                      key={parsed.id}
+                      result={parsed}
+                      onCopy={handleCardCopy}
+                      onHelpfulToggle={toggleHelpful}
+                      helpful={helpfulIds.has(parsed.id)}
+                    />
+                  ))}
+                </div>
+              )}
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center text-[#444] text-[13px] p-4 text-center">

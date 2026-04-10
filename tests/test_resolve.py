@@ -51,6 +51,9 @@ class TestFetchLlmsTxt:
         mock_response.status_code = 200
         mock_response.text = "# Example llms.txt\nContent here"
         mock_response.headers = {"Content-Type": "text/plain"}
+        mock_response.is_redirect = False
+        mock_response.url = "https://example.com/llms.txt"
+        mock_response.history = []
         mock_safe_request.return_value = mock_response
 
         # Clear cache to ensure fresh test
@@ -67,6 +70,9 @@ class TestFetchLlmsTxt:
         """Test when llms.txt doesn't exist."""
         mock_response = Mock()
         mock_response.status_code = 404
+        mock_response.is_redirect = False
+        mock_response.url = "https://example.com/llms.txt"
+        mock_response.history = []
         mock_safe_request.return_value = mock_response
 
         # Clear cache to ensure fresh test
