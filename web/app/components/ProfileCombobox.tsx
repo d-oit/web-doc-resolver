@@ -25,19 +25,13 @@ export default function ProfileCombobox<T extends string>({ value, options, onCh
   // Use navigated index when actively navigating, otherwise use value-derived index
   const activeIndex = navigatedIndex !== null ? navigatedIndex : valueIndex;
 
-  // Reset navigated index when dropdown closes
-  useEffect(() => {
-    if (!open) {
-      setNavigatedIndex(null);
-    }
-  }, [open]);
-
   useEffect(() => {
     if (!open) return;
     const handler = (event: MouseEvent) => {
       if (!listRef.current || listRef.current.contains(event.target as Node)) return;
       if (buttonRef.current?.contains(event.target as Node)) return;
       setOpen(false);
+      setNavigatedIndex(null);
     };
     window.addEventListener("mousedown", handler);
     return () => window.removeEventListener("mousedown", handler);
@@ -92,6 +86,7 @@ export default function ProfileCombobox<T extends string>({ value, options, onCh
           const option = options[activeIndex];
           if (option) {
             onChange(option.id);
+            setNavigatedIndex(null);
             setOpen(false);
           }
         }
@@ -99,6 +94,7 @@ export default function ProfileCombobox<T extends string>({ value, options, onCh
       case "Escape":
         if (open) {
           event.preventDefault();
+          setNavigatedIndex(null);
           setOpen(false);
         }
         break;
@@ -115,7 +111,10 @@ export default function ProfileCombobox<T extends string>({ value, options, onCh
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label="Change search profile"
-        onClick={() => setOpen((prev) => !prev)}
+        onClick={() => {
+          setNavigatedIndex(null);
+          setOpen((prev) => !prev);
+        }}
         onKeyDown={handleKeyDown}
       >
         <span>{selectedOption?.label}</span>
@@ -147,6 +146,7 @@ export default function ProfileCombobox<T extends string>({ value, options, onCh
                 onMouseDown={(event) => {
                   event.preventDefault();
                   onChange(option.id);
+                  setNavigatedIndex(null);
                   setOpen(false);
                 }}
               >
