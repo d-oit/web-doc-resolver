@@ -92,16 +92,18 @@ function parseBlock(block: string, index: number): ProviderResult | null {
   const snippet = normalizeSnippet(inHighlights ? snippetLines : lines.slice(1));
   if (!title && !snippet) return null;
 
-  return {
+  const normalizedUrl = canonicalizeUrl(url);
+  const result: ProviderResult = {
     id: `${index}-${title || url || Math.random().toString(36).slice(2)}`,
     title: title || "Untitled Result",
-    url,
-    normalizedUrl: canonicalizeUrl(url),
-    author,
-    published,
     snippet: snippet || block.trim(),
     raw: block.trim(),
   };
+  if (url !== undefined) result.url = url;
+  if (normalizedUrl !== undefined) result.normalizedUrl = normalizedUrl;
+  if (author !== undefined) result.author = author;
+  if (published !== undefined) result.published = published;
+  return result;
 }
 
 export function parseProviderResults(markdown: string): ProviderResult[] {

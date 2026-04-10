@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, type KeyboardEvent } from "react";
+import { useState, useRef, useEffect, useMemo, type KeyboardEvent } from "react";
 
 export interface ProfileOption<T extends string = string> {
   id: T;
@@ -15,11 +15,22 @@ interface ProfileComboboxProps<T extends string = string> {
 }
 
 export default function ProfileCombobox<T extends string>({ value, options, onChange }: ProfileComboboxProps<T>) {
-  const initialIndex = Math.max(0, options.findIndex((opt) => opt.id === value));
+  // Compute active index from value during render (not in effect)
+  const valueIndex = useMemo(() => Math.max(0, options.findIndex((opt) => opt.id === value)), [value, options]);
   const [open, setOpen] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(initialIndex);
+  const [navigatedIndex, setNavigatedIndex] = useState<number | null>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // Use navigated index when actively navigating, otherwise use value-derived index
+  const activeIndex = navigatedIndex !== null ? navigatedIndex : valueIndex;
+
+  // Reset navigated index when dropdown closes
+  useEffect(() => {
+    if (!open) {
+      setNavigatedIndex(null);
+    }
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -33,19 +44,15 @@ export default function ProfileCombobox<T extends string>({ value, options, onCh
   }, [open]);
 
   useEffect(() => {
-    const nextIndex = Math.max(0, options.findIndex((opt) => opt.id === value));
-    setActiveIndex(nextIndex);
-  }, [value, options]);
-
-  useEffect(() => {
     if (!open) return;
     const el = listRef.current?.querySelector<HTMLElement>(`[data-index='${activeIndex}']`);
     el?.scrollIntoView({ block: "nearest" });
   }, [activeIndex, open]);
 
   const move = (direction: 1 | -1) => {
-    setActiveIndex((prev) => {
-      const next = (prev + direction + options.length) % options.length;
+    setNavigatedIndex((prev) => {
+      const base = prev !== null ? prev : valueIndex;
+      const next = (base + direction + options.length) % options.length;
       return next;
     });
   };
@@ -70,11 +77,11 @@ export default function ProfileCombobox<T extends string>({ value, options, onCh
         break;
       case "Home":
         event.preventDefault();
-        setActiveIndex(0);
+        setNavigatedIndex(0);
         break;
       case "End":
         event.preventDefault();
-        setActiveIndex(options.length - 1);
+        setNavigatedIndex(options.length - 1);
         break;
       case "Enter":
       case " ":
@@ -136,7 +143,7 @@ export default function ProfileCombobox<T extends string>({ value, options, onCh
                 className={`px-3 py-2 text-[12px] cursor-pointer ${
                   active ? "bg-[#1a3a1a] text-[#00ff41]" : "text-[#e8e6e3]"
                 } ${selected ? "font-bold" : "font-normal"}`}
-                onMouseEnter={() => setActiveIndex(index)}
+                onMouseEnter={() => setNavigatedIndex(index)}
                 onMouseDown={(event) => {
                   event.preventDefault();
                   onChange(option.id);
