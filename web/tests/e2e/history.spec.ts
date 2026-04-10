@@ -1,8 +1,57 @@
 import { test, expect } from "@playwright/test";
 
+// Helper to mock UI state and key-status APIs for consistent test state
+async function mockAppState(page: import("@playwright/test").Page): Promise<void> {
+  await page.route("**/api/key-status", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ exa: false, serper: false, tavily: false, firecrawl: false, mistral: false }),
+    });
+  });
+
+  await page.route("**/api/ui-state", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          sidebarCollapsed: false,
+          showApiKeys: false,
+          showAdvanced: false,
+          activeProfile: "free",
+          selectedProviders: [],
+          maxChars: 8000,
+          skipCache: false,
+          deepResearch: false,
+        }),
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true }),
+    });
+  });
+}
+
+// Helper to wait for app to be fully loaded (async state initialization)
+async function waitForApp(page: import("@playwright/test").Page): Promise<void> {
+  await mockAppState(page);
+  await page.goto("/");
+  await expect(page.getByTestId("app-loaded")).toBeVisible({ timeout: 10000 });
+}
+
+// Helper to scope locators to the history panel
+function historyPanel(page: import("@playwright/test").Page) {
+  return page.locator("#history-panel");
+}
+
 test.describe("History Panel", () => {
   test("history panel is collapsed by default", async ({ page }) => {
-    await page.goto("/");
+    await waitForApp(page);
     // History toggle should be visible
     await expect(page.getByText(/History/)).toBeVisible();
     // History panel content should not be visible
@@ -10,7 +59,7 @@ test.describe("History Panel", () => {
   });
 
   test("clicking History toggle opens the panel", async ({ page }) => {
-    await page.goto("/");
+    await waitForApp(page);
     // Click the History toggle button
     await page.getByRole("button", { name: /History/ }).click();
     // Panel should now show search input
@@ -18,13 +67,13 @@ test.describe("History Panel", () => {
   });
 
   test("shows 'No history yet' when empty", async ({ page }) => {
-    await page.goto("/");
+    await waitForApp(page);
     await page.getByRole("button", { name: /History/ }).click();
     await expect(page.locator("text=No history yet")).toBeVisible();
   });
 
   test("history panel closes on second click", async ({ page }) => {
-    await page.goto("/");
+    await waitForApp(page);
     const toggle = page.getByRole("button", { name: /History/ });
     // Open panel
     await toggle.click();
@@ -77,19 +126,20 @@ test.describe("History Entry Creation", () => {
       });
     });
 
-    await page.goto("/");
+    await waitForApp(page);
     const input = page.locator("input[placeholder*='URL']");
     await input.fill("https://example.com");
     await page.getByRole("button", { name: "Fetch" }).click();
 
-    // Wait for result
+    // Wait for result - click Raw button to see textarea (default is Cards view)
+    await page.getByRole("button", { name: "Raw" }).click();
     await expect(page.locator("textarea")).toContainText("Test Result");
 
     // Open history panel
     await page.getByRole("button", { name: /History/ }).click();
 
     // Should show the entry
-    await expect(page.locator("text=https://example.com")).toBeVisible();
+    await expect(historyPanel(page).locator("text=https://example.com")).toBeVisible();
   });
 
   test("history entry shows provider name", async ({ page }) => {
@@ -127,15 +177,15 @@ test.describe("History Entry Creation", () => {
       });
     });
 
-    await page.goto("/");
+    await waitForApp(page);
     await page.locator("input[placeholder*='URL']").fill("test query");
     await page.getByRole("button", { name: "Fetch" }).click();
 
     await expect(page.locator("textarea")).toContainText("Content");
     await page.getByRole("button", { name: /History/ }).click();
 
-    // Check for provider in metadata line (use exact match to avoid strict mode violation)
-    await expect(page.getByText("exa_mcp", { exact: true })).toBeVisible();
+    // Check for provider in metadata line within history panel
+    await expect(historyPanel(page).getByText("exa_mcp", { exact: true })).toBeVisible();
   });
 
   test("history entry shows character count", async ({ page }) => {
@@ -173,7 +223,7 @@ test.describe("History Entry Creation", () => {
       });
     });
 
-    await page.goto("/");
+    await waitForApp(page);
     await page.locator("input[placeholder*='URL']").fill("https://test.com");
     await page.getByRole("button", { name: "Fetch" }).click();
 
@@ -182,8 +232,8 @@ test.describe("History Entry Creation", () => {
     // Open history and check character count
     await page.getByRole("button", { name: /History/ }).click();
 
-    // Wait for history to load and check for character count (use exact match)
-    await expect(page.getByText("500 chars", { exact: true })).toBeVisible({ timeout: 10000 });
+    // Wait for history to load and check for character count within history panel
+    await expect(historyPanel(page).getByText("500 chars", { exact: true })).toBeVisible({ timeout: 10000 });
   });
 });
 
@@ -209,7 +259,7 @@ test.describe("History Search", () => {
       });
     });
 
-    await page.goto("/");
+    await waitForApp(page);
     await page.getByRole("button", { name: /History/ }).click();
 
     // All entries should be visible initially
@@ -256,7 +306,7 @@ test.describe("History Delete", () => {
       });
     });
 
-    await page.goto("/");
+    await waitForApp(page);
     await page.getByRole("button", { name: /History/ }).click();
     await expect(page.locator("text=test entry to delete")).toBeVisible();
 
@@ -287,7 +337,7 @@ test.describe("History Load", () => {
       });
     });
 
-    await page.goto("/");
+    await waitForApp(page);
     await page.getByRole("button", { name: /History/ }).click();
 
     // Click on the history entry
@@ -321,12 +371,13 @@ test.describe("History Persistence", () => {
       });
     });
 
-    await page.goto("/");
+    await waitForApp(page);
     await page.getByRole("button", { name: /History/ }).click();
     await expect(page.locator("text=persistent query")).toBeVisible();
 
     // Reload page
     await page.reload();
+    await expect(page.getByTestId("app-loaded")).toBeVisible();
 
     // Open history
     await page.getByRole("button", { name: /History/ }).click();
@@ -348,7 +399,7 @@ test.describe("History Persistence", () => {
       return response;
     });
 
-    await page.goto("/");
+    await waitForApp(page);
     await page.getByRole("button", { name: /History/ }).click();
 
     // Wait a bit for the cookie to be set
@@ -364,7 +415,7 @@ test.describe("History Persistence", () => {
 
 test.describe("History Accessibility", () => {
   test("history toggle has correct aria attributes", async ({ page }) => {
-    await page.goto("/");
+    await waitForApp(page);
     const toggle = page.getByRole("button", { name: /History/ });
 
     // Check aria-expanded is false initially
@@ -376,7 +427,7 @@ test.describe("History Accessibility", () => {
   });
 
   test("history panel has correct id for aria-controls", async ({ page }) => {
-    await page.goto("/");
+    await waitForApp(page);
     const toggle = page.getByRole("button", { name: /History/ });
 
     // Check aria-controls points to panel

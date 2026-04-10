@@ -18,10 +18,10 @@ async function mockUiStateAndKeys(page: Page): Promise<void> {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
-          sidebarOpen: true,
-          apiKeysOpen: false,
+          sidebarCollapsed: false,
+          showApiKeys: false,
           showAdvanced: false,
-          profile: "free",
+          activeProfile: "free",
           selectedProviders: [],
           maxChars: 8000,
           skipCache: false,
@@ -49,13 +49,17 @@ async function openSidebarIfMobile(page: Page): Promise<void> {
 test.describe("Provider gating", () => {
   test.skip(!isLocalBaseUrl, "This suite validates local UI behavior only");
 
-  test("paid providers are disabled without API keys", async ({ page }) => {
+  test("paid providers show needs key when API keys absent", async ({ page }) => {
     await mockUiStateAndKeys(page);
     await page.goto("/");
+    await openSidebarIfMobile(page);
 
     const tavilyButton = page.getByRole("button", { name: /Tavily/i });
-    await expect(tavilyButton).toBeDisabled();
+    // Button is NOT disabled - clicking shows helpful feedback
+    await expect(tavilyButton).toBeEnabled();
     await expect(tavilyButton).toContainText("needs key");
+    // Button has muted styling (aria-describedby indicates unavailable state)
+    await expect(tavilyButton).toHaveAttribute("aria-describedby");
   });
 
   test("provider enables after entering local API key", async ({ page }, testInfo) => {
@@ -87,17 +91,19 @@ test.describe("Provider gating", () => {
     const exaMcpButton = page.getByRole("button", { name: /Exa MCP/ });
     await exaMcpButton.scrollIntoViewIfNeeded();
     await exaMcpButton.click({ force: true });
-    await expect(page.locator("select")).toHaveValue("custom");
+    // ProfileCombobox shows "Custom" after manual provider toggle
+    const profileButton = page.locator("button[aria-label='Change search profile']");
+    await expect(profileButton).toContainText("Custom");
   });
 
   test("custom provider selection persists across reload via server state", async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "Persistence interaction is desktop-only");
 
     let serverState: Record<string, unknown> = {
-      sidebarOpen: true,
-      apiKeysOpen: false,
+      sidebarCollapsed: false,
+      showApiKeys: false,
       showAdvanced: false,
-      profile: "free",
+      activeProfile: "free",
       selectedProviders: [],
       maxChars: 8000,
       skipCache: false,
@@ -139,17 +145,20 @@ test.describe("Provider gating", () => {
     const exaMcpButton = page.getByRole("button", { name: /Exa MCP/ });
     await exaMcpButton.scrollIntoViewIfNeeded();
     await exaMcpButton.click({ force: true });
-    await expect(page.locator("select")).toHaveValue("custom");
+    // ProfileCombobox shows "Custom" after manual provider toggle
+    const profileButton = page.locator("button[aria-label='Change search profile']");
+    await expect(profileButton).toContainText("Custom");
 
     await page.waitForTimeout(2200);
     await page.reload();
     await openSidebarIfMobile(page);
 
-    await expect(page.locator("select")).toHaveValue("custom");
+    // Profile should still be custom after reload
+    await expect(profileButton).toContainText("Custom");
     await expect(page.locator("text=1 selected")).toBeVisible();
   });
 
-  test("duckduckgo is disabled when mistral key is present", async ({ page }) => {
+  test("duckduckgo is styled as unavailable when mistral key is present", async ({ page }) => {
     await mockUiStateAndKeys(page);
     await page.route("**/api/ui-state", async (route) => {
       if (route.request().method() === "GET") {
@@ -157,10 +166,10 @@ test.describe("Provider gating", () => {
           status: 200,
           contentType: "application/json",
           body: JSON.stringify({
-            sidebarOpen: true,
-            apiKeysOpen: false,
+            sidebarCollapsed: false,
+            showApiKeys: false,
             showAdvanced: false,
-            profile: "free",
+            activeProfile: "free",
             selectedProviders: [],
             maxChars: 8000,
             skipCache: false,
@@ -179,9 +188,12 @@ test.describe("Provider gating", () => {
       });
     });
     await page.goto("/");
+    await openSidebarIfMobile(page);
 
     // Use a more flexible selector that matches the aria-label
     const duckduckgoButton = page.getByRole("button", { name: /DuckDuckGo/ });
-    await expect(duckduckgoButton).toBeDisabled();
+    // Button is NOT disabled - it has aria-describedby indicating unavailable state
+    await expect(duckduckgoButton).toBeEnabled();
+    await expect(duckduckgoButton).toHaveAttribute("aria-describedby", "provider-hint-duckduckgo");
   });
 });

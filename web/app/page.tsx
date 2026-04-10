@@ -338,10 +338,14 @@ export default function Home() {
   const requestProviders = activeProviders.map((id) => toApiProviderId(id));
   const isCustomSelection = selectedProviders.length > 0;
 
-  if (!loaded) return null;
+  if (!loaded) return (
+    <main className="min-h-screen bg-[#0c0c0c] flex items-center justify-center">
+      <div className="text-[#666] text-sm" data-testid="app-loading">Loading...</div>
+    </main>
+  );
 
   return (
-    <main className="min-h-screen bg-[#0c0c0c] text-[#e8e6e3] font-mono flex flex-col lg:flex-row">
+    <main className="min-h-screen bg-[#0c0c0c] text-[#e8e6e3] font-mono flex flex-col lg:flex-row" data-testid="app-loaded">
       {/* Skip to content link for accessibility */}
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-[#0c0c0c] focus:text-[#00ff41] focus:px-2 focus:py-1 focus:border-2 focus:border-[#00ff41]">
         Skip to main content

@@ -1,8 +1,52 @@
 import { test, expect } from "@playwright/test";
 
+// Helper to mock UI state and key-status APIs for consistent test state
+async function mockAppState(page: import("@playwright/test").Page): Promise<void> {
+  await page.route("**/api/key-status", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ exa: false, serper: false, tavily: false, firecrawl: false, mistral: false }),
+    });
+  });
+
+  await page.route("**/api/ui-state", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          sidebarCollapsed: false,
+          showApiKeys: false,
+          showAdvanced: false,
+          activeProfile: "free",
+          selectedProviders: [],
+          maxChars: 8000,
+          skipCache: false,
+          deepResearch: false,
+        }),
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: true }),
+    });
+  });
+}
+
+// Helper to wait for app to be fully loaded (async state initialization)
+async function waitForApp(page: import("@playwright/test").Page): Promise<void> {
+  await mockAppState(page);
+  await page.goto("/");
+  await expect(page.getByTestId("app-loaded")).toBeVisible({ timeout: 10000 });
+}
+
 test.describe("Page Load & Structure", () => {
   test("loads and displays the app name", async ({ page }) => {
-    await page.goto("/");
+    await waitForApp(page);
     // Swiss brutalist design uses span in header, not h1
     await expect(page.locator("text=do-web-doc-resolver")).toBeVisible();
   });
@@ -13,7 +57,7 @@ test.describe("Page Load & Structure", () => {
   });
 
   test("shows input placeholder", async ({ page }) => {
-    await page.goto("/");
+    await waitForApp(page);
     await expect(page.locator('input[placeholder*="URL"]')).toBeVisible();
   });
 });
@@ -324,6 +368,7 @@ test.describe("Network Interception", () => {
   test("displays resolver result on successful response", async ({
     page,
   }) => {
+    await mockAppState(page);
     await page.route("**/api/resolve", (route) =>
       route.fulfill({
         status: 200,
@@ -335,11 +380,13 @@ test.describe("Network Interception", () => {
     );
 
     await page.goto("/");
+    await expect(page.getByTestId("app-loaded")).toBeVisible({ timeout: 10000 });
     const input = page.locator("input[type='text']");
     await input.fill("test query");
     await page.getByRole("button", { name: "Fetch" }).click();
 
-    // Swiss brutalist design uses textarea for output
+    // Click Raw button to see textarea (default is Cards view)
+    await page.getByRole("button", { name: "Raw" }).click();
     await expect(page.locator("textarea")).toContainText(
       "This is the resolved content."
     );
@@ -482,21 +529,21 @@ test.describe("Navigation", () => {
 
 test.describe("Collapsible Sidebar", () => {
   test("sidebar is visible by default", async ({ page }) => {
-    await page.goto("/");
+    await waitForApp(page);
     await expect(page.getByTestId("sidebar-toggle")).toBeVisible();
     await expect(page.locator("text=Configuration")).toBeVisible();
     await expect(page.locator("label").filter({ hasText: "Profile" })).toBeVisible();
   });
 
   test("sidebar collapses when clicking Configuration header", async ({ page }) => {
-    await page.goto("/");
+    await waitForApp(page);
     await expect(page.locator("label").filter({ hasText: "Profile" })).toBeVisible();
     await page.getByTestId("sidebar-toggle").click();
     await expect(page.locator("label").filter({ hasText: "Profile" })).not.toBeVisible();
   });
 
   test("sidebar expands when clicking Configuration header again", async ({ page }) => {
-    await page.goto("/");
+    await waitForApp(page);
     await page.getByTestId("sidebar-toggle").click();
     await expect(page.locator("label").filter({ hasText: "Profile" })).not.toBeVisible();
     await page.getByTestId("sidebar-toggle").click();
@@ -504,21 +551,21 @@ test.describe("Collapsible Sidebar", () => {
   });
 
   test("toggle label shows correct text", async ({ page }) => {
-    await page.goto("/");
+    await waitForApp(page);
     await expect(page.getByTestId("sidebar-toggle").locator("text=Hide")).toBeVisible();
     await page.getByTestId("sidebar-toggle").click();
     await expect(page.getByTestId("sidebar-toggle").locator("text=Show")).toBeVisible();
   });
 
   test("Keys link is visible in sidebar header", async ({ page }) => {
-    await page.goto("/");
+    await waitForApp(page);
     const keysLink = page.locator('a[href="/settings"]');
     await expect(keysLink).toBeVisible();
     await expect(keysLink).toContainText("Keys");
   });
 
   test("Keys link navigates to settings", async ({ page }) => {
-    await page.goto("/");
+    await waitForApp(page);
     await page.locator('a[href="/settings"]').click();
     await expect(page).toHaveURL(/\/settings/);
   });
@@ -526,20 +573,20 @@ test.describe("Collapsible Sidebar", () => {
 
 test.describe("Collapsible API Keys", () => {
   test("API Keys section is collapsed by default", async ({ page }) => {
-    await page.goto("/");
+    await waitForApp(page);
     await expect(page.getByTestId("api-keys-toggle")).toBeVisible();
     await expect(page.locator("label").filter({ hasText: "Serper" })).not.toBeVisible();
   });
 
   test("API Keys section expands on click", async ({ page }) => {
-    await page.goto("/");
+    await waitForApp(page);
     await page.getByTestId("api-keys-toggle").click();
     await expect(page.locator("label").filter({ hasText: "Serper" })).toBeVisible();
     await expect(page.locator("label").filter({ hasText: "Tavily" })).toBeVisible();
   });
 
   test("API Keys section collapses on second click", async ({ page }) => {
-    await page.goto("/");
+    await waitForApp(page);
     await page.getByTestId("api-keys-toggle").click();
     await expect(page.locator("label").filter({ hasText: "Serper" })).toBeVisible();
     await page.getByTestId("api-keys-toggle").click();
@@ -549,7 +596,7 @@ test.describe("Collapsible API Keys", () => {
 
 test.describe("Profile Provider Indicators", () => {
   test("profile providers are shown as active by default", async ({ page }) => {
-    await page.goto("/");
+    await waitForApp(page);
     // Free profile is default: exa_mcp (DuckDuckGo may be disabled if Mistral is active)
     // Exa MCP should have the active style (green border)
     const exaButton = page.locator("button").filter({ hasText: "Exa MCP" });
@@ -560,13 +607,13 @@ test.describe("Profile Provider Indicators", () => {
   });
 
   test("profile status text shows provider count", async ({ page }) => {
-    await page.goto("/");
+    await waitForApp(page);
     // Free profile shows exa_mcp, may or may not show DuckDuckGo depending on Mistral gating
     await expect(page.locator("text=Using free profile")).toBeVisible();
   });
 
   test("clicking a provider switches to custom selection", async ({ page }) => {
-    await page.goto("/");
+    await waitForApp(page);
     // Click Exa MCP (free, always available) to toggle it off the profile
     await page.locator("button").filter({ hasText: "Exa MCP" }).click();
     // Status should change to custom selection
@@ -574,7 +621,7 @@ test.describe("Profile Provider Indicators", () => {
   });
 
   test("manual selection overrides profile display", async ({ page }) => {
-    await page.goto("/");
+    await waitForApp(page);
     // Click Exa MCP (free, always available) to manually toggle
     const exaButton = page.locator("button").filter({ hasText: "Exa MCP" });
     await exaButton.click();
@@ -621,6 +668,7 @@ test.describe("Help Page", () => {
     const backLink = page.locator('a[href="/"]').first();
     await expect(backLink).toBeVisible();
     await backLink.click();
+    await expect(page.getByTestId("app-loaded")).toBeVisible();
     await expect(page).toHaveURL("/");
   });
 
