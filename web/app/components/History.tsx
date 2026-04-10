@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export interface HistoryEntry {
   id: string;
@@ -22,6 +22,8 @@ export default function History({ onLoad }: HistoryProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const deleteTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -44,7 +46,27 @@ export default function History({ onLoad }: HistoryProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, search]);
 
-  const handleDelete = async (id: string) => {
+  useEffect(() => {
+    return () => {
+      if (deleteTimeoutRef.current) clearTimeout(deleteTimeoutRef.current);
+    };
+  }, []);
+
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    if (confirmDeleteId !== id) {
+      setConfirmDeleteId(id);
+      if (deleteTimeoutRef.current) clearTimeout(deleteTimeoutRef.current);
+      deleteTimeoutRef.current = setTimeout(() => {
+        setConfirmDeleteId(null);
+      }, 3000);
+      return;
+    }
+
+    if (deleteTimeoutRef.current) clearTimeout(deleteTimeoutRef.current);
+    setConfirmDeleteId(null);
+
     try {
       await fetch(`/api/history?id=${id}`, { method: "DELETE" });
       setEntries((prev) => prev.filter((e) => e.id !== id));
@@ -91,7 +113,7 @@ export default function History({ onLoad }: HistoryProps) {
               entries.map((entry) => (
                 <div
                   key={entry.id}
-                  className="border-b border-[#222] py-2 flex items-start gap-2 group"
+                  className="border-b border-[#222] py-2 flex items-center gap-2 group"
                 >
                   <div className="flex-1 min-w-0">
                     <button
@@ -106,11 +128,15 @@ export default function History({ onLoad }: HistoryProps) {
                     </div>
                   </div>
                   <button
-                    onClick={() => handleDelete(entry.id)}
-                    className="text-[10px] text-[#444] hover:text-[#ff4444] opacity-0 group-hover:opacity-100 transition-opacity min-h-[44px] min-w-[44px] flex items-center justify-center"
-                    aria-label={`Delete ${entry.query}`}
+                    onClick={(e) => handleDelete(entry.id, e)}
+                    className={`text-[11px] transition-all min-h-[44px] flex items-center justify-center px-3 ${
+                      confirmDeleteId === entry.id
+                        ? "bg-[#e02424] text-white opacity-100 font-bold"
+                        : "text-[#444] hover:text-[#ff4444] opacity-0 group-hover:opacity-100 focus:opacity-100"
+                    }`}
+                    aria-label={confirmDeleteId === entry.id ? `Confirm delete ${entry.query}` : `Delete ${entry.query}`}
                   >
-                    ×
+                    {confirmDeleteId === entry.id ? "CONFIRM" : "×"}
                   </button>
                 </div>
               ))
