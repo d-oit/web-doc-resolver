@@ -23,8 +23,8 @@ use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 use super::cascade::{
-    classify_error, extract_domain_or_default, is_safe_url, CIRCUIT_BREAKER_FAILURE_THRESHOLD,
-    CIRCUIT_BREAKER_RECOVERY_TTL, NEGATIVE_CACHE_FAILURE_TTL, NEGATIVE_CACHE_THIN_TTL,
+    CIRCUIT_BREAKER_FAILURE_THRESHOLD, CIRCUIT_BREAKER_RECOVERY_TTL, NEGATIVE_CACHE_FAILURE_TTL,
+    NEGATIVE_CACHE_THIN_TTL, classify_error, extract_domain_or_default, is_safe_url,
 };
 
 /// URL cascade resolver

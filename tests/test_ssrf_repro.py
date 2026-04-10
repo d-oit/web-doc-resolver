@@ -2,9 +2,8 @@
 
 import os
 import sys
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-import pytest
 import requests
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))

@@ -11,7 +11,7 @@ import socket
 from concurrent.futures import ThreadPoolExecutor
 from html.parser import HTMLParser
 from typing import Any
-from urllib.parse import parse_qs, urlencode, urljoin, urlparse
+from urllib.parse import urljoin, urlparse
 
 import requests
 from requests.adapters import HTTPAdapter
