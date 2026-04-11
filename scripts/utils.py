@@ -11,7 +11,7 @@ import socket
 from concurrent.futures import ThreadPoolExecutor
 from html.parser import HTMLParser
 from typing import Any
-from urllib.parse import urljoin, urlparse
+from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -207,16 +207,13 @@ def validate_url(url: str, timeout: int = 10, check_ssrf: bool = True) -> Valida
         return ValidationResult(is_valid=False, error=str(e))
 
 
-def _validate_single_link(link: str, timeout: int) -> str | None:
-    session = create_session_with_retry()
+def _validate_single_link(link: str, timeout: int, session: requests.Session) -> str | None:
     try:
         response = _safe_request("HEAD", link, session=session, timeout=timeout, verify=True)
         if response.status_code < 400:
             return link
     except Exception:
         return None
-    finally:
-        session.close()
     return None
 
 
@@ -225,11 +222,15 @@ def validate_links(links: list[str], timeout: int = 5) -> list[str]:
     if not links:
         return []
 
-    max_workers = min(10, len(links))
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        results = list(executor.map(lambda link: _validate_single_link(link, timeout), links))
+    session = create_session_with_retry()
+    try:
+        max_workers = min(10, len(links))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            results = list(executor.map(lambda link: _validate_single_link(link, timeout, session), links))
 
-    return [link for link in results if link]
+        return [link for link in results if link]
+    finally:
+        session.close()
 
 
 def score_result(url: str | None, content: str) -> float:
@@ -397,13 +398,11 @@ def normalize_url(url: str) -> str:
         parsed = urlparse(url)
         # Strip all known tracking params
         if parsed.query:
-            from urllib.parse import parse_qs, urlencode
-
             params = parse_qs(parsed.query)
             filtered_params = {
                 k: v
                 for k, v in params.items()
-                if k.lower() not in _TRACKING_PARAMS and not k.startswith("utm_")
+                if (kl := k.lower()) not in _TRACKING_PARAMS and not kl.startswith("utm_")
             }
             query = urlencode(filtered_params, doseq=True)
         else:
