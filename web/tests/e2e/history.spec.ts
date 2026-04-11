@@ -82,6 +82,13 @@ test.describe("History Panel", () => {
     await toggle.click();
     await expect(page.locator("input[placeholder*='Search history']")).not.toBeVisible();
   });
+
+  test("auto-focuses search input when opened", async ({ page }) => {
+    await waitForApp(page);
+    await page.getByRole("button", { name: /History/ }).click();
+    const searchInput = page.locator("input[placeholder*='Search history']");
+    await expect(searchInput).toBeFocused();
+  });
 });
 
 test.describe("History Entry Creation", () => {
@@ -272,6 +279,29 @@ test.describe("History Search", () => {
     // Only rust entry should be visible
     await expect(page.locator("text=rust programming")).toBeVisible();
     await expect(page.locator("text=python tutorial")).not.toBeVisible();
+  });
+
+  test("clear button resets search", async ({ page }) => {
+    await page.route("**/api/history**", async (route) => {
+      return route.fulfill({
+        status: 200,
+        body: JSON.stringify({ entries: [] }),
+      });
+    });
+
+    await waitForApp(page);
+    await page.getByRole("button", { name: /History/ }).click();
+
+    const searchInput = page.locator("input[placeholder*='Search history']");
+    await searchInput.fill("test query");
+    await expect(searchInput).toHaveValue("test query");
+
+    const clearButton = page.getByLabel("Clear search");
+    await expect(clearButton).toBeVisible();
+    await clearButton.click();
+
+    await expect(searchInput).toHaveValue("");
+    await expect(clearButton).not.toBeVisible();
   });
 });
 
