@@ -11,16 +11,21 @@ const PRIVATE_IP_RANGES = [
   /^172\.(1[6-9]|2[0-9]|3[0-1])\./,
   /^192\.168\./,
   /^169\.254\./,
+  /^100\.64\./,
   /^::1$/,
+  /^::$/,
+  /^::ffff:/i,
   /^fc/i,
   /^fd/i,
   /^fe80/i,
+  /^2001:db8/i,
   /^0\.0\.0\.0$/,
   /^localhost$/i,
 ];
 
 function isPrivateIp(hostname: string): boolean {
-  return PRIVATE_IP_RANGES.some((range) => range.test(hostname));
+  const normalized = hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  return PRIVATE_IP_RANGES.some((range) => range.test(normalized));
 }
 
 function isBlockedInternalHostname(hostname: string): boolean {
