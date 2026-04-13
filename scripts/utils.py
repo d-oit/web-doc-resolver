@@ -9,7 +9,6 @@ import os
 import re
 import socket
 from concurrent.futures import ThreadPoolExecutor
-from functools import lru_cache
 from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import parse_qs, urlencode, urljoin, urlparse
@@ -53,9 +52,8 @@ _global_session: requests.Session | None = None
 _cache = None
 
 
-@lru_cache(maxsize=1024)
-def _getaddrinfo_cached(hostname: str) -> list[tuple]:
-    """Cached version of socket.getaddrinfo to avoid redundant DNS lookups."""
+def _getaddrinfo_uncached(hostname: str) -> list[tuple]:
+    """Resolve DNS records without process-wide caching for SSRF safety checks."""
     return socket.getaddrinfo(hostname, None)
 
 
@@ -159,7 +157,7 @@ def is_safe_url(url: str) -> bool:
                 return False
         except ValueError:
             try:
-                infos = _getaddrinfo_cached(hostname)
+                infos = _getaddrinfo_uncached(hostname)
                 for _family, _socktype, _proto, _canonname, sockaddr in infos:
                     ip = ipaddress.ip_address(sockaddr[0])
                     if any(ip in network for network in BLOCKED_NETWORKS):
