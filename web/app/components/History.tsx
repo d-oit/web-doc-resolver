@@ -31,6 +31,7 @@ export default function History({ onLoad }: HistoryProps) {
   const [loading, setLoading] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const deleteTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -49,7 +50,11 @@ export default function History({ onLoad }: HistoryProps) {
   };
 
   useEffect(() => {
-    if (isOpen) fetchHistory();
+    if (isOpen) {
+      fetchHistory();
+      // Auto-focus search input when history opens
+      setTimeout(() => searchInputRef.current?.focus(), 0);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, search]);
 
@@ -105,20 +110,32 @@ export default function History({ onLoad }: HistoryProps) {
       {isOpen && (
         <div id="history-panel" className="px-4 pb-4">
           {/* Search */}
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search history..."
-            className="w-full bg-[#141414] border-2 border-[#333] px-2 py-2 text-[11px] text-[#e8e6e3] placeholder:text-[#444] focus:border-[#00ff41] focus:outline-none mb-2 min-h-[44px]"
-          />
+          <div className="relative mb-2">
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search history..."
+              className="w-full bg-[#141414] border-2 border-[#333] px-2 py-2 pr-10 text-[11px] text-[#e8e6e3] placeholder:text-[#949494] focus:border-[#00ff41] focus:outline-none min-h-[44px]"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-0 top-0 h-full w-10 flex items-center justify-center text-[#949494] hover:text-[#e8e6e3] transition-colors"
+                aria-label="Clear search"
+              >
+                ×
+              </button>
+            )}
+          </div>
 
           {/* List */}
           <div className="max-h-[320px] overflow-y-auto flex flex-col gap-2">
             {loading ? (
-              <div className="text-[10px] text-[#555] py-2">Loading...</div>
+              <div className="text-[10px] text-[#949494] py-2">Loading...</div>
             ) : entries.length === 0 ? (
-              <div className="text-[10px] text-[#555] py-2">No history yet</div>
+              <div className="text-[10px] text-[#949494] py-2">No history yet</div>
             ) : (
               entries.map((entry) => (
                 <div key={entry.id} className="border border-[#222] p-3 bg-[#101010] group">
@@ -133,8 +150,8 @@ export default function History({ onLoad }: HistoryProps) {
                       onClick={() => handleDelete(entry.id)}
                       className={`text-[10px] min-h-[32px] min-w-[32px] flex items-center justify-center transition-all ${
                         confirmDeleteId === entry.id
-                          ? "text-[#ff4444] font-bold"
-                          : "text-[#444] hover:text-[#ff4444] opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                          ? "bg-[#e02424] text-white font-bold px-2"
+                          : "text-[#949494] hover:text-[#ff4444] opacity-0 group-hover:opacity-100 focus:opacity-100"
                       }`}
                       aria-label={
                         confirmDeleteId === entry.id ? `Confirm delete ${entry.query}` : `Delete ${entry.query}`
@@ -143,7 +160,7 @@ export default function History({ onLoad }: HistoryProps) {
                       {confirmDeleteId === entry.id ? "CONFIRM" : "×"}
                     </button>
                   </div>
-                  <div className="text-[9px] text-[#555] mt-1 flex flex-wrap gap-2">
+                  <div className="text-[9px] text-[#949494] mt-1 flex flex-wrap gap-2">
                     <span>{entry.provider}</span>
                     <span>{entry.charCount.toLocaleString()} chars</span>
                     <span>{entry.resolveTime}ms</span>
@@ -151,23 +168,23 @@ export default function History({ onLoad }: HistoryProps) {
                   </div>
                   <div className="flex flex-wrap gap-2 mt-2">
                     {entry.profile && (
-                      <span className="text-[9px] uppercase tracking-wide border border-[#333] px-2 py-1">
+                      <span className="text-[9px] uppercase tracking-wide border border-[#333] px-2 py-1 text-[#949494]">
                         {entry.profile}
                       </span>
                     )}
                     {entry.flags?.deepResearch && (
-                      <span className="text-[9px] border border-[#333] px-2 py-1">Deep research</span>
+                      <span className="text-[9px] border border-[#333] px-2 py-1 text-[#949494]">Deep research</span>
                     )}
                     {entry.flags?.skipCache && (
-                      <span className="text-[9px] border border-[#333] px-2 py-1">Skip cache</span>
+                      <span className="text-[9px] border border-[#333] px-2 py-1 text-[#949494]">Skip cache</span>
                     )}
                     {entry.providers?.slice(0, 3).map((provider) => (
-                      <span key={`${entry.id}-${provider}`} className="text-[9px] border border-[#222] px-2 py-1 text-[#888]">
+                      <span key={`${entry.id}-${provider}`} className="text-[9px] border border-[#222] px-2 py-1 text-[#949494]">
                         {provider}
                       </span>
                     ))}
                     {entry.providers && entry.providers.length > 3 && (
-                      <span className="text-[9px] text-[#666]">+{entry.providers.length - 3}</span>
+                      <span className="text-[9px] text-[#949494]">+{entry.providers.length - 3}</span>
                     )}
                   </div>
                 </div>
