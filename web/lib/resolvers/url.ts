@@ -1,7 +1,53 @@
 import { Logger } from "@/lib/log";
+import { validateUrl } from "@/lib/validation";
 
 export const MAX_CHARS = parseInt(process.env.WEB_RESOLVER_MAX_CHARS || "8000");
 export const MIN_CHARS = parseInt(process.env.WEB_RESOLVER_MIN_CHARS || "50");
+
+async function safeFetch(
+  url: string,
+  options: RequestInit,
+  timeoutMs = 15000,
+  maxRedirects = 5
+): Promise<Response> {
+  let currentUrl = url;
+  let redirectCount = 0;
+
+  while (redirectCount <= maxRedirects) {
+    const validation = validateUrl(currentUrl);
+    if (!validation.valid) {
+      throw new Error(`SSRF blocked: ${validation.error || "Invalid URL"}`);
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(currentUrl, {
+        ...options,
+        signal: controller.signal,
+        redirect: "manual",
+      });
+
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get("Location");
+        if (!location) {
+          return response;
+        }
+
+        currentUrl = new URL(location, currentUrl).toString();
+        redirectCount++;
+        continue;
+      }
+
+      return response;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  throw new Error("Too many redirects");
+}
 
 async function fetchWithTimeout(
   url: string,
@@ -23,7 +69,7 @@ export async function extractViaLlmsTxt(url: string, log: Logger): Promise<strin
   try {
     const parsed = new URL(url);
     const llmsUrl = `${parsed.origin}/llms.txt`;
-    const res = await fetchWithTimeout(llmsUrl, {
+    const res = await safeFetch(llmsUrl, {
       headers: { Accept: "text/plain" },
     }, 8000);
     if (!res.ok) {
@@ -47,7 +93,7 @@ export async function extractViaJina(url: string, log: Logger): Promise<string |
   const start = Date.now();
   log.info("attempt", "jina", { url });
   try {
-    const res = await fetchWithTimeout(`https://r.jina.ai/${url}`, {
+    const res = await safeFetch(`https://r.jina.ai/${url}`, {
       headers: { Accept: "text/plain", "X-Return-Format": "text" },
     });
     if (!res.ok) {
@@ -70,7 +116,7 @@ export async function extractViaDirectFetch(url: string, log: Logger): Promise<s
   const start = Date.now();
   log.info("attempt", "direct_fetch", { url });
   try {
-    const res = await fetchWithTimeout(url, {
+    const res = await safeFetch(url, {
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; WebDocResolver/2.0)",
         Accept: "text/html",
