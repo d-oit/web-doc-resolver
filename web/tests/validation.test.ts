@@ -52,11 +52,16 @@ describe("validateUrl", () => {
       "http://10.0.0.1/test",
       "http://192.168.1.1/test",
       "http://172.16.0.1/test",
+      "http://169.254.169.254/latest/meta-data/",
+      "http://100.64.0.1/test", // CGNAT
+      "http://[::1]/test", // IPv6 loopback
+      "http://[fc00::1]/test", // ULA
+      "http://[fe80::1]/test", // Link-local
     ];
 
     for (const url of privateUrls) {
       const result = validateUrl(url);
-      expect(result.valid).toBe(false);
+      expect(result.valid).toBe(false, `Expected ${url} to be invalid`);
     }
   });
 

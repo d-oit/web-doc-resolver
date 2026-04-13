@@ -6,21 +6,28 @@ const MAX_URL_LENGTH = 2048;
 
 // Private IP ranges for SSRF protection
 const PRIVATE_IP_RANGES = [
-  /^127\./,
-  /^10\./,
-  /^172\.(1[6-9]|2[0-9]|3[0-1])\./,
-  /^192\.168\./,
-  /^169\.254\./,
-  /^::1$/,
-  /^fc/i,
-  /^fd/i,
-  /^fe80/i,
-  /^0\.0\.0\.0$/,
+  /^127\./, // IPv4 loopback
+  /^10\./, // RFC1918
+  /^172\.(1[6-9]|2[0-9]|3[0-1])\./, // RFC1918
+  /^192\.168\./, // RFC1918
+  /^169\.254\./, // IPv4 link-local
+  /^100\.(6[4-9]|[7-9][0-9]|1[0-1][0-9]|12[0-7])\./, // CGNAT (100.64.0.0/10)
+  /^::1$/, // IPv6 loopback
+  /^::ffff:0:0:0:0:/i, // IPv4-mapped IPv6 (::ffff:0.0.0.0/96)
+  /^::ffff:[0-9.]+$/i, // Alternative IPv4-mapped IPv6
+  /^::$/, // Unspecified address
+  /^fc/i, // Unique local address (fc00::/7)
+  /^fd/i, // Unique local address (fc00::/7)
+  /^fe80/i, // Link-local address (fe80::/10)
+  /^2001:0*db8:/i, // Documentation (2001:db8::/32)
+  /^0\.0\.0\.0$/, // All interfaces
   /^localhost$/i,
 ];
 
 function isPrivateIp(hostname: string): boolean {
-  return PRIVATE_IP_RANGES.some((range) => range.test(hostname));
+  // Strip square brackets for IPv6 addresses
+  const normalized = hostname.replace(/^\[|\]$/g, "");
+  return PRIVATE_IP_RANGES.some((range) => range.test(normalized));
 }
 
 function isBlockedInternalHostname(hostname: string): boolean {

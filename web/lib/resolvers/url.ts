@@ -1,17 +1,54 @@
 import { Logger } from "@/lib/log";
+import { validateUrl } from "@/lib/validation";
 
 export const MAX_CHARS = parseInt(process.env.WEB_RESOLVER_MAX_CHARS || "8000");
 export const MIN_CHARS = parseInt(process.env.WEB_RESOLVER_MIN_CHARS || "50");
 
-async function fetchWithTimeout(
+async function safeFetch(
   url: string,
   options: RequestInit,
-  timeoutMs = 15000
+  timeoutMs = 15000,
+  maxRedirects = 5
 ): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let currentUrl = url;
+
   try {
-    return await fetch(url, { ...options, signal: controller.signal });
+    for (let i = 0; i <= maxRedirects; i++) {
+      // Validate the URL for SSRF before each fetch (including the first hop)
+      const validation = validateUrl(currentUrl);
+      if (!validation.valid) {
+        throw new Error(`SSRF blocked: ${validation.error || "Unsafe URL"}`);
+      }
+
+      const res = await fetch(currentUrl, {
+        ...options,
+        redirect: "manual",
+        signal: controller.signal,
+      });
+
+      if (res.status >= 300 && res.status < 400) {
+        const location = res.headers.get("location");
+        if (!location) return res;
+
+        // Construct absolute URL for the next hop
+        const nextUrl = new URL(location, currentUrl).toString();
+
+        // Validate the redirect target for SSRF
+        const validation = validateUrl(nextUrl);
+        if (!validation.valid) {
+          throw new Error(`SSRF blocked: ${validation.error || "Unsafe redirect"}`);
+        }
+
+        currentUrl = nextUrl;
+        continue;
+      }
+
+      return res;
+    }
+    throw new Error("Too many redirects");
   } finally {
     clearTimeout(timer);
   }
@@ -23,7 +60,7 @@ export async function extractViaLlmsTxt(url: string, log: Logger): Promise<strin
   try {
     const parsed = new URL(url);
     const llmsUrl = `${parsed.origin}/llms.txt`;
-    const res = await fetchWithTimeout(llmsUrl, {
+    const res = await safeFetch(llmsUrl, {
       headers: { Accept: "text/plain" },
     }, 8000);
     if (!res.ok) {
@@ -47,7 +84,7 @@ export async function extractViaJina(url: string, log: Logger): Promise<string |
   const start = Date.now();
   log.info("attempt", "jina", { url });
   try {
-    const res = await fetchWithTimeout(`https://r.jina.ai/${url}`, {
+    const res = await safeFetch(`https://r.jina.ai/${url}`, {
       headers: { Accept: "text/plain", "X-Return-Format": "text" },
     });
     if (!res.ok) {
@@ -70,7 +107,7 @@ export async function extractViaDirectFetch(url: string, log: Logger): Promise<s
   const start = Date.now();
   log.info("attempt", "direct_fetch", { url });
   try {
-    const res = await fetchWithTimeout(url, {
+    const res = await safeFetch(url, {
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; WebDocResolver/2.0)",
         Accept: "text/html",
@@ -103,7 +140,7 @@ export async function extractViaFirecrawl(url: string, apiKey: string, log: Logg
   const start = Date.now();
   log.info("attempt", "firecrawl", { url });
   try {
-    const res = await fetchWithTimeout(
+    const res = await safeFetch(
       "https://api.firecrawl.dev/v1/scrape",
       {
         method: "POST",
@@ -137,7 +174,7 @@ export async function extractViaMistralBrowser(url: string, apiKey: string, log:
   const start = Date.now();
   log.info("attempt", "mistral_browser", { url });
   try {
-    const res = await fetchWithTimeout(
+    const res = await safeFetch(
       "https://api.mistral.ai/v1/chat/completions",
       {
         method: "POST",
