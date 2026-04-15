@@ -20,7 +20,7 @@ pub fn extract_domain_or_default(target: &str) -> String {
 }
 
 /// Check if a URL is safe from SSRF attempts.
-pub async fn is_safe_url(url_str: &str) -> bool {
+pub fn is_safe_url(url_str: &str) -> bool {
     let parsed = match url::Url::parse(url_str) {
         Ok(u) => u,
         Err(_) => return false,
@@ -46,25 +46,6 @@ pub async fn is_safe_url(url_str: &str) -> bool {
             {
                 return false;
             }
-
-            // Perform DNS resolution to check for IP-based SSRF
-            if let Ok(mut addrs) = tokio::net::lookup_host(format!("{}:80", domain)).await {
-                for addr in addrs.by_ref() {
-                    match addr.ip() {
-                        std::net::IpAddr::V4(ip) => {
-                            if is_private_ipv4(ip) {
-                                return false;
-                            }
-                        }
-                        std::net::IpAddr::V6(ip) => {
-                            if is_private_ipv6(ip) {
-                                return false;
-                            }
-                        }
-                    }
-                }
-            }
-
             true
         }
         url::Host::Ipv4(ip) => !is_private_ipv4(ip),
@@ -116,55 +97,6 @@ pub const CIRCUIT_BREAKER_RECOVERY_TTL: Duration = Duration::from_secs(300);
 /// Default failure threshold for circuit breaker
 pub const CIRCUIT_BREAKER_FAILURE_THRESHOLD: usize = 3;
 
-/// Perform a safe HTTP request with manual redirect handling and SSRF validation.
-pub async fn safe_request(
-    client: &reqwest::Client,
-    method: reqwest::Method,
-    url: &str,
-    max_redirects: usize,
-) -> Result<reqwest::Response, ResolverError> {
-    let mut current_url = url.to_string();
-
-    for _ in 0..=max_redirects {
-        if !is_safe_url(&current_url).await {
-            return Err(ResolverError::Auth(format!(
-                "SSRF blocked: {}",
-                current_url
-            )));
-        }
-
-        let response = client
-            .request(method.clone(), &current_url)
-            .send()
-            .await
-            .map_err(|e| ResolverError::Network(e.to_string()))?;
-
-        if response.status().is_redirection() {
-            if let Some(location) = response.headers().get(reqwest::header::LOCATION) {
-                let location_str = location
-                    .to_str()
-                    .map_err(|_| ResolverError::Parse("Invalid location header".to_string()))?;
-
-                let base_url = url::Url::parse(&current_url)
-                    .map_err(|e| ResolverError::Parse(format!("Invalid base URL: {}", e)))?;
-                let next_url = base_url
-                    .join(location_str)
-                    .map_err(|e| ResolverError::Parse(format!("Invalid redirect URL: {}", e)))?;
-
-                current_url = next_url.to_string();
-                continue;
-            }
-        }
-
-        return Ok(response);
-    }
-
-    Err(ResolverError::Network(format!(
-        "Too many redirects (max {})",
-        max_redirects
-    )))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -187,15 +119,15 @@ mod tests {
         assert_eq!(extract_domain_or_default("not a url"), "");
     }
 
-    #[tokio::test]
-    async fn test_is_safe_url() {
-        assert!(is_safe_url("https://example.com").await);
-        assert!(is_safe_url("http://example.com/path").await);
-        assert!(!is_safe_url("http://localhost").await);
-        assert!(!is_safe_url("http://127.0.0.1").await);
-        assert!(!is_safe_url("http://[::1]").await);
-        assert!(!is_safe_url("http://192.168.0.1").await);
-        assert!(!is_safe_url("file:///etc/passwd").await);
+    #[test]
+    fn test_is_safe_url() {
+        assert!(is_safe_url("https://example.com"));
+        assert!(is_safe_url("http://example.com/path"));
+        assert!(!is_safe_url("http://localhost"));
+        assert!(!is_safe_url("http://127.0.0.1"));
+        assert!(!is_safe_url("http://[::1]"));
+        assert!(!is_safe_url("http://192.168.0.1"));
+        assert!(!is_safe_url("file:///etc/passwd"));
     }
 
     #[test]

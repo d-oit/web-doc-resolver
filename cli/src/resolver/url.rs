@@ -145,7 +145,7 @@ impl UrlCascade {
     ) -> Result<ResolvedResult, ResolverError> {
         let mut metrics = ResolveMetrics::new();
 
-        if !is_safe_url(url).await {
+        if !is_safe_url(url) {
             return Err(ResolverError::Auth(format!("URL blocked (SSRF): {url}")));
         }
 

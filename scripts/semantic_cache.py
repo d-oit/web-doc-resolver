@@ -102,7 +102,7 @@ class SemanticCache:
 
     def _init_db(self) -> None:
         """Initialize sqlite-vec extension and database schema."""
-        self._conn: sqlite3.Connection = sqlite3.connect(self.db_path)
+        self._conn = sqlite3.connect(self.db_path)
         self._conn.row_factory = sqlite3.Row
 
         # Try to load sqlite-vec extension
@@ -229,7 +229,7 @@ class SemanticCache:
             raise RuntimeError("Embedding model not available")
 
         embedding = model.encode(text, convert_to_numpy=True, normalize_embeddings=True)
-        return [float(x) for x in embedding.tolist()]
+        return embedding.tolist()
 
     def query(self, query_str: str) -> SemanticCacheEntry | None:
         """
@@ -382,7 +382,7 @@ class SemanticCache:
         """Close database connection."""
         if hasattr(self, "_conn") and self._conn:
             self._conn.close()
-            self._conn = None  # type: ignore
+            self._conn = None
 
     def clear(self) -> bool:
         """
