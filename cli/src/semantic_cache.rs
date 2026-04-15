@@ -357,6 +357,7 @@ mod tests {
     use crate::types::ResolvedResult;
 
     /// Create a test configuration with semantic cache enabled
+    #[cfg(feature = "semantic-cache")]
     fn test_config(path: &str) -> Config {
         let mut config = Config::default();
         config.semantic_cache = SemanticCacheConfig {

@@ -19,8 +19,18 @@ pub struct LlmsTxtProvider {
 impl LlmsTxtProvider {
     /// Create a new llms.txt provider
     pub fn new() -> Self {
+        let mut headers = reqwest::header::HeaderMap::new();
+        headers.insert(
+            "User-Agent",
+            reqwest::header::HeaderValue::from_static("WDR/1.0 (LLM documentation resolver)"),
+        );
+
         Self {
-            client: reqwest::Client::new(),
+            client: reqwest::Client::builder()
+                .default_headers(headers)
+                .redirect(reqwest::redirect::Policy::none())
+                .build()
+                .unwrap_or_default(),
             rate_limited: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -69,13 +79,13 @@ impl crate::providers::UrlProvider for LlmsTxtProvider {
             parsed_url.host_str().unwrap_or("")
         );
 
-        let response = self
-            .client
-            .get(&llms_txt_url)
-            .header("User-Agent", "WDR/1.0 (LLM documentation resolver)")
-            .send()
-            .await
-            .map_err(|e| ResolverError::Network(e.to_string()))?;
+        let response = crate::resolver::cascade::safe_request(
+            &self.client,
+            reqwest::Method::GET,
+            &llms_txt_url,
+            5,
+        )
+        .await?;
 
         if response.status() == 404 {
             return Err(ResolverError::NotFound("llms.txt not found".to_string()));
