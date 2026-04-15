@@ -89,7 +89,7 @@ class Issue:
 @dataclass
 class Report:
     issues: list[Issue] = field(default_factory=list)
-    _seen: set = field(default_factory=set)
+    _seen: set[tuple[str, str, str, int | None]] = field(default_factory=set)
 
     def add(self, severity, category, doc, detail, line=None):
         issue = Issue(severity, category, doc, detail, line)
@@ -639,7 +639,7 @@ def check_cross_docs(report: Report):
 
     # Check for duplicate links in README
     readme_links = extract_markdown_links(readme)
-    seen = {}
+    seen: dict[tuple[str, str], int] = {}
     for line_no, text, target in readme_links:
         key = (text, target)
         if key in seen:
