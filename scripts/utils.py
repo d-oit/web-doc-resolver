@@ -342,7 +342,7 @@ def fetch_llms_txt(url: str) -> str | None:
                 _save_to_cache(
                     base_url, "llms_txt", {"found": True, "content": response.text}, ttl=3600
                 )
-                return response.text
+                return str(response.text)
         _save_to_cache(base_url, "llms_txt", {"found": False}, ttl=3600)
     except Exception:
         pass
