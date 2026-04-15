@@ -9,7 +9,6 @@ import os
 import re
 import socket
 from concurrent.futures import ThreadPoolExecutor
-from functools import lru_cache
 from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import urljoin, urlparse
@@ -48,12 +47,6 @@ BLOCKED_NETWORKS = [
 ]
 
 BLOCKED_SCHEMES: set[str] = {"file", "javascript", "data", "vbscript"}
-
-
-@lru_cache(maxsize=1024)
-def _getaddrinfo_cached(hostname: str):
-    """Cached wrapper for socket.getaddrinfo."""
-    return socket.getaddrinfo(hostname, None)
 
 
 _global_session: requests.Session | None = None
@@ -160,7 +153,7 @@ def is_safe_url(url: str) -> bool:
                 return False
         except ValueError:
             try:
-                infos = _getaddrinfo_cached(hostname)
+                infos = socket.getaddrinfo(hostname, None)
                 for _family, _socktype, _proto, _canonname, sockaddr in infos:
                     ip = ipaddress.ip_address(sockaddr[0])
                     if any(ip in network for network in BLOCKED_NETWORKS):
@@ -215,16 +208,13 @@ def validate_url(url: str, timeout: int = 10, check_ssrf: bool = True) -> Valida
         return ValidationResult(is_valid=False, error=str(e))
 
 
-def _validate_single_link(link: str, timeout: int) -> str | None:
-    session = create_session_with_retry()
+def _validate_single_link(link: str, timeout: int, session: requests.Session) -> str | None:
     try:
         response = _safe_request("HEAD", link, session=session, timeout=timeout, verify=True)
         if response.status_code < 400:
             return link
     except Exception:
         return None
-    finally:
-        session.close()
     return None
 
 
@@ -233,9 +223,12 @@ def validate_links(links: list[str], timeout: int = 5) -> list[str]:
     if not links:
         return []
 
+    session = get_session()
     max_workers = min(10, len(links))
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        results = list(executor.map(lambda link: _validate_single_link(link, timeout), links))
+        results = list(
+            executor.map(lambda link: _validate_single_link(link, timeout, session), links)
+        )
 
     return [link for link in results if link]
 
