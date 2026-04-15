@@ -1,6 +1,5 @@
 //! Async link validation for research results.
 
-use crate::resolver::cascade::{is_safe_url, safe_request};
 use futures::future::join_all;
 use reqwest::Client;
 use std::time::Duration;
@@ -9,7 +8,6 @@ use std::time::Duration;
 pub async fn validate_links(links: &[String]) -> Vec<String> {
     let client = Client::builder()
         .timeout(Duration::from_secs(5))
-        .redirect(reqwest::redirect::Policy::none())
         .build()
         .unwrap_or_default();
 
@@ -18,11 +16,7 @@ pub async fn validate_links(links: &[String]) -> Vec<String> {
         let client = client.clone();
         let link = link.clone();
         futures.push(tokio::spawn(async move {
-            if !is_safe_url(&link).await {
-                return None;
-            }
-
-            match safe_request(&client, reqwest::Method::HEAD, &link, 5).await {
+            match client.head(&link).send().await {
                 Ok(resp) if resp.status().is_success() => Some(link),
                 _ => None,
             }

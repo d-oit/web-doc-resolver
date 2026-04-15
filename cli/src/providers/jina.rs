@@ -18,18 +18,8 @@ pub struct JinaProvider {
 impl JinaProvider {
     /// Create a new Jina provider
     pub fn new() -> Self {
-        let mut headers = reqwest::header::HeaderMap::new();
-        headers.insert(
-            "User-Agent",
-            reqwest::header::HeaderValue::from_static("WDR/1.0 (LLM documentation resolver)"),
-        );
-
         Self {
-            client: reqwest::Client::builder()
-                .default_headers(headers)
-                .redirect(reqwest::redirect::Policy::none())
-                .build()
-                .unwrap_or_default(),
+            client: reqwest::Client::new(),
             rate_limited: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -69,13 +59,13 @@ impl crate::providers::UrlProvider for JinaProvider {
         // Use Jina Reader API
         let jina_url = format!("https://r.jina.ai/{}", url);
 
-        let response = crate::resolver::cascade::safe_request(
-            &self.client,
-            reqwest::Method::GET,
-            &jina_url,
-            5,
-        )
-        .await?;
+        let response = self
+            .client
+            .get(&jina_url)
+            .header("User-Agent", "WDR/1.0 (LLM documentation resolver)")
+            .send()
+            .await
+            .map_err(|e| ResolverError::Network(e.to_string()))?;
 
         if response.status() == 429 {
             self.set_rate_limited(true);

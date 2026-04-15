@@ -11,8 +11,6 @@ import time
 from collections.abc import Generator
 from typing import Any
 
-import requests
-
 import scripts.cache_negative
 import scripts.circuit_breaker
 import scripts.providers_impl
@@ -140,7 +138,7 @@ def _store_in_semantic_cache(query_or_url: str, result: dict[str, Any]) -> bool:
         return False
 
     try:
-        return bool(cache.store(query_or_url, result))
+        return cache.store(query_or_url, result)
     except Exception as e:
         logger.debug(f"Failed to store in semantic cache: {e}")
         return False
@@ -197,7 +195,9 @@ def synthesize_results(query: str, results: list[ResolvedResult], api_key: str, 
         f"Synthesize for query: '{query}'. Provide markdown with citations.\n\nContext:\n{context}"
     )
     try:
-        resp: requests.Response = requests.post(
+        import requests
+
+        resp = requests.post(
             "https://api.mistral.ai/v1/chat/completions",
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
             json={
@@ -341,7 +341,7 @@ def resolve_url_stream(
                             content = str(res_or_content)
 
                         q_score = scripts.quality.score_content(content)
-                        if bool(q_score.acceptable) or pt_done == ProviderType.LLMS_TXT:
+                        if q_score.acceptable or pt_done == ProviderType.LLMS_TXT:
                             _circuit_breakers.record_success(p_name_done)
                             metrics.record_provider(pt_done, latency, True)
                             if domain:
@@ -543,7 +543,7 @@ def resolve(
     if isinstance(profile, str):
         profile = Profile(profile.lower())
 
-    if bool(is_url(input_str)):
+    if is_url(input_str):
         return resolve_url(input_str, max_chars, profile=profile)
     return resolve_query(input_str, max_chars, skip_providers, profile=profile)
 

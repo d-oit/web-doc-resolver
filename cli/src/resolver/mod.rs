@@ -8,7 +8,7 @@
 //! - `url`: URL resolution cascade
 //! - `query`: Query resolution cascade
 
-pub mod cascade;
+mod cascade;
 mod query;
 mod url;
 

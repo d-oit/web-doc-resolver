@@ -18,22 +18,8 @@ pub struct DirectFetchProvider {
 impl DirectFetchProvider {
     /// Create a new direct fetch provider
     pub fn new() -> Self {
-        let mut headers = reqwest::header::HeaderMap::new();
-        headers.insert(
-            "User-Agent",
-            reqwest::header::HeaderValue::from_static("WDR/1.0 (LLM documentation resolver)"),
-        );
-        headers.insert(
-            "Accept",
-            reqwest::header::HeaderValue::from_static("text/html,application/xhtml+xml"),
-        );
-
         Self {
-            client: reqwest::Client::builder()
-                .default_headers(headers)
-                .redirect(reqwest::redirect::Policy::none())
-                .build()
-                .unwrap_or_default(),
+            client: reqwest::Client::new(),
             rate_limited: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -72,9 +58,14 @@ impl crate::providers::UrlProvider for DirectFetchProvider {
             ));
         }
 
-        let response =
-            crate::resolver::cascade::safe_request(&self.client, reqwest::Method::GET, url, 5)
-                .await?;
+        let response = self
+            .client
+            .get(url)
+            .header("User-Agent", "WDR/1.0 (LLM documentation resolver)")
+            .header("Accept", "text/html,application/xhtml+xml")
+            .send()
+            .await
+            .map_err(|e| ResolverError::Network(e.to_string()))?;
 
         if response.status() == 429 {
             self.set_rate_limited(true);
