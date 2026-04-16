@@ -43,9 +43,15 @@ BLOCKED_NETWORKS = [
     ipaddress.ip_network("172.16.0.0/12"),
     ipaddress.ip_network("192.168.0.0/16"),
     ipaddress.ip_network("169.254.0.0/16"),
+    ipaddress.ip_network("100.64.0.0/10"),  # CGNAT
+    ipaddress.ip_network("192.0.0.0/24"),   # IETF Protocol Assignments
+    ipaddress.ip_network("192.0.2.0/24"),   # Documentation (TEST-NET-1)
+    ipaddress.ip_network("198.51.100.0/24"), # Documentation (TEST-NET-2)
+    ipaddress.ip_network("203.0.113.0/24"),  # Documentation (TEST-NET-3)
     ipaddress.ip_network("::1/128"),
     ipaddress.ip_network("fc00::/7"),
     ipaddress.ip_network("fe80::/10"),
+    ipaddress.ip_network("2001:db8::/32"),  # Documentation
 ]
 
 BLOCKED_SCHEMES: set[str] = {"file", "javascript", "data", "vbscript"}
@@ -178,14 +184,18 @@ def is_safe_url(url: str) -> bool:
             return False
         try:
             ip = ipaddress.ip_address(normalized)
-            if any(ip in network for network in BLOCKED_NETWORKS):
+            if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+                ip = ip.ipv4_mapped
+            if not ip.is_global or any(ip in network for network in BLOCKED_NETWORKS):
                 return False
         except ValueError:
             try:
                 infos = _getaddrinfo_cached(hostname, None)
                 for _family, _socktype, _proto, _canonname, sockaddr in infos:
                     ip = ipaddress.ip_address(sockaddr[0])
-                    if any(ip in network for network in BLOCKED_NETWORKS):
+                    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+                        ip = ip.ipv4_mapped
+                    if not ip.is_global or any(ip in network for network in BLOCKED_NETWORKS):
                         return False
             except Exception:
                 pass
