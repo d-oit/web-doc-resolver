@@ -50,6 +50,7 @@ BLOCKED_NETWORKS = [
 
 BLOCKED_SCHEMES: set[str] = {"file", "javascript", "data", "vbscript"}
 
+
 _global_session: requests.Session | None = None
 _cache = None
 
@@ -236,16 +237,13 @@ def validate_url(url: str, timeout: int = 10, check_ssrf: bool = True) -> Valida
         return ValidationResult(is_valid=False, error=str(e))
 
 
-def _validate_single_link(link: str, timeout: int) -> str | None:
-    session = create_session_with_retry()
+def _validate_single_link(link: str, timeout: int, session: requests.Session) -> str | None:
     try:
         response = _safe_request("HEAD", link, session=session, timeout=timeout, verify=True)
         if response.status_code < 400:
             return link
     except Exception:
         return None
-    finally:
-        session.close()
     return None
 
 
@@ -254,9 +252,12 @@ def validate_links(links: list[str], timeout: int = 5) -> list[str]:
     if not links:
         return []
 
+    session = get_session()
     max_workers = min(10, len(links))
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        results = list(executor.map(lambda link: _validate_single_link(link, timeout), links))
+        results = list(
+            executor.map(lambda link: _validate_single_link(link, timeout, session), links)
+        )
 
     return [link for link in results if link]
 
