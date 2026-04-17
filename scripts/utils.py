@@ -8,9 +8,9 @@ import logging
 import os
 import re
 import socket
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from functools import lru_cache
 from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import urljoin, urlparse
@@ -43,9 +43,15 @@ BLOCKED_NETWORKS = [
     ipaddress.ip_network("172.16.0.0/12"),
     ipaddress.ip_network("192.168.0.0/16"),
     ipaddress.ip_network("169.254.0.0/16"),
+    ipaddress.ip_network("100.64.0.0/10"),  # CGNAT
+    ipaddress.ip_network("192.0.0.0/24"),  # IETF Protocol Assignments
+    ipaddress.ip_network("192.0.2.0/24"),  # Documentation (TEST-NET-1)
+    ipaddress.ip_network("198.51.100.0/24"),  # Documentation (TEST-NET-2)
+    ipaddress.ip_network("203.0.113.0/24"),  # Documentation (TEST-NET-3)
     ipaddress.ip_network("::1/128"),
     ipaddress.ip_network("fc00::/7"),
     ipaddress.ip_network("fe80::/10"),
+    ipaddress.ip_network("2001:db8::/32"),  # Documentation
 ]
 
 BLOCKED_SCHEMES: set[str] = {"file", "javascript", "data", "vbscript"}
@@ -130,19 +136,31 @@ def _safe_request(
     raise requests.TooManyRedirects(f"Exceeded {max_redirects} redirects")
 
 
+_DNS_CACHE: dict[tuple, tuple[float, list[tuple]]] = {}
+_DNS_CACHE_LOCK = threading.Lock()
 _DNS_CACHE_TTL = 60  # seconds
-
-
-@lru_cache(maxsize=1024)
-def _getaddrinfo_bucketed(host: str, port: int | str | None, bucket: int) -> list[tuple]:
-    """Internal helper for cached getaddrinfo using time-bucketing."""
-    return socket.getaddrinfo(host, port)
 
 
 def _getaddrinfo_cached(host: str, port: int | str | None = None) -> list[tuple]:
     """Cached version of socket.getaddrinfo with TTL to balance performance and security."""
-    bucket = int(time.time() // _DNS_CACHE_TTL)
-    return _getaddrinfo_bucketed(host, port, bucket)
+    key = (host, port)
+    now = time.time()
+
+    with _DNS_CACHE_LOCK:
+        if key in _DNS_CACHE:
+            expiry, result = _DNS_CACHE[key]
+            if now < expiry:
+                return result
+
+    result = socket.getaddrinfo(host, port)
+
+    with _DNS_CACHE_LOCK:
+        # Simple cleanup if cache grows too large
+        if len(_DNS_CACHE) >= 1024:
+            _DNS_CACHE.clear()
+        _DNS_CACHE[key] = (now + _DNS_CACHE_TTL, result)
+
+    return result
 
 
 def is_safe_url(url: str) -> bool:
@@ -166,17 +184,23 @@ def is_safe_url(url: str) -> bool:
             return False
         try:
             ip = ipaddress.ip_address(normalized)
-            if any(ip in network for network in BLOCKED_NETWORKS):
+            if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+                ip = ip.ipv4_mapped
+            if not ip.is_global or any(ip in network for network in BLOCKED_NETWORKS):
                 return False
         except ValueError:
             try:
                 infos = _getaddrinfo_cached(hostname, None)
+                if not infos:
+                    return False
                 for _family, _socktype, _proto, _canonname, sockaddr in infos:
                     ip = ipaddress.ip_address(sockaddr[0])
-                    if any(ip in network for network in BLOCKED_NETWORKS):
+                    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+                        ip = ip.ipv4_mapped
+                    if not ip.is_global or any(ip in network for network in BLOCKED_NETWORKS):
                         return False
             except Exception:
-                pass
+                return False
         if normalized.endswith(".local") or normalized.endswith(".internal"):
             return False
         return True

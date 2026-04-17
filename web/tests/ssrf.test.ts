@@ -32,6 +32,12 @@ describe("SSRF Validation", () => {
     expect(validateUrl("http://100.128.0.1/test").valid).toBe(true);
   });
 
+  it("rejects documentation ranges", () => {
+    expect(validateUrl("http://192.0.2.1/test").valid).toBe(false);
+    expect(validateUrl("http://198.51.100.1/test").valid).toBe(false);
+    expect(validateUrl("http://203.0.113.1/test").valid).toBe(false);
+  });
+
   it("accepts valid public URLs", () => {
     const urls = [
       "https://google.com",

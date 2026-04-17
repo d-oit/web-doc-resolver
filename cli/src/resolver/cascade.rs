@@ -20,6 +20,7 @@ pub fn extract_domain_or_default(target: &str) -> String {
 }
 
 /// Check if a URL is safe from SSRF attempts.
+/// This checks the string representation. Use `is_safe_url_async` for DNS resolution.
 pub fn is_safe_url(url_str: &str) -> bool {
     let parsed = match url::Url::parse(url_str) {
         Ok(u) => u,
@@ -53,20 +54,89 @@ pub fn is_safe_url(url_str: &str) -> bool {
     }
 }
 
+/// Check if a URL is safe from SSRF attempts, including DNS resolution.
+pub async fn is_safe_url_async(url_str: &str) -> bool {
+    let parsed = match url::Url::parse(url_str) {
+        Ok(u) => u,
+        Err(_) => return false,
+    };
+
+    if !is_safe_url(url_str) {
+        return false;
+    }
+
+    let host = match parsed.host_str() {
+        Some(h) => h,
+        None => return false,
+    };
+
+    let port = parsed.port_or_known_default().unwrap_or(80);
+
+    // DNS resolution to protect against DNS rebinding
+    match tokio::net::lookup_host(format!("{}:{}", host, port)).await {
+        Ok(addrs) => {
+            for addr in addrs {
+                match addr.ip() {
+                    std::net::IpAddr::V4(ip) => {
+                        if is_private_ipv4(ip) {
+                            return false;
+                        }
+                    }
+                    std::net::IpAddr::V6(ip) => {
+                        if is_private_ipv6(ip) {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        Err(_) => return false,
+    }
+
+    true
+}
+
 fn is_private_ipv4(ip: std::net::Ipv4Addr) -> bool {
+    let o = ip.octets();
     ip.is_loopback()
         || ip.is_private()
         || ip.is_link_local()
         || ip.is_documentation()
         || ip.is_broadcast()
         || ip.is_unspecified()
+        || (o[0] == 100 && (o[1] & 0xc0) == 64) // CGNAT
+        || (o[0], o[1], o[2]) == (192, 0, 0) // IETF Protocol Assignments
 }
 
 fn is_private_ipv6(ip: std::net::Ipv6Addr) -> bool {
+    if let Some(ipv4) = to_ipv4_mapped(ip) {
+        return is_private_ipv4(ipv4);
+    }
     ip.is_loopback()
         || ip.is_unspecified()
-        || (ip.segments()[0] & 0xfe00) == 0xfc00
-        || (ip.segments()[0] & 0xffc0) == 0xfe80
+        || (ip.segments()[0] & 0xfe00) == 0xfc00 // Unique Local
+        || (ip.segments()[0] & 0xffc0) == 0xfe80 // Link Local
+        || (ip.segments()[0] == 0x2001 && ip.segments()[1] == 0xdb8) // Documentation
+}
+
+fn to_ipv4_mapped(ip: std::net::Ipv6Addr) -> Option<std::net::Ipv4Addr> {
+    let segments = ip.segments();
+    if segments[0] == 0
+        && segments[1] == 0
+        && segments[2] == 0
+        && segments[3] == 0
+        && segments[4] == 0
+        && segments[5] == 0xffff
+    {
+        Some(std::net::Ipv4Addr::new(
+            (segments[6] >> 8) as u8,
+            (segments[6] & 0xff) as u8,
+            (segments[7] >> 8) as u8,
+            (segments[7] & 0xff) as u8,
+        ))
+    } else {
+        None
+    }
 }
 
 /// Classify error type for routing decisions
@@ -146,5 +216,86 @@ mod tests {
 
         let other_err = ResolverError::Network("connection refused".to_string());
         assert_eq!(classify_error(&other_err), "provider_error");
+    }
+}
+
+/// Perform an HTTP request while validating each redirect hop for SSRF.
+pub async fn safe_request(
+    client: &reqwest::Client,
+    method: reqwest::Method,
+    url: &str,
+    max_redirects: usize,
+) -> Result<reqwest::Response, ResolverError> {
+    let mut current_url = url.to_string();
+
+    for _ in 0..=max_redirects {
+        if !is_safe_url_async(&current_url).await {
+            return Err(ResolverError::Network(format!(
+                "SSRF blocked: {}",
+                current_url
+            )));
+        }
+
+        let response = client
+            .request(method.clone(), &current_url)
+            .send()
+            .await
+            .map_err(|e| ResolverError::Network(e.to_string()))?;
+
+        if response.status().is_redirection() {
+            if let Some(location) = response.headers().get(reqwest::header::LOCATION) {
+                let location_str = location
+                    .to_str()
+                    .map_err(|_| ResolverError::Parse("Invalid location header".into()))?;
+
+                let base = url::Url::parse(&current_url)
+                    .map_err(|_| ResolverError::Parse("Invalid current URL".into()))?;
+                let next_url = base
+                    .join(location_str)
+                    .map_err(|_| ResolverError::Parse("Invalid redirect URL".into()))?;
+
+                current_url = next_url.to_string();
+                continue;
+            }
+        }
+
+        return Ok(response);
+    }
+
+    Err(ResolverError::Network(format!(
+        "Too many redirects: {}",
+        url
+    )))
+}
+
+#[cfg(test)]
+mod hardened_ssrf_tests {
+    use super::*;
+
+    #[test]
+    fn test_hardened_is_safe_url() {
+        // CGNAT
+        assert!(!is_safe_url("http://100.64.0.1"));
+        assert!(!is_safe_url("http://100.127.255.255"));
+        assert!(is_safe_url("http://100.128.0.1"));
+
+        // IETF Protocol Assignments
+        assert!(!is_safe_url("http://192.0.0.1"));
+
+        // Documentation ranges
+        assert!(!is_safe_url("http://192.0.2.1"));
+        assert!(!is_safe_url("http://198.51.100.1"));
+        assert!(!is_safe_url("http://203.0.113.1"));
+        assert!(!is_safe_url("http://[2001:db8::1]"));
+
+        // IPv4-mapped IPv6
+        assert!(!is_safe_url("http://[::ffff:127.0.0.1]"));
+        assert!(!is_safe_url("http://[::ffff:169.254.169.254]"));
+        assert!(!is_safe_url("http://[::ffff:192.168.1.1]"));
+        assert!(!is_safe_url("http://[::ffff:100.64.0.1]"));
+
+        // Global public IPs
+        assert!(is_safe_url("https://google.com"));
+        assert!(is_safe_url("https://8.8.8.8"));
     }
 }
