@@ -1,7 +1,8 @@
 from scripts.utils import is_safe_url
 
 
-def test_new_blocked_ranges():
+def test_new_blocked_ranges() -> None:
+    """Test that new blocked ranges are correctly identified as unsafe."""
     # CGNAT
     assert not is_safe_url("http://100.64.0.1")
     assert not is_safe_url("http://100.127.255.255")

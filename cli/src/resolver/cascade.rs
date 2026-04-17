@@ -97,13 +97,15 @@ pub async fn is_safe_url_async(url_str: &str) -> bool {
 }
 
 fn is_private_ipv4(ip: std::net::Ipv4Addr) -> bool {
+    let o = ip.octets();
     ip.is_loopback()
         || ip.is_private()
         || ip.is_link_local()
         || ip.is_documentation()
         || ip.is_broadcast()
         || ip.is_unspecified()
-        || (ip.octets()[0] == 100 && (ip.octets()[1] & 0xc0) == 64) // CGNAT
+        || (o[0] == 100 && (o[1] & 0xc0) == 64) // CGNAT
+        || (o[0], o[1], o[2]) == (192, 0, 0) // IETF Protocol Assignments
 }
 
 fn is_private_ipv6(ip: std::net::Ipv6Addr) -> bool {
@@ -276,6 +278,9 @@ mod hardened_ssrf_tests {
         assert!(!is_safe_url("http://100.64.0.1"));
         assert!(!is_safe_url("http://100.127.255.255"));
         assert!(is_safe_url("http://100.128.0.1"));
+
+        // IETF Protocol Assignments
+        assert!(!is_safe_url("http://192.0.0.1"));
 
         // Documentation ranges
         assert!(!is_safe_url("http://192.0.2.1"));

@@ -191,6 +191,8 @@ def is_safe_url(url: str) -> bool:
         except ValueError:
             try:
                 infos = _getaddrinfo_cached(hostname, None)
+                if not infos:
+                    return False
                 for _family, _socktype, _proto, _canonname, sockaddr in infos:
                     ip = ipaddress.ip_address(sockaddr[0])
                     if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
@@ -198,7 +200,7 @@ def is_safe_url(url: str) -> bool:
                     if not ip.is_global or any(ip in network for network in BLOCKED_NETWORKS):
                         return False
             except Exception:
-                pass
+                return False
         if normalized.endswith(".local") or normalized.endswith(".internal"):
             return False
         return True
