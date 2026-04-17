@@ -2,11 +2,14 @@ import { describe, expect, it } from "vitest";
 import { validateUrl } from "../lib/validation";
 
 describe("SSRF Validation", () => {
-  it("rejects IPv6-mapped IPv4 addresses", () => {
+  it("rejects IPv6-mapped IPv4 addresses and Translated addresses", () => {
     const urls = [
       "http://[::ffff:127.0.0.1]/test",
       "http://[::ffff:7f00:1]/test",
       "http://[::ffff:10.0.0.1]/test",
+      "http://[::ffff:0:127.0.0.1]/test",
+      "http://[::ffff:0:7f00:1]/test",
+      "http://[::ffff:0:10.0.0.1]/test",
     ];
     for (const url of urls) {
       expect(validateUrl(url).valid).toBe(false);
