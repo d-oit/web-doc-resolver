@@ -58,8 +58,8 @@ def setup_test_env():
 
         # Force synchronous-like behavior by mocking p75 latency
         original_p75 = scripts.routing_memory.RoutingMemory.get_p75_latency
-        scripts.routing_memory.RoutingMemory.get_p75_latency = (
-            lambda self, d, p, default=2500: 999999
+        scripts.routing_memory.RoutingMemory.get_p75_latency = lambda self, d, p, default=2500: (
+            999999
         )
 
         # Force deterministic order for tests

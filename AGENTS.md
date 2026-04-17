@@ -84,7 +84,7 @@ rm -rf cli/target/debug/
 ## Repository structure
 
 ```
-do-web-doc-resolver/
+./
 ├── AGENTS.md              # This file (agent instructions, <150 lines)
 ├── README.md              # Human-readable docs
 ├── scripts/

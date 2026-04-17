@@ -647,7 +647,7 @@ def check_cross_docs(report: Report):
                 "warning",
                 "duplicate-link",
                 "README.md",
-                f"Duplicate link: [{text}]({target}) " f"(first at line {seen[key]})",
+                f"Duplicate link: [{text}]({target}) (first at line {seen[key]})",
                 line_no,
             )
         else:

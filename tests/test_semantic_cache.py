@@ -311,9 +311,9 @@ class TestSemanticCacheEviction:
 
             # Should only have 5 entries
             stats = small_cache.stats()
-            assert (
-                stats["total_entries"] <= 5
-            ), f"Expected <= 5 entries, got {stats['total_entries']}"
+            assert stats["total_entries"] <= 5, (
+                f"Expected <= 5 entries, got {stats['total_entries']}"
+            )
 
         finally:
             small_cache.close()
@@ -504,4 +504,4 @@ class TestSemanticCachePerformance:
 
         hit_rate = hits / len(similar_queries)
         # Should achieve >30% hit rate for similar queries
-        assert hit_rate >= 0.30, f"Hit rate {hit_rate*100:.1f}% below 30% threshold"
+        assert hit_rate >= 0.30, f"Hit rate {hit_rate * 100:.1f}% below 30% threshold"

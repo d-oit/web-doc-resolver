@@ -1,6 +1,5 @@
+from scripts.quality import score_content
 
-import pytest
-from scripts.quality import score_content, QualityScore
 
 def test_score_content_good():
     markdown = "# Title\n\n" + "This is a long enough paragraph with good content. " * 20
@@ -10,14 +9,18 @@ def test_score_content_good():
     assert result.too_short is False
     assert result.score >= 0.65
 
+
 def test_score_content_short():
     result = score_content("too short")
     assert result.too_short is True
     assert result.acceptable is False
     assert result.score < 0.65
 
+
 def test_score_content_noisy():
-    markdown = "cookie subscribe javascript log in sign up cookie subscribe javascript log in sign up " * 2
+    markdown = (
+        "cookie subscribe javascript log in sign up cookie subscribe javascript log in sign up " * 2
+    )
     # Ensure it's long enough to not be rejected solely for length if we want to test noise specifically,
     # but the logic says noise penalized if count > 6.
     markdown = markdown + "This is some more text to reach the length threshold if needed. " * 10
@@ -25,13 +28,15 @@ def test_score_content_noisy():
     assert result.noisy is True
     assert result.score < 1.0
 
+
 def test_score_content_duplicate():
     markdown = "Duplicate line.\n" * 20
     result = score_content(markdown)
     assert result.duplicate_heavy is True
     assert result.score < 1.0
 
+
 def test_score_content_non_string():
-    result = score_content(None) # type: ignore
+    result = score_content(None)  # type: ignore
     assert result.acceptable is True
     assert result.score == 1.0

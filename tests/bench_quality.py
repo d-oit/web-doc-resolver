@@ -1,12 +1,12 @@
-
-import timeit
 import os
 import sys
+import timeit
 
 # Add the root directory to sys.path to import scripts
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from scripts.quality import score_content
+
 
 def run_benchmark():
     # 8000 character string
@@ -21,11 +21,12 @@ def run_benchmark():
     timer = timeit.Timer(lambda: score_content(content, links))
 
     result = timer.timeit(number=number)
-    avg_time = (result / number) * 1000 # in ms
+    avg_time = (result / number) * 1000  # in ms
 
     print(f"Benchmark: score_content called {number} times")
     print(f"Average time per call: {avg_time:.4f} ms")
     print(f"Total time: {result:.4f} s")
+
 
 if __name__ == "__main__":
     run_benchmark()

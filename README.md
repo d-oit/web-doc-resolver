@@ -423,7 +423,7 @@ cd web && npx playwright test --ui
 ## Repository Structure
 
 ```
-do-web-doc-resolver/
+./
 ├── AGENTS.md              # Agent instructions
 ├── README.md              # This file
 ├── scripts/
