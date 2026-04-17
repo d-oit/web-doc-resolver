@@ -32,12 +32,20 @@ describe("SSRF Validation", () => {
     expect(validateUrl("http://100.128.0.1/test").valid).toBe(true);
   });
 
-  it("accepts valid public URLs", () => {
+  it("accepts valid public URLs and legitimate domains", () => {
     const urls = [
       "https://google.com",
       "https://github.com",
       "http://1.1.1.1",
       "http://[2606:4700:4700::1111]",
+      "https://fcc.gov",
+      "https://fda.gov",
+      "https://10.example.com",
+      "https://127.example.com",
+      "https://192.168.example.com",
+      "https://169.254.example.com",
+      "https://172.16.example.com",
+      "https://100.64.example.com",
     ];
     for (const url of urls) {
       expect(validateUrl(url).valid).toBe(true);

@@ -4,27 +4,66 @@ import { z } from "zod";
 const MAX_QUERY_LENGTH = 10000;
 const MAX_URL_LENGTH = 2048;
 
-// Private IP ranges for SSRF protection
+// Private and reserved IP ranges for SSRF protection
 const PRIVATE_IP_RANGES = [
-  /^127\./,
-  /^10\./,
-  /^172\.(1[6-9]|2[0-9]|3[0-1])\./,
-  /^192\.168\./,
-  /^169\.254\./,
-  /^100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\./,
+  // IPv4 Loopback and Reserved
+  /^127\.\d+\.\d+\.\d+$/,
+  /^0\.\d+\.\d+\.\d+$/,
+  // IPv4 Private Ranges (RFC 1918)
+  /^10\.\d+\.\d+\.\d+$/,
+  /^172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+$/,
+  /^192\.168\.\d+\.\d+$/,
+  // IPv4 Link-Local
+  /^169\.254\.\d+\.\d+$/,
+  // IPv4 CGNAT (100.64.0.0/10)
+  /^100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.\d+\.\d+$/,
+  // IPv4 Documentation (RFC 5737)
+  /^192\.0\.2\.\d+$/,
+  /^198\.51\.100\.\d+$/,
+  /^203\.0\.113\.\d+$/,
+  // IPv4 Benchmarking (RFC 2544)
+  /^198\.(1[89])\.\d+\.\d+$/,
+  // IPv4 Other reserved/special
+  /^192\.0\.0\.\d+$/,
+  /^192\.88\.99\.\d+$/,
+  /^224\.\d+\.\d+\.\d+$/, // Multicast
+  /^240\.\d+\.\d+\.\d+$/, // Reserved
+  /^255\.255\.255\.255$/,
+  // IPv6 Loopback and Unspecified
   /^::1$/,
   /^::$/,
-  /^::ffff:/i,
-  /^fc/i,
-  /^fd/i,
-  /^fe80/i,
-  /^2001:db8/i,
-  /^0\.0\.0\.0$/,
+  // IPv4-mapped IPv6
+  /^::ffff:((\d+\.\d+\.\d+\.\d+)|([\da-fA-F]{1,4}:[\da-fA-F]{1,4}))$/i,
+  // IPv6 Unique Local Address (fc00::/7)
+  /^fc[0-9a-f]{2}:/i,
+  /^fd[0-9a-f]{2}:/i,
+  // IPv6 Link-Local (fe80::/10)
+  /^fe[89ab][0-9a-f]:/i,
+  // IPv6 Documentation (2001:db8::/32)
+  /^2001:db8:/i,
+  // IPv6 Discard-Only (100::/64)
+  /^100:/i,
+  // IPv6 Well-Known Prefix (64:ff9b::/96)
+  /^64:ff9b:/i,
+  // Localhost
   /^localhost$/i,
 ];
 
 function isPrivateIp(hostname: string): boolean {
   const normalized = hostname.replace(/^\[|\]$/g, "").toLowerCase();
+
+  // If it's localhost, block it
+  if (normalized === "localhost") return true;
+
+  // Check if the hostname looks like an IPv4 or IPv6 address before checking private ranges
+  // This prevents false positives for domain names that happen to start with private IP prefixes
+  const isIpv4 = /^\d+\.\d+\.\d+\.\d+$/.test(normalized);
+  const isIpv6 = normalized.includes(":") || /^[0-9a-f]+$/.test(normalized);
+
+  if (!isIpv4 && !isIpv6) {
+    return false;
+  }
+
   return PRIVATE_IP_RANGES.some((range) => range.test(normalized));
 }
 
