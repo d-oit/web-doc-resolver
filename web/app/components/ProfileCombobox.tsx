@@ -107,7 +107,7 @@ export default function ProfileCombobox<T extends string>({ value, options, onCh
     <div className="relative">
       <button
         ref={buttonRef}
-        className="w-full bg-[#141414] border-2 border-[#333] px-2 py-2 text-[13px] text-[#e8e6e3] focus:border-[#00ff41] focus:outline-none min-h-[44px] flex items-center justify-between"
+        className="w-full bg-[#141414] border-2 border-[#333] px-2 py-2 text-[13px] text-[#e8e6e3] focus:border-[#00ff41] min-h-[44px] flex items-center justify-between focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-2 focus:outline-none"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label="Change search profile"

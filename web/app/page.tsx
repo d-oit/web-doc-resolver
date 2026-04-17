@@ -374,7 +374,7 @@ export default function Home() {
               setSidebarOpen((prev) => !prev);
             }
           }}
-          className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors min-h-[44px] focus:outline-none"
+          className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors min-h-[44px] focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-[-2px] focus:outline-none"
         >
           <span className="text-[11px] uppercase tracking-[0.1em] text-[#666]">
             Configuration
@@ -487,12 +487,14 @@ export default function Home() {
             <div className="flex flex-col gap-2">
               <button
                 onClick={() => setShowAdvanced(!showAdvanced)}
-                className="text-[11px] text-[#666] hover:text-[#888] text-left min-h-[44px] py-2"
+                aria-expanded={showAdvanced}
+                aria-controls="advanced-options"
+                className="text-[11px] text-[#666] hover:text-[#888] text-left min-h-[44px] py-2 focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-2 focus:outline-none"
               >
                 {showAdvanced ? "▼" : "▶"} Advanced
               </button>
               {showAdvanced && (
-                <div className="flex flex-col gap-3 pl-2">
+                <div id="advanced-options" className="flex flex-col gap-3 pl-2">
                   <div className="flex items-center justify-between min-h-[44px]">
                     <label className="text-[11px] text-[#888]">Max chars</label>
                     <input
@@ -529,12 +531,14 @@ export default function Home() {
               <button
                 data-testid="api-keys-toggle"
                 onClick={() => setApiKeysOpen(!apiKeysOpen)}
-                className="text-[11px] text-[#666] hover:text-[#888] text-left min-h-[44px] py-2"
+                aria-expanded={apiKeysOpen}
+                aria-controls="api-keys-panel"
+                className="text-[11px] text-[#666] hover:text-[#888] text-left min-h-[44px] py-2 focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-2 focus:outline-none"
               >
                 {apiKeysOpen ? "▼" : "▶"} API Keys
               </button>
               {apiKeysOpen && (
-                <div className="flex flex-col gap-3 pl-2">
+                <div id="api-keys-panel" className="flex flex-col gap-3 pl-2">
                   {PROVIDERS.filter((p) => !p.free).map((provider) => {
                     const key = `${provider.id}_api_key` as keyof ApiKeys;
                     const value = apiKeys[key] || "";
@@ -595,7 +599,7 @@ export default function Home() {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
               placeholder="URL or search query..."
-              className="flex-1 bg-transparent text-[20px] sm:text-[24px] text-[#e8e6e3] placeholder:text-[#444] focus:outline-none tracking-tight"
+              className="flex-1 bg-transparent text-[20px] sm:text-[24px] text-[#e8e6e3] placeholder:text-[#444] focus:outline-none focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-4 focus:outline-none tracking-tight"
             />
             {query.trim() && (
               <div className="flex items-center gap-2">
@@ -603,7 +607,7 @@ export default function Home() {
                   onClick={() => handleSubmit()}
                   disabled={loading}
                   aria-label={loading ? "..." : "Fetch results"}
-                  className="bg-[#00ff41] text-[#0c0c0c] px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50 min-w-[60px] min-h-[44px]"
+                  className="bg-[#00ff41] text-[#0c0c0c] px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50 min-w-[60px] min-h-[44px] focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-2 focus:outline-none"
                 >
                   {loading ? "..." : "Fetch"}
                 </button>
@@ -621,7 +625,7 @@ export default function Home() {
                     setViewRaw(false);
                   }}
                   aria-label="Clear input and results"
-                  className="bg-transparent text-[#888] px-4 py-2 text-[13px] border-2 border-[#333] hover:border-[#00ff41] hover:text-[#00ff41] min-h-[44px]"
+                  className="bg-transparent text-[#888] px-4 py-2 text-[13px] border-2 border-[#333] hover:border-[#00ff41] hover:text-[#00ff41] min-h-[44px] focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-2 focus:outline-none"
                 >
                   Clear
                 </button>
