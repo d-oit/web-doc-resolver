@@ -31,13 +31,6 @@ export default function History({ onLoad }: HistoryProps) {
   const [loading, setLoading] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const deleteTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (isOpen) {
-      searchInputRef.current?.focus();
-    }
-  }, [isOpen]);
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -138,7 +131,7 @@ export default function History({ onLoad }: HistoryProps) {
           {/* List */}
           <div className="max-h-[320px] overflow-y-auto flex flex-col gap-2">
             {loading ? (
-              <div className="text-[10px] text-[#949494] py-2">Loading...</div>
+              <div className="text-[10px] text-[#555] py-2">Loading...</div>
             ) : entries.length === 0 ? (
               <div className="text-[10px] text-[#949494] py-2">{search ? "No matching entries" : "No history yet"}</div>
             ) : (
@@ -156,7 +149,7 @@ export default function History({ onLoad }: HistoryProps) {
                       className={`text-[10px] min-h-[32px] min-w-[32px] flex items-center justify-center transition-all focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-2 focus:outline-none ${
                         confirmDeleteId === entry.id
                           ? "text-[#ff4444] font-bold"
-                          : "text-[#949494] hover:text-[#ff4444] opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                          : "text-[#444] hover:text-[#ff4444] opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
                       }`}
                       aria-label={
                         confirmDeleteId === entry.id ? `Confirm delete ${entry.query}` : `Delete ${entry.query}`
@@ -165,7 +158,7 @@ export default function History({ onLoad }: HistoryProps) {
                       {confirmDeleteId === entry.id ? "CONFIRM" : "×"}
                     </button>
                   </div>
-                  <div className="text-[9px] text-[#949494] mt-1 flex flex-wrap gap-2">
+                  <div className="text-[9px] text-[#555] mt-1 flex flex-wrap gap-2">
                     <span>{entry.provider}</span>
                     <span>{entry.charCount.toLocaleString()} chars</span>
                     <span>{entry.resolveTime}ms</span>
@@ -184,12 +177,12 @@ export default function History({ onLoad }: HistoryProps) {
                       <span className="text-[9px] border border-[#333] px-2 py-1">Skip cache</span>
                     )}
                     {entry.providers?.slice(0, 3).map((provider) => (
-                      <span key={`${entry.id}-${provider}`} className="text-[9px] border border-[#222] px-2 py-1 text-[#949494]">
+                      <span key={`${entry.id}-${provider}`} className="text-[9px] border border-[#222] px-2 py-1 text-[#888]">
                         {provider}
                       </span>
                     ))}
                     {entry.providers && entry.providers.length > 3 && (
-                      <span className="text-[9px] text-[#949494]">+{entry.providers.length - 3}</span>
+                      <span className="text-[9px] text-[#666]">+{entry.providers.length - 3}</span>
                     )}
                   </div>
                 </div>

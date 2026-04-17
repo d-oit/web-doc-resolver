@@ -3,6 +3,7 @@
 //! Basic content extraction from HTML.
 
 use crate::error::{ResolverError, detect_error_type};
+use crate::resolver::cascade::safe_request;
 use crate::types::ResolvedResult;
 use async_trait::async_trait;
 use std::result::Result;
@@ -19,7 +20,26 @@ impl DirectFetchProvider {
     /// Create a new direct fetch provider
     pub fn new() -> Self {
         Self {
-            client: reqwest::Client::new(),
+            client: reqwest::Client::builder()
+                .redirect(reqwest::redirect::Policy::none())
+                .default_headers({
+                    let mut headers = reqwest::header::HeaderMap::new();
+                    headers.insert(
+                        reqwest::header::USER_AGENT,
+                        reqwest::header::HeaderValue::from_static(
+                            "WDR/1.0 (LLM documentation resolver)",
+                        ),
+                    );
+                    headers.insert(
+                        reqwest::header::ACCEPT,
+                        reqwest::header::HeaderValue::from_static(
+                            "text/html,application/xhtml+xml",
+                        ),
+                    );
+                    headers
+                })
+                .build()
+                .unwrap_or_default(),
             rate_limited: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -58,14 +78,13 @@ impl crate::providers::UrlProvider for DirectFetchProvider {
             ));
         }
 
-        let response = self
-            .client
-            .get(url)
-            .header("User-Agent", "WDR/1.0 (LLM documentation resolver)")
-            .header("Accept", "text/html,application/xhtml+xml")
-            .send()
-            .await
-            .map_err(|e| ResolverError::Network(e.to_string()))?;
+        let response = safe_request(
+            &self.client,
+            reqwest::Method::GET,
+            url,
+            5, // max redirects
+        )
+        .await?;
 
         if response.status() == 429 {
             self.set_rate_limited(true);

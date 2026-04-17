@@ -3,6 +3,7 @@
 //! Checks for site-provided structured documentation.
 
 use crate::error::{ResolverError, detect_error_type};
+use crate::resolver::cascade::safe_request;
 use crate::types::ResolvedResult;
 use async_trait::async_trait;
 use std::result::Result;
@@ -20,7 +21,11 @@ impl LlmsTxtProvider {
     /// Create a new llms.txt provider
     pub fn new() -> Self {
         Self {
-            client: reqwest::Client::new(),
+            client: reqwest::Client::builder()
+                .redirect(reqwest::redirect::Policy::none())
+                .user_agent("WDR/1.0 (LLM documentation resolver)")
+                .build()
+                .unwrap_or_default(),
             rate_limited: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -69,13 +74,13 @@ impl crate::providers::UrlProvider for LlmsTxtProvider {
             parsed_url.host_str().unwrap_or("")
         );
 
-        let response = self
-            .client
-            .get(&llms_txt_url)
-            .header("User-Agent", "WDR/1.0 (LLM documentation resolver)")
-            .send()
-            .await
-            .map_err(|e| ResolverError::Network(e.to_string()))?;
+        let response = safe_request(
+            &self.client,
+            reqwest::Method::GET,
+            &llms_txt_url,
+            5, // max redirects
+        )
+        .await?;
 
         if response.status() == 404 {
             return Err(ResolverError::NotFound("llms.txt not found".to_string()));
