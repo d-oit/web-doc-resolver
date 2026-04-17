@@ -1,5 +1,5 @@
 import { Logger } from "@/lib/log";
-import { validateUrl } from "@/lib/validation";
+import { validateUrlForFetchAsync } from "@/lib/validation";
 
 export const MAX_CHARS = parseInt(process.env.WEB_RESOLVER_MAX_CHARS || "8000");
 export const MIN_CHARS = parseInt(process.env.WEB_RESOLVER_MIN_CHARS || "50");
@@ -14,7 +14,7 @@ async function safeFetch(
   let redirectCount = 0;
 
   while (redirectCount <= maxRedirects) {
-    const validation = validateUrl(currentUrl);
+    const validation = await validateUrlForFetchAsync(currentUrl);
     if (!validation.valid) {
       throw new Error(`SSRF blocked: ${validation.error || "Invalid URL"}`);
     }

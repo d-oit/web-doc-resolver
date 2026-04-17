@@ -1,5 +1,6 @@
 import { z } from "zod";
 import ipaddr from "ipaddr.js";
+import dns from "node:dns/promises";
 
 // Maximum input lengths
 const MAX_QUERY_LENGTH = 10000;
@@ -82,7 +83,41 @@ export function sanitizeInput(input: string, maxLength = MAX_QUERY_LENGTH): stri
 }
 
 /**
- * Validate URL for SSRF protection
+ * Async version of validateUrl that performs DNS resolution for hostnames.
+ * Used before server-side fetching to prevent SSRF via DNS-based bypasses (e.g., nip.io).
+ */
+export async function validateUrlForFetchAsync(url: string): Promise<{ valid: boolean; error?: string }> {
+  const syncResult = validateUrl(url);
+  if (!syncResult.valid) return syncResult;
+
+  try {
+    const parsed = new URL(url);
+    const hostname = parsed.hostname.replace(/^\[|\]$/g, "");
+
+    // Check if it's already a literal IP
+    try {
+      ipaddr.parse(hostname);
+      // Literal IP already validated by sync validateUrl
+      return { valid: true };
+    } catch {
+      // Not a literal IP, must be a domain name - resolve it
+      const addresses = await dns.lookup(hostname, { all: true });
+      for (const { address } of addresses) {
+        if (isPrivateIpAddress(address)) {
+          return { valid: false, error: `Domain resolves to private/internal IP: ${address}` };
+        }
+      }
+    }
+
+    return { valid: true };
+  } catch (err) {
+    // If resolution fails, we block it to be safe
+    return { valid: false, error: "DNS resolution failed or invalid URL" };
+  }
+}
+
+/**
+ * Validate URL for SSRF protection (Synchronous, string-only check)
  */
 export function validateUrl(url: string): { valid: boolean; error?: string } {
   if (url.length > MAX_URL_LENGTH) {
