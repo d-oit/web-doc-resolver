@@ -187,7 +187,7 @@ def synthesize_results(query: str, results: list[ResolvedResult], api_key: str, 
         return scripts.synthesis.deterministic_merge(results)
     context = "".join(
         [
-            f"\nResult {i+1}:\nURL: {res.url or 'unk'}\nContent: {res.content}\n---\n"
+            f"\nResult {i + 1}:\nURL: {res.url or 'unk'}\nContent: {res.content}\n---\n"
             for i, res in enumerate(results)
         ]
     )

@@ -36,7 +36,8 @@ def score_content(markdown: str, links: list[str] | None = None) -> QualityScore
         duplicate_heavy = unique_lines < max(5, num_lines // 2)
 
     noisy_signals = ["cookie", "subscribe", "javascript", "log in", "sign up"]
-    noise_count = sum(text.lower().count(signal) for signal in noisy_signals)
+    text_lower = text.lower()
+    noise_count = sum(text_lower.count(signal) for signal in noisy_signals)
     noisy = noise_count > 6
 
     score = 1.0

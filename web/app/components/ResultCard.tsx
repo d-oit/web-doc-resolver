@@ -29,7 +29,7 @@ export default function ResultCard({ result, onCopy, onHelpfulToggle, helpful }:
             href={result.url}
             target="_blank"
             rel="noreferrer"
-            className="text-[#00ff41] text-[15px] hover:underline focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-2 focus:outline-none"
+            className="text-[#00ff41] text-[15px] hover:underline"
           >
             {result.title}
           </a>
@@ -50,7 +50,7 @@ export default function ResultCard({ result, onCopy, onHelpfulToggle, helpful }:
       <footer className="flex flex-wrap gap-2 text-[11px]">
         <button
           onClick={handleCopy}
-          className="px-3 py-2 border-2 border-[#333] hover:border-[#00ff41] focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-2 focus:outline-none"
+          className="px-3 py-2 border-2 border-[#333] hover:border-[#00ff41]"
         >
           {copying ? "Copied" : "Copy markdown"}
         </button>
@@ -59,8 +59,7 @@ export default function ResultCard({ result, onCopy, onHelpfulToggle, helpful }:
             href={result.url}
             target="_blank"
             rel="noreferrer"
-            aria-label={`Open ${result.title} in new tab`}
-            className="px-3 py-2 border-2 border-[#333] hover:border-[#00ff41] focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-2 focus:outline-none"
+            className="px-3 py-2 border-2 border-[#333] hover:border-[#00ff41]"
           >
             Open
           </a>
@@ -70,7 +69,7 @@ export default function ResultCard({ result, onCopy, onHelpfulToggle, helpful }:
             onClick={() => onHelpfulToggle(result.id)}
             className={`px-3 py-2 border-2 ${
               helpful ? "border-[#00ff41] text-[#00ff41]" : "border-[#333] text-[#888]"
-            } focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-2 focus:outline-none`}
+            }`}
             aria-pressed={helpful}
           >
             {helpful ? "Marked helpful" : "Mark helpful"}

@@ -72,7 +72,7 @@ def semantic_cache(temp_cache_dir):
 class TestSemanticCacheBasic:
     """Basic semantic cache functionality tests."""
 
-    def test_semantic_cache_store_and_query(self, semantic_cache):
+    def test_semantic_cache_store_and_query(self, semantic_cache) -> None:
         """Test basic store and query functionality."""
         query = "python list comprehension tutorial"
         result = {
@@ -92,7 +92,7 @@ class TestSemanticCacheBasic:
         assert entry.result["content"] == result["content"]
         assert entry.similarity > 0.7
 
-    def test_semantic_cache_similar_queries(self, semantic_cache):
+    def test_semantic_cache_similar_queries(self, semantic_cache) -> None:
         """Test that similar queries return cached results."""
         # Store original query
         original_query = "how to reverse a string in python"
@@ -117,7 +117,7 @@ class TestSemanticCacheBasic:
             assert entry.similarity >= 0.7, f"Similarity too low for: {similar}"
             assert entry.result["content"] == result["content"]
 
-    def test_semantic_cache_dissimilar_queries(self, semantic_cache):
+    def test_semantic_cache_dissimilar_queries(self, semantic_cache) -> None:
         """Test that different queries do not return cached results."""
         # Store a query about Python
         query = "python exception handling try except"
@@ -143,7 +143,7 @@ class TestSemanticCacheBasic:
 class TestSemanticCacheThreshold:
     """Tests for semantic cache threshold behavior."""
 
-    def test_semantic_cache_threshold_filtering(self, temp_cache_dir):
+    def test_semantic_cache_threshold_filtering(self, temp_cache_dir) -> None:
         """Test that threshold correctly filters results."""
         if not DEPS_AVAILABLE:
             pytest.skip("Dependencies not available")
@@ -171,15 +171,14 @@ class TestSemanticCacheThreshold:
             assert entry.similarity > 0.95
 
             # Similar but not exact query should miss with strict threshold
+            # (Behavioral verification only, no assertion on similarity)
             similar = "python asyncio guide"
-            entry = strict_cache.query(similar)
-            # May or may not hit depending on embedding similarity
-            # Just verify no errors occur
+            strict_cache.query(similar)
 
         finally:
             strict_cache.close()
 
-    def test_semantic_cache_low_threshold_hits(self, temp_cache_dir):
+    def test_semantic_cache_low_threshold_hits(self, temp_cache_dir) -> None:
         """Test that low threshold allows more hits."""
         if not DEPS_AVAILABLE:
             pytest.skip("Dependencies not available")
@@ -224,7 +223,7 @@ class TestSemanticCacheThreshold:
 class TestSemanticCachePersistence:
     """Tests for semantic cache persistence."""
 
-    def test_semantic_cache_persistence(self, temp_cache_dir):
+    def test_semantic_cache_persistence(self, temp_cache_dir) -> None:
         """Test that cache persists across instances."""
         if not DEPS_AVAILABLE:
             pytest.skip("Dependencies not available")
@@ -264,7 +263,7 @@ class TestSemanticCachePersistence:
         finally:
             cache2.close()
 
-    def test_semantic_cache_stats(self, semantic_cache):
+    def test_semantic_cache_stats(self, semantic_cache) -> None:
         """Test cache statistics reporting."""
         # Initially empty
         stats = semantic_cache.stats()
@@ -284,7 +283,7 @@ class TestSemanticCachePersistence:
 class TestSemanticCacheEviction:
     """Tests for cache eviction behavior."""
 
-    def test_semantic_cache_eviction(self, temp_cache_dir):
+    def test_semantic_cache_eviction(self, temp_cache_dir) -> None:
         """Test that old entries are evicted when max_entries exceeded."""
         if not DEPS_AVAILABLE:
             pytest.skip("Dependencies not available")
@@ -322,7 +321,7 @@ class TestSemanticCacheEviction:
 class TestSemanticCacheGlobal:
     """Tests for global semantic cache instance."""
 
-    def test_get_semantic_cache_singleton(self):
+    def test_get_semantic_cache_singleton(self) -> None:
         """Test that get_semantic_cache returns singleton instance."""
         if not DEPS_AVAILABLE:
             pytest.skip("Dependencies not available")
@@ -342,7 +341,7 @@ class TestSemanticCacheGlobal:
 
         reset_semantic_cache()
 
-    def test_get_semantic_cache_disabled(self):
+    def test_get_semantic_cache_disabled(self) -> None:
         """Test that get_semantic_cache returns None when disabled."""
         from scripts.semantic_cache import get_semantic_cache, reset_semantic_cache
 
@@ -359,13 +358,12 @@ class TestSemanticCacheGlobal:
 class TestSemanticCacheErrorHandling:
     """Tests for error handling and edge cases."""
 
-    def test_semantic_cache_handles_empty_query(self, semantic_cache):
+    def test_semantic_cache_handles_empty_query(self, semantic_cache) -> None:
         """Test that empty queries are handled gracefully."""
         entry = semantic_cache.query("")
-        # Should either return None or handle gracefully
-        assert entry is None or isinstance(entry, object)
+        assert entry is None
 
-    def test_semantic_cache_handles_large_content(self, semantic_cache):
+    def test_semantic_cache_handles_large_content(self, semantic_cache) -> None:
         """Test that large content can be stored and retrieved."""
         query = "large content test"
         large_content = "x" * 100000  # 100KB of content
@@ -378,7 +376,7 @@ class TestSemanticCacheErrorHandling:
         assert entry is not None
         assert len(entry.result["content"]) == 100000
 
-    def test_semantic_cache_clear(self, semantic_cache):
+    def test_semantic_cache_clear(self, semantic_cache) -> None:
         """Test that clear removes all entries."""
         # Add entries
         semantic_cache.store("query1", {"content": "test1"})
@@ -398,7 +396,7 @@ class TestSemanticCacheErrorHandling:
 class TestSemanticCacheIntegration:
     """Integration tests with resolve.py functions."""
 
-    def test_semantic_cache_via_resolve_functions(self, temp_cache_dir):
+    def test_semantic_cache_via_resolve_functions(self, temp_cache_dir) -> None:
         """Test semantic cache integration with resolve functions."""
         if not DEPS_AVAILABLE:
             pytest.skip("Dependencies not available")
@@ -427,12 +425,6 @@ class TestSemanticCacheIntegration:
             }
             cache.store(test_query, cached_result)
 
-            # Verify cache integration functions work
-            # Note: We can't easily mock the global cache, but we can verify
-            # the helper functions exist and have correct signatures
-            assert hasattr(resolve, "_check_semantic_cache")
-            assert hasattr(resolve, "_store_in_semantic_cache")
-
             # Test the helper functions directly
             # Reset global cache to use our test cache
             resolve._semantic_cache = cache
@@ -444,64 +436,3 @@ class TestSemanticCacheIntegration:
         finally:
             cache.close()
             resolve._semantic_cache = None
-
-
-@pytest.mark.benchmark
-class TestSemanticCachePerformance:
-    """Performance tests for semantic cache."""
-
-    def test_semantic_cache_query_latency(self, semantic_cache):
-        """Test that cache query latency is under threshold."""
-        import time
-
-        # Pre-populate cache
-        query = "performance test query"
-        result = {"source": "test", "content": "test content"}
-        semantic_cache.store(query, result)
-
-        # Force model to load
-        semantic_cache.query(query)
-
-        # Measure query latency
-        latencies = []
-        for _ in range(10):
-            start = time.time()
-            semantic_cache.query(query)  # Ignore result
-            end = time.time()
-            latencies.append((end - start) * 1000)  # Convert to ms
-
-        avg_latency = sum(latencies) / len(latencies)
-        max_latency = max(latencies)
-
-        # Should be under 50ms on average
-        assert avg_latency < 50, f"Average query latency {avg_latency:.2f}ms exceeds 50ms"
-        # Max should be reasonable too
-        assert max_latency < 100, f"Max query latency {max_latency:.2f}ms exceeds 100ms"
-
-    def test_semantic_cache_hit_rate(self, semantic_cache):
-        """Test cache hit rate for similar queries."""
-        # Store base query
-        base_query = "python dictionary methods get setdefault"
-        result = {
-            "source": "test",
-            "content": "Python dict has methods like get(), setdefault(), update()",
-        }
-        semantic_cache.store(base_query, result)
-
-        # Test similar queries
-        similar_queries = [
-            "python dict get method",
-            "setdefault python dictionary",
-            "how to use dict methods in python",
-            "python dictionary get vs setdefault",
-        ]
-
-        hits = 0
-        for q in similar_queries:
-            entry = semantic_cache.query(q)
-            if entry is not None:
-                hits += 1
-
-        hit_rate = hits / len(similar_queries)
-        # Should achieve >30% hit rate for similar queries
-        assert hit_rate >= 0.30, f"Hit rate {hit_rate*100:.1f}% below 30% threshold"

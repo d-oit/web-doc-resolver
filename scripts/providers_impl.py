@@ -221,7 +221,7 @@ def resolve_with_duckduckgo(query: str, max_chars: int = MAX_CHARS) -> ResolvedR
         if not results:
             return None
         content = "\n\n---\n\n".join(
-            [f"## {r.get('title','')}\n\n{r.get('body','')}" for r in results]
+            [f"## {r.get('title', '')}\n\n{r.get('body', '')}" for r in results]
         )
         result = ResolvedResult(source="duckduckgo", content=content[:max_chars], query=query)
         _save_to_cache(query, "duckduckgo", result.to_dict())

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { loadApiKeys, saveApiKeys, ApiKeys, resolveKeySource, KeySource } from "@/lib/keys";
 import { loadUIState, saveUIState, type UIState } from "@/lib/ui-state";
@@ -48,8 +48,7 @@ export default function Home() {
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [apiKeys, setApiKeys] = useState<ApiKeys>({});
-  const [keySource, setKeySource] = useState<Record<string, KeySource>>({});
+  const [apiKeys, setApiKeys] = useState<ApiKeys>(() => (typeof window !== "undefined" ? loadApiKeys() : {}));
   const [serverKeyStatus, setServerKeyStatus] = useState<Record<string, boolean>>({});
   const [copied, setCopied] = useState(false);
   const [providerStatus, setProviderStatus] = useState<string | null>(null);
@@ -74,6 +73,8 @@ export default function Home() {
   const [helpfulIds, setHelpfulIds] = useState<Set<string>>(new Set());
 
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const keySource = useMemo(() => resolveKeySource(apiKeys, serverKeyStatus), [apiKeys, serverKeyStatus]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -103,13 +104,10 @@ export default function Home() {
   }, [showShortcuts]);
 
   useEffect(() => {
-    const keys = loadApiKeys();
-    setApiKeys(keys);
     fetch("/api/key-status")
       .then((r) => r.json())
       .then((status) => {
         setServerKeyStatus(status);
-        setKeySource(resolveKeySource(keys, status));
       })
       .catch(() => {});
 
@@ -121,11 +119,12 @@ export default function Home() {
         setShowAdvanced(ui.showAdvanced);
         const savedProfile = PROFILES.some((p) => p.id === ui.activeProfile) ? (ui.activeProfile as ProfileId) : "free";
         setProfile(savedProfile);
-        setSelectedProviders(ui.selectedProviders);
-        setMaxChars(ui.maxChars);
-        setSkipCache(ui.skipCache);
-        setDeepResearch(ui.deepResearch);
+        setSelectedProviders(ui.selectedProviders || []);
+        setMaxChars(ui.maxChars || 8000);
+        setSkipCache(!!ui.skipCache);
+        setDeepResearch(!!ui.deepResearch);
         if (ui.apiKeys && typeof ui.apiKeys === "object") {
+          const keys = loadApiKeys();
           const mergedKeys = { ...keys, ...ui.apiKeys } as ApiKeys;
           setApiKeys(mergedKeys);
           saveApiKeys(mergedKeys);
@@ -140,10 +139,6 @@ export default function Home() {
       });
   }, []);
 
-  useEffect(() => {
-    if (Object.keys(serverKeyStatus).length === 0) return;
-    setKeySource(resolveKeySource(apiKeys, serverKeyStatus));
-  }, [apiKeys, serverKeyStatus]);
 
   // Persist UI state changes (skip before first load)
   useEffect(() => {
@@ -175,14 +170,58 @@ export default function Home() {
     });
   };
 
-  const handleSubmit = async (e?: React.FormEvent) => {
+  const charCount = result.length;
+  const isUrl = query.trim().startsWith("http");
+  const mistralActive = keySource.mistral === "local" || keySource.mistral === "server";
+
+  const isProviderAvailable = useCallback((providerId: string): boolean => {
+    if (providerId === "duckduckgo" && mistralActive) return false;
+    const provider = PROVIDERS.find((p) => p.id === providerId);
+    if (!provider) return false;
+    if (provider.free) return true;
+    const sourceId = provider.sourceKey || provider.id;
+    const source = keySource[sourceId];
+    return source === "local" || source === "server";
+  }, [keySource, mistralActive]);
+
+  // Providers from current profile (used as visual default when no manual selection)
+  const profileProviders = useMemo(() => PROFILES.find(p => p.id === profile)?.providers || [], [profile]);
+  const baseProviders = useMemo(() => profile === "custom" ? selectedProviders : selectedProviders.length > 0 ? selectedProviders : profileProviders, [profile, selectedProviders, profileProviders]);
+  const activeProviders = useMemo(() => baseProviders.filter((id) => isProviderAvailable(id)), [baseProviders, isProviderAvailable]);
+  const requestProviders = useMemo(() => activeProviders.map((id) => toApiProviderId(id)), [activeProviders]);
+  const isCustomSelection = selectedProviders.length > 0;
+
+  const saveToHistory = useCallback(async (data: {
+    query: string;
+    result: string;
+    provider: string;
+    charCount: number;
+    resolveTime: number;
+    url: string | null;
+    profile: ProfileId;
+    flags: { skipCache: boolean; deepResearch: boolean };
+    providers: string[];
+    normalizedUrlHashes: string[];
+  }) => {
+    try {
+      await fetch("/api/history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+    } catch {
+      // Silent fail
+    }
+  }, []);
+
+  const handleSubmit = useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!query.trim() || loading) return;
 
     setLoading(true);
     setError("");
     setProviderStatus("Fetching...");
-    const startTime = Date.now();
+    const startTime = performance.now();
 
     try {
       const res = await fetch("/api/resolve", {
@@ -216,7 +255,7 @@ export default function Home() {
       setViewRaw(false);
       setSourceProvider(data.provider || (activeProviders.length > 0 ? activeProviders.join(", ") : profile));
       setQualityScore(data.quality?.score ?? null);
-      const elapsed = Date.now() - startTime;
+      const elapsed = Math.round(performance.now() - startTime);
       setResolveTime(elapsed);
       setProviderStatus(null);
 
@@ -239,7 +278,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [query, loading, apiKeys, requestProviders, deepResearch, maxChars, skipCache, isUrl, profile, activeProviders, saveToHistory]);
 
   const copyText = async (value: string) => {
     try {
@@ -267,7 +306,7 @@ export default function Home() {
 
   const toggleHelpful = (id: string) => {
     setHelpfulIds((prev) => {
-      const next = new Set(prev);
+      const next = new Set<string>(prev);
       if (next.has(id)) {
         next.delete(id);
       } else {
@@ -275,29 +314,6 @@ export default function Home() {
       }
       return next;
     });
-  };
-
-  const saveToHistory = async (data: {
-    query: string;
-    result: string;
-    provider: string;
-    charCount: number;
-    resolveTime: number;
-    url: string | null;
-    profile: ProfileId;
-    flags: { skipCache: boolean; deepResearch: boolean };
-    providers: string[];
-    normalizedUrlHashes: string[];
-  }) => {
-    try {
-      await fetch("/api/history", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-    } catch {
-      // Silent fail
-    }
   };
 
   const handleHistoryLoad = (entry: HistoryEntry) => {
@@ -316,27 +332,6 @@ export default function Home() {
     setApiKeys(updated);
     saveApiKeys(updated);
   };
-
-  const charCount = result.length;
-  const isUrl = query.trim().startsWith("http");
-  const mistralActive = keySource.mistral === "local" || keySource.mistral === "server";
-
-  const isProviderAvailable = (providerId: string): boolean => {
-    if (providerId === "duckduckgo" && mistralActive) return false;
-    const provider = PROVIDERS.find((p) => p.id === providerId);
-    if (!provider) return false;
-    if (provider.free) return true;
-    const sourceId = provider.sourceKey || provider.id;
-    const source = keySource[sourceId];
-    return source === "local" || source === "server";
-  };
-
-  // Providers from current profile (used as visual default when no manual selection)
-  const profileProviders = PROFILES.find(p => p.id === profile)?.providers || [];
-  const baseProviders = profile === "custom" ? selectedProviders : selectedProviders.length > 0 ? selectedProviders : profileProviders;
-  const activeProviders = baseProviders.filter((id) => isProviderAvailable(id));
-  const requestProviders = activeProviders.map((id) => toApiProviderId(id));
-  const isCustomSelection = selectedProviders.length > 0;
 
   if (!loaded) return (
     <main className="min-h-screen bg-[#0c0c0c] flex items-center justify-center">
@@ -379,7 +374,7 @@ export default function Home() {
               setSidebarOpen((prev) => !prev);
             }
           }}
-          className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors min-h-[44px] focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-[-2px] focus:outline-none"
+          className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors min-h-[44px] focus:outline-none"
         >
           <span className="text-[11px] uppercase tracking-[0.1em] text-[#666]">
             Configuration
@@ -492,14 +487,12 @@ export default function Home() {
             <div className="flex flex-col gap-2">
               <button
                 onClick={() => setShowAdvanced(!showAdvanced)}
-                aria-expanded={showAdvanced}
-                aria-controls="advanced-options"
-                className="text-[11px] text-[#666] hover:text-[#888] text-left min-h-[44px] py-2 focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-2 focus:outline-none"
+                className="text-[11px] text-[#666] hover:text-[#888] text-left min-h-[44px] py-2"
               >
                 {showAdvanced ? "▼" : "▶"} Advanced
               </button>
               {showAdvanced && (
-                <div id="advanced-options" className="flex flex-col gap-3 pl-2">
+                <div className="flex flex-col gap-3 pl-2">
                   <div className="flex items-center justify-between min-h-[44px]">
                     <label className="text-[11px] text-[#888]">Max chars</label>
                     <input
@@ -536,14 +529,12 @@ export default function Home() {
               <button
                 data-testid="api-keys-toggle"
                 onClick={() => setApiKeysOpen(!apiKeysOpen)}
-                aria-expanded={apiKeysOpen}
-                aria-controls="api-keys-panel"
-                className="text-[11px] text-[#666] hover:text-[#888] text-left min-h-[44px] py-2 focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-2 focus:outline-none"
+                className="text-[11px] text-[#666] hover:text-[#888] text-left min-h-[44px] py-2"
               >
                 {apiKeysOpen ? "▼" : "▶"} API Keys
               </button>
               {apiKeysOpen && (
-                <div id="api-keys-panel" className="flex flex-col gap-3 pl-2">
+                <div className="flex flex-col gap-3 pl-2">
                   {PROVIDERS.filter((p) => !p.free).map((provider) => {
                     const key = `${provider.id}_api_key` as keyof ApiKeys;
                     const value = apiKeys[key] || "";
@@ -604,7 +595,7 @@ export default function Home() {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
               placeholder="URL or search query..."
-              className="flex-1 bg-transparent text-[20px] sm:text-[24px] text-[#e8e6e3] placeholder:text-[#444] focus:outline-none focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-4 focus:outline-none tracking-tight"
+              className="flex-1 bg-transparent text-[20px] sm:text-[24px] text-[#e8e6e3] placeholder:text-[#444] focus:outline-none tracking-tight"
             />
             {query.trim() && (
               <div className="flex items-center gap-2">
@@ -612,7 +603,7 @@ export default function Home() {
                   onClick={() => handleSubmit()}
                   disabled={loading}
                   aria-label={loading ? "..." : "Fetch results"}
-                  className="bg-[#00ff41] text-[#0c0c0c] px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50 min-w-[60px] min-h-[44px] focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-2 focus:outline-none"
+                  className="bg-[#00ff41] text-[#0c0c0c] px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50 min-w-[60px] min-h-[44px]"
                 >
                   {loading ? "..." : "Fetch"}
                 </button>
@@ -630,7 +621,7 @@ export default function Home() {
                     setViewRaw(false);
                   }}
                   aria-label="Clear input and results"
-                  className="bg-transparent text-[#888] px-4 py-2 text-[13px] border-2 border-[#333] hover:border-[#00ff41] hover:text-[#00ff41] min-h-[44px] focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-2 focus:outline-none"
+                  className="bg-transparent text-[#888] px-4 py-2 text-[13px] border-2 border-[#333] hover:border-[#00ff41] hover:text-[#00ff41] min-h-[44px]"
                 >
                   Clear
                 </button>
