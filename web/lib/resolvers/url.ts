@@ -93,6 +93,11 @@ export async function extractViaJina(url: string, log: Logger): Promise<string |
   const start = Date.now();
   log.info("attempt", "jina", { url });
   try {
+    const validation = await validateUrlForFetchAsync(url);
+    if (!validation.valid) {
+      throw new Error(`SSRF blocked: ${validation.error || "Invalid URL"}`);
+    }
+
     const res = await safeFetch(`https://r.jina.ai/${url}`, {
       headers: { Accept: "text/plain", "X-Return-Format": "text" },
     });
