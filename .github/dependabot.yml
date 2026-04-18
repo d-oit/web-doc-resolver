@@ -11,7 +11,7 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
-      - "python"
+      - "infra"
     groups:
       python-deps:
         patterns:
@@ -34,7 +34,7 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
-      - "rust"
+      - "infra"
     groups:
       cargo-deps:
         patterns:
@@ -54,11 +54,14 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
-      - "javascript"
+      - "frontend"
     groups:
       npm-deps:
         patterns:
           - "*"
+        update-types:
+          - "minor"
+          - "patch"
     commit-message:
       prefix: "build(deps)"
       include: "scope"
@@ -74,11 +77,14 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
-      - "javascript"
+      - "frontend"
     groups:
       npm-packages-deps:
         patterns:
           - "*"
+        update-types:
+          - "minor"
+          - "patch"
     commit-message:
       prefix: "build(deps)"
       include: "scope"
@@ -94,7 +100,8 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - "dependencies"
-      - "github-actions"
+      - "github_actions"
+      - "ci"
     groups:
       github-actions:
         patterns:

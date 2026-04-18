@@ -9,6 +9,7 @@ Treat as **branch-related** when logs clearly indicate a regression caused by th
 - Snapshot output changes caused by UI/text changes in the branch
 - Static analysis violations introduced by the latest push
 - Build script/config changes in the PR causing a deterministic failure
+- Grouped dependency PRs that upgrade multiple npm packages across major versions, especially `next`, `react`, `eslint`, `eslint-config-next`, `typescript`, `vitest`, or `playwright`
 
 Treat as **likely flaky or unrelated** when evidence points to transient or external issues:
 
@@ -17,6 +18,8 @@ Treat as **likely flaky or unrelated** when evidence points to transient or exte
 - GitHub Actions infrastructure/service outages
 - Cloud/service rate limits or transient API outages
 - Non-deterministic failures in unrelated integration tests with known flake patterns
+
+Do not spend flaky-retry budget on deterministic dependency compatibility failures. Split the dependency set or pin the incompatible upgrade instead.
 
 If uncertain, inspect failed logs once before choosing rerun.
 

@@ -31,9 +31,10 @@ cd web && npx playwright test --project=desktop
 - Errors via `thiserror`, propagation via `anyhow`
 
 ### Web (Next.js)
-- Next.js 15 + React 19, Tailwind CSS v4, TypeScript strict mode
+- Next.js 16 + React 19, Tailwind CSS v4, TypeScript strict mode
 - Playwright for E2E tests (`web/tests/e2e/`)
 - Deployment via Vercel Git integration (push to `main`)
+- Treat grouped npm major updates as high-risk; land them as isolated PRs only after `cd web && npm run lint && npm run build` passes.
 
 ## Repository structure
 
@@ -67,6 +68,7 @@ cd web && npx playwright test --project=desktop
 | Releases | [`agents-docs/RELEASES.md`](agents-docs/RELEASES.md) |
 | Assets & Screenshots | [`agents-docs/ASSETS.md`](agents-docs/ASSETS.md) |
 | Project overview | [`agents-docs/OVERVIEW.md`](agents-docs/OVERVIEW.md) |
+| CI triage heuristics | [`.agents/skills/do-github-pr-sentinel/references/heuristics.md`](.agents/skills/do-github-pr-sentinel/references/heuristics.md) |
 
 ## Skills
 

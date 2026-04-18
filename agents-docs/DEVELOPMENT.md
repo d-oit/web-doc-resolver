@@ -98,6 +98,13 @@ npm run build
 npx playwright test --project=desktop
 ```
 
+### Dependency Update Policy
+
+- Treat grouped npm major bumps as compatibility work, not routine maintenance.
+- Keep npm `major` updates isolated so CI failures point to one package family at a time.
+- For any web dependency PR, validate `cd web && npm run lint && npm run build` before merge.
+- If a grouped dependency PR fails deterministically, fix or split the dependency set instead of spending flaky-retry budget on CI reruns.
+
 ## Testing
 
 ### Test Categories
@@ -266,6 +273,11 @@ curl -X PATCH "https://api.vercel.com/v9/projects/{PROJECT_ID}?teamId={TEAM_ID}"
   -d '{"rootDirectory":"web"}'
 ```
 Do NOT use `rootDirectory` in a root `vercel.json` — it's not valid there. The setting must be on the Vercel project.
+
+### Dependency Compatibility Triage
+- PR #224 showed that grouped npm major updates can surface upstream incompatibilities rather than repo code regressions.
+- `eslint-config-next@16.2.3` currently fails under `eslint@10`, so keep ESLint on `^9.39.4` until the Next.js lint stack supports the new major.
+- Evaluate `typescript@6` separately from lint-stack upgrades so type and tooling changes do not get conflated in one PR.
 
 ### E2E Test Reliability
 - Use `data-testid` attributes for Playwright selectors instead of text-based filters
