@@ -1,3 +1,0 @@
-
-> do-web-doc-resolver-ui@1.1.0 typecheck /app/web
-> tsc --noEmit

@@ -1,14 +1,10 @@
-import os
-import sys
 import timeit
-
-# Add the root directory to sys.path to import scripts
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from scripts.quality import score_content
 
 
-def run_benchmark():
+def run_benchmark() -> None:
+    """Run a performance benchmark for the score_content function."""
     # 8000 character string
     base_text = "This is a sample text for benchmarking. " * 100
     noisy_text = "cookie subscribe javascript log in sign up " * 20

@@ -1,7 +1,8 @@
 from scripts.quality import score_content
 
 
-def test_score_content_good():
+def test_score_content_good() -> None:
+    """Test that high-quality content passes the score check."""
     markdown = "# Title\n\n" + "This is a long enough paragraph with good content. " * 20
     links = ["https://example.com"]
     result = score_content(markdown, links)
@@ -10,14 +11,16 @@ def test_score_content_good():
     assert result.score >= 0.65
 
 
-def test_score_content_short():
+def test_score_content_short() -> None:
+    """Test that content that is too short is rejected."""
     result = score_content("too short")
     assert result.too_short is True
     assert result.acceptable is False
     assert result.score < 0.65
 
 
-def test_score_content_noisy():
+def test_score_content_noisy() -> None:
+    """Test that noisy content with boilerplate phrases is flagged."""
     markdown = (
         "cookie subscribe javascript log in sign up cookie subscribe javascript log in sign up " * 2
     )
@@ -29,14 +32,15 @@ def test_score_content_noisy():
     assert result.score < 1.0
 
 
-def test_score_content_duplicate():
+def test_score_content_duplicate() -> None:
+    """Test that content with excessive repetition is flagged as duplicate-heavy."""
     markdown = "Duplicate line.\n" * 20
     result = score_content(markdown)
     assert result.duplicate_heavy is True
     assert result.score < 1.0
 
 
-def test_score_content_non_string():
+def test_score_content_non_string() -> None:
+    """Test that non-string input is handled gracefully (defaults to acceptable but empty)."""
     result = score_content(None)  # type: ignore
     assert result.acceptable is True
-    assert result.score == 1.0

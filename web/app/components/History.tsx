@@ -106,7 +106,7 @@ export default function History({ onLoad }: HistoryProps) {
     <div className="border-t-2 border-[#333]">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors text-[11px] text-[#949494] min-h-[44px] focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-2 focus:outline-none"
+        className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors text-[11px] text-[#949494] min-h-[44px]"
         aria-expanded={isOpen}
         aria-controls="history-panel"
       >
@@ -132,7 +132,7 @@ export default function History({ onLoad }: HistoryProps) {
                   setSearch("");
                   searchInputRef.current?.focus();
                 }}
-                className="absolute right-0 top-0 h-full px-3 text-[#949494] hover:text-[#e8e6e3] transition-colors focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-[-2px] focus:outline-none"
+                className="absolute right-0 top-0 h-full px-3 text-[#949494] hover:text-[#e8e6e3] transition-colors"
                 aria-label="Clear search"
               >
                 ×
@@ -145,20 +145,20 @@ export default function History({ onLoad }: HistoryProps) {
             {loading ? (
               <div className="text-[10px] text-[#949494] py-2">Loading...</div>
             ) : entries.length === 0 ? (
-              <div className="text-[10px] text-[#949494] py-2">{search ? "No matching entries" : "No history yet"}</div>
+              <div className="text-[10px] text-[#949494] py-2">No history yet</div>
             ) : (
               entries.map((entry) => (
                 <div key={entry.id} className="border border-[#222] p-3 bg-[#101010] group">
                   <div className="flex items-start justify-between gap-2">
                     <button
                       onClick={() => handleLoad(entry)}
-                      className="text-left text-[11px] text-[#e8e6e3] hover:text-[#00ff41] flex-1 focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-2 focus:outline-none"
+                      className="text-left text-[11px] text-[#e8e6e3] hover:text-[#00ff41] flex-1"
                     >
                       {entry.query}
                     </button>
                     <button
                       onClick={() => handleDelete(entry.id)}
-                      className={`text-[10px] min-h-[32px] min-w-[32px] flex items-center justify-center transition-all focus-visible:outline-2 focus-visible:outline-[#00ff41] focus-visible:outline-offset-2 focus:outline-none ${
+                      className={`text-[10px] min-h-[32px] min-w-[32px] flex items-center justify-center transition-all ${
                         confirmDeleteId === entry.id
                           ? "text-[#ff4444] font-bold"
                           : "text-[#949494] hover:text-[#ff4444] opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
