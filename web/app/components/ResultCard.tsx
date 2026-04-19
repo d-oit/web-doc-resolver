@@ -20,7 +20,7 @@ export default function ResultCard({ result, onCopy, onHelpfulToggle, helpful }:
   };
 
   return (
-    <article className="border-2 border-[#222] bg-[#0c0c0c] p-4 flex flex-col gap-3" aria-labelledby={`result-${result.id}`}
+    <article className="border-2 border-border-muted bg-background p-4 flex flex-col gap-3" aria-labelledby={`result-${result.id}`}
     >
       <header className="flex flex-col gap-1">
         {result.url ? (
@@ -29,28 +29,28 @@ export default function ResultCard({ result, onCopy, onHelpfulToggle, helpful }:
             href={result.url}
             target="_blank"
             rel="noreferrer"
-            className="text-[#00ff41] text-[15px] hover:underline"
+            className="text-accent text-[15px] hover:underline"
           >
             {result.title}
           </a>
         ) : (
-          <h3 id={`result-${result.id}`} className="text-[15px] text-[#e8e6e3]">
+          <h3 id={`result-${result.id}`} className="text-[15px] text-foreground">
             {result.title}
           </h3>
         )}
         {result.normalizedUrl && (
-          <div className="text-[10px] text-[#666] break-all">{result.normalizedUrl}</div>
+          <div className="text-[10px] text-text-dim break-all">{result.normalizedUrl}</div>
         )}
-        <div className="text-[10px] text-[#666] flex gap-3 flex-wrap">
+        <div className="text-[10px] text-text-dim flex gap-3 flex-wrap">
           {result.author && <span>By {result.author}</span>}
           {result.published && <span>{result.published}</span>}
         </div>
       </header>
-      <p className="text-[12px] text-[#cfcfcf] whitespace-pre-wrap leading-relaxed">{result.snippet}</p>
+      <p className="text-[12px] text-foreground whitespace-pre-wrap leading-relaxed">{result.snippet}</p>
       <footer className="flex flex-wrap gap-2 text-[11px]">
         <button
           onClick={handleCopy}
-          className="px-3 py-2 border-2 border-[#333] hover:border-[#00ff41]"
+          className="px-3 py-2 border-2 border-border-muted hover:border-accent text-text-muted"
         >
           {copying ? "Copied" : "Copy markdown"}
         </button>
@@ -59,7 +59,7 @@ export default function ResultCard({ result, onCopy, onHelpfulToggle, helpful }:
             href={result.url}
             target="_blank"
             rel="noreferrer"
-            className="px-3 py-2 border-2 border-[#333] hover:border-[#00ff41]"
+            className="px-3 py-2 border-2 border-border-muted hover:border-accent text-text-muted"
           >
             Open
           </a>
@@ -68,7 +68,7 @@ export default function ResultCard({ result, onCopy, onHelpfulToggle, helpful }:
           <button
             onClick={() => onHelpfulToggle(result.id)}
             className={`px-3 py-2 border-2 ${
-              helpful ? "border-[#00ff41] text-[#00ff41]" : "border-[#333] text-[#888]"
+              helpful ? "border-accent text-accent" : "border-border-muted text-text-dim"
             }`}
             aria-pressed={helpful}
           >
