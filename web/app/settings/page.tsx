@@ -80,16 +80,16 @@ export default function SettingsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#0c0c0c] text-[#e8e6e3] font-mono p-8">
+    <main className="min-h-screen bg-background text-foreground font-mono p-8">
       <div className="max-w-xl">
         <div className="mb-8">
-          <Link href="/" className="text-[11px] uppercase tracking-[0.1em] text-[#666] hover:text-[#00ff41]">
+          <Link href="/" className="text-[11px] uppercase tracking-[0.1em] text-text-muted hover:text-accent">
             ← Back
           </Link>
         </div>
 
         <h1 className="text-[24px] font-bold tracking-tight mb-2">Settings</h1>
-        <p className="text-[11px] text-[#666] mb-8">
+        <p className="text-[11px] text-text-muted mb-8">
           Configure API keys. Persisted via server-backed UI state on Vercel.
         </p>
 
@@ -105,11 +105,11 @@ export default function SettingsPage() {
                   <label className="text-[13px]">{field.label}</label>
                   <div className="flex items-center gap-2">
                     {localHasKey ? (
-                      <span className="text-[11px] text-[#00ff41]">Local key</span>
+                      <span className="text-[11px] text-accent">Local key</span>
                     ) : serverHasKey ? (
-                      <span className="text-[11px] text-[#666]">Server key</span>
+                      <span className="text-[11px] text-text-muted">Server key</span>
                     ) : (
-                      <span className="text-[11px] text-[#444]">Not configured</span>
+                      <span className="text-[11px] text-text-dim">Not configured</span>
                     )}
                     {localHasKey && (
                       <button
@@ -126,10 +126,10 @@ export default function SettingsPage() {
                   value={value}
                   onChange={(e) => handleKeyChange(field.key, e.target.value)}
                   placeholder="sk-..."
-                  className="bg-[#141414] border-2 border-[#333] px-3 py-2 text-[13px] text-[#e8e6e3] placeholder:text-[#444] focus:border-[#00ff41] focus:outline-none"
+                  className="bg-[#141414] border-2 border-border-muted px-3 py-2 text-[13px] text-foreground placeholder:text-text-dim focus:border-accent focus:outline-none"
                 />
                 {serverHasKey && !localHasKey && (
-                  <p className="text-[11px] text-[#666]">
+                  <p className="text-[11px] text-text-muted">
                     Server key available. Enter your own to override.
                   </p>
                 )}
@@ -138,17 +138,17 @@ export default function SettingsPage() {
           })}
         </div>
 
-        <div className="mt-8 p-4 border-2 border-[#333]">
-          <div className="text-[11px] uppercase tracking-[0.1em] text-[#666] mb-2">
+        <div className="mt-8 p-4 border-2 border-border-muted">
+          <div className="text-[11px] uppercase tracking-[0.1em] text-text-muted mb-2">
             Free providers
           </div>
-          <p className="text-[11px] text-[#888]">
+          <p className="text-[11px] text-text-dim">
             Jina, Exa MCP, and DuckDuckGo are free and always available—no API key required.
           </p>
         </div>
 
         {saved && (
-          <div className="fixed bottom-4 right-4 bg-[#00ff41] text-[#0c0c0c] px-4 py-2 text-[12px] font-bold">
+          <div className="fixed bottom-4 right-4 bg-accent text-background px-4 py-2 text-[12px] font-bold">
             Saved
           </div>
         )}
