@@ -129,14 +129,33 @@ impl QueryCascade {
     ) -> Result<ResolvedResult, ResolverError> {
         let mut metrics = ResolveMetrics::new();
 
-        // Check semantic cache
+        // Check semantic cache and compute embedding once
+        #[cfg(feature = "semantic-cache")]
+        let mut embedding: Option<chaotic_semantic_memory::HVec10240> = None;
+
         if let Some(cache) = cache {
-            if let Ok(Some(results)) = cache.query(query).await {
-                if !results.is_empty() {
-                    let mut first = results[0].clone();
-                    metrics.cache_hit = true;
-                    first.metrics = Some(metrics);
-                    return Ok(first);
+            #[cfg(feature = "semantic-cache")]
+            {
+                let e = cache.encode_query(query);
+                if let Ok(Some(results)) = cache.query(query, Some(e.clone())).await {
+                    if !results.is_empty() {
+                        let mut first = results[0].clone();
+                        metrics.cache_hit = true;
+                        first.metrics = Some(metrics);
+                        return Ok(first);
+                    }
+                }
+                embedding = Some(e);
+            }
+            #[cfg(not(feature = "semantic-cache"))]
+            {
+                if let Ok(Some(results)) = cache.query(query, None).await {
+                    if !results.is_empty() {
+                        let mut first = results[0].clone();
+                        metrics.cache_hit = true;
+                        first.metrics = Some(metrics);
+                        return Ok(first);
+                    }
                 }
             }
         }
@@ -349,7 +368,10 @@ impl QueryCascade {
                             rm.record("", &provider.name, true, latency, quality.score);
                         }
                         if let Some(cache) = cache {
-                            let _ = cache.store(query, &results, &first.source).await;
+                            #[cfg(feature = "semantic-cache")]
+                            let _ = cache.store(query, &results, &first.source, embedding).await;
+                            #[cfg(not(feature = "semantic-cache"))]
+                            let _ = cache.store(query, &results, &first.source, None).await;
                         }
                         return Ok(first);
                     } else {

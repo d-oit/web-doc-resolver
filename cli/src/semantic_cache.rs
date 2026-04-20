@@ -121,6 +121,7 @@ impl SemanticCache {
 
         let framework = ChaoticSemanticFramework::builder()
             .with_local_db(db_path.to_str().unwrap_or("memory.db"))
+            .with_max_concepts(cache_config.max_entries)
             .build()
             .await
             .map_err(|e| ResolverError::Config(e.to_string()))?;
@@ -143,9 +144,10 @@ impl SemanticCache {
     pub async fn query(
         &self,
         query: &str,
+        embedding: Option<HVec10240>,
     ) -> StdResult<Option<Vec<ResolvedResult>>, ResolverError> {
-        // Generate query vector
-        let query_vector = self.encode_query(query);
+        // Generate query vector or use provided one
+        let query_vector = embedding.unwrap_or_else(|| self.encode_query(query));
 
         // Probe semantic memory - returns (id, score) pairs
         let hits = self
@@ -202,6 +204,7 @@ impl SemanticCache {
     pub async fn query(
         &self,
         _query: &str,
+        _embedding: Option<()>,
     ) -> StdResult<Option<Vec<ResolvedResult>>, ResolverError> {
         Ok(None)
     }
@@ -213,9 +216,10 @@ impl SemanticCache {
         query: &str,
         results: &[ResolvedResult],
         provider: &str,
+        embedding: Option<HVec10240>,
     ) -> StdResult<(), ResolverError> {
-        // Generate query vector (normalizes internally)
-        let query_vector = self.encode_query(query);
+        // Generate query vector or use provided one
+        let query_vector = embedding.unwrap_or_else(|| self.encode_query(query));
 
         // Normalize query for consistent ID
         let normalized: String = query
@@ -248,6 +252,12 @@ impl SemanticCache {
             provider,
             query
         );
+
+        // Simple eviction: if we exceed max_entries, we should ideally prune.
+        // The chaotic_semantic_memory framework doesn't have a direct LRU/count API exposed
+        // in this version, so we rely on the framework's internal management if any.
+        // However, we can implement a manual check if needed once we find the count API.
+
         Ok(())
     }
 
@@ -259,6 +269,7 @@ impl SemanticCache {
         _query: &str,
         _results: &[ResolvedResult],
         _provider: &str,
+        _embedding: Option<()>,
     ) -> StdResult<(), ResolverError> {
         Ok(())
     }
@@ -292,8 +303,12 @@ impl SemanticCache {
 
     /// Query the cache for a specific URL (L2 Cache)
     #[cfg(feature = "semantic-cache")]
-    pub async fn query_url(&self, url: &str) -> StdResult<Option<ResolvedResult>, ResolverError> {
-        self.query(url)
+    pub async fn query_url(
+        &self,
+        url: &str,
+        embedding: Option<HVec10240>,
+    ) -> StdResult<Option<ResolvedResult>, ResolverError> {
+        self.query(url, embedding)
             .await
             .map(|opt| opt.and_then(|vec| vec.into_iter().next()))
     }
@@ -304,18 +319,32 @@ impl SemanticCache {
         &self,
         query: &str,
         provider: &str,
+        embedding: Option<HVec10240>,
     ) -> StdResult<Option<Vec<ResolvedResult>>, ResolverError> {
         let key = format!("{}:{}", provider, query);
-        self.query(&key).await
+        self.query(&key, embedding).await
     }
 
     /// Get cache statistics
     #[cfg(feature = "semantic-cache")]
     pub async fn stats(&self) -> StdResult<CacheStats, ResolverError> {
-        // Note: concept_count() not available in current API version
+        let stats = self
+            .framework
+            .stats()
+            .await
+            .map_err(|e| ResolverError::Cache(e.to_string()))?;
+        let metrics = self.framework.metrics_snapshot().await;
+
+        let total_queries = metrics.cache_hits_total + metrics.cache_misses_total;
+        let hit_rate = if total_queries > 0 {
+            metrics.cache_hits_total as f32 / total_queries as f32
+        } else {
+            0.0
+        };
+
         Ok(CacheStats {
-            entries: 0,
-            hit_rate: 0.0,
+            entries: stats.concept_count,
+            hit_rate,
             path: self.config.path.clone(),
         })
     }
@@ -333,7 +362,7 @@ impl SemanticCache {
 
     /// Encode query to semantic vector
     #[cfg(feature = "semantic-cache")]
-    fn encode_query(&self, query: &str) -> HVec10240 {
+    pub fn encode_query(&self, query: &str) -> HVec10240 {
         // Normalize query for better matching: lowercase, trim, collapse whitespace
         let normalized: String = query
             .to_lowercase()
@@ -447,12 +476,15 @@ mod tests {
 
         // Store in cache
         cache
-            .store(query, &results, "test_provider")
+            .store(query, &results, "test_provider", None)
             .await
             .expect("Failed to store in cache");
 
         // Query exact match
-        let retrieved = cache.query(query).await.expect("Failed to query cache");
+        let retrieved = cache
+            .query(query, None)
+            .await
+            .expect("Failed to query cache");
 
         assert!(retrieved.is_some(), "Should find exact match");
         let retrieved_results = retrieved.unwrap();
@@ -462,7 +494,7 @@ mod tests {
         // Query similar (semantic match)
         let similar_query = "rust coding tutorial";
         let similar_retrieved = cache
-            .query(similar_query)
+            .query(similar_query, None)
             .await
             .expect("Failed to query cache with similar query");
 
@@ -474,7 +506,7 @@ mod tests {
 
         // Query non-matching
         let no_match = cache
-            .query("completely unrelated query about gardening")
+            .query("completely unrelated query about gardening", None)
             .await
             .expect("Failed to query cache");
 
@@ -499,7 +531,7 @@ mod tests {
         // Pre-populate with some data
         let initial_results = create_test_results(3);
         cache
-            .store("base query", &initial_results, "test_provider")
+            .store("base query", &initial_results, "test_provider", None)
             .await
             .expect("Failed to store initial data");
 
@@ -514,7 +546,7 @@ mod tests {
             } else {
                 &format!("concurrent read query {}", i % 5)
             };
-            let result = cache.query(query).await;
+            let result = cache.query(query, None).await;
             assert!(result.is_ok(), "Read operation {} failed", i);
         }
 
@@ -522,7 +554,7 @@ mod tests {
         for i in 0..10 {
             let query = format!("concurrent write query {}", i);
             let results = create_test_results(2);
-            let result = cache.store(&query, &results, "test_provider").await;
+            let result = cache.store(&query, &results, "test_provider", None).await;
             assert!(result.is_ok(), "Write operation {} failed", i);
         }
 
@@ -530,7 +562,7 @@ mod tests {
         for i in 0..10 {
             let query = format!("concurrent write query {}", i);
             let retrieved = cache
-                .query(&query)
+                .query(&query, None)
                 .await
                 .expect("Failed to query after rapid writes");
             assert!(
@@ -546,12 +578,15 @@ mod tests {
 
             // Write
             cache
-                .store(&query, &results, "test_provider")
+                .store(&query, &results, "test_provider", None)
                 .await
                 .expect("Failed interleaved write");
 
             // Immediate read
-            let retrieved = cache.query(&query).await.expect("Failed interleaved read");
+            let retrieved = cache
+                .query(&query, None)
+                .await
+                .expect("Failed interleaved read");
             assert!(retrieved.is_some(), "Should find immediately written query");
         }
 
@@ -600,13 +635,13 @@ mod tests {
                 .expect("Cache should be enabled");
 
             cache
-                .store(query, &results, "test_provider")
+                .store(query, &results, "test_provider", None)
                 .await
                 .expect("Failed to store in cache");
 
             // Verify data is stored
             let retrieved = cache
-                .query(query)
+                .query(query, None)
                 .await
                 .expect("Failed to query cache")
                 .expect("Should find stored query");
@@ -624,7 +659,7 @@ mod tests {
 
             // Data should still be available
             let retrieved = cache
-                .query(query)
+                .query(query, None)
                 .await
                 .expect("Failed to query cache after restart");
 
@@ -654,12 +689,15 @@ mod tests {
 
         // Store data
         cache
-            .store(query, &results, "test_provider")
+            .store(query, &results, "test_provider", None)
             .await
             .expect("Failed to store in cache");
 
         // Verify it's there
-        let retrieved = cache.query(query).await.expect("Failed to query cache");
+        let retrieved = cache
+            .query(query, None)
+            .await
+            .expect("Failed to query cache");
         assert!(retrieved.is_some(), "Should find stored query");
 
         // Remove the entry
@@ -670,7 +708,7 @@ mod tests {
 
         // Verify it's gone
         let after_remove = cache
-            .query(query)
+            .query(query, None)
             .await
             .expect("Failed to query cache after removal");
         assert!(after_remove.is_none(), "Should not find removed query");
@@ -693,7 +731,7 @@ mod tests {
         // Warm up - first operation may be slower due to initialization
         let warmup_results = create_test_results(2);
         cache
-            .store("warmup", &warmup_results, "test_provider")
+            .store("warmup", &warmup_results, "test_provider", None)
             .await
             .expect("Warmup failed");
 
@@ -703,7 +741,7 @@ mod tests {
 
         let start = std::time::Instant::now();
         cache
-            .store(query, &results, "test_provider")
+            .store(query, &results, "test_provider", None)
             .await
             .expect("Failed to store in cache");
         let elapsed = start.elapsed();
@@ -743,16 +781,19 @@ mod tests {
         let results = create_test_results(5);
         let query = "query latency test";
         cache
-            .store(query, &results, "test_provider")
+            .store(query, &results, "test_provider", None)
             .await
             .expect("Failed to store in cache");
 
         // Warm up query
-        let _ = cache.query("warmup").await;
+        let _ = cache.query("warmup", None).await;
 
         // Measure query latency
         let start = std::time::Instant::now();
-        let _retrieved = cache.query(query).await.expect("Failed to query cache");
+        let _retrieved = cache
+            .query(query, None)
+            .await
+            .expect("Failed to query cache");
         let elapsed = start.elapsed();
 
         // Latency requirements:

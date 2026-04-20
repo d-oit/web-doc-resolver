@@ -154,13 +154,31 @@ impl UrlCascade {
             return self.extract_with_provider(url, provider_type).await;
         }
 
-        // Check semantic cache
+        // Check semantic cache and compute embedding once
+        #[cfg(feature = "semantic-cache")]
+        let mut embedding: Option<chaotic_semantic_memory::HVec10240> = None;
+
         if let Some(cache) = cache {
-            if let Ok(Some(res)) = cache.query(url).await {
-                if let Some(mut res) = res.into_iter().next() {
-                    metrics.cache_hit = true;
-                    res.metrics = Some(metrics);
-                    return Ok(res);
+            #[cfg(feature = "semantic-cache")]
+            {
+                let e = cache.encode_query(url);
+                if let Ok(Some(res)) = cache.query(url, Some(e.clone())).await {
+                    if let Some(mut res) = res.into_iter().next() {
+                        metrics.cache_hit = true;
+                        res.metrics = Some(metrics);
+                        return Ok(res);
+                    }
+                }
+                embedding = Some(e);
+            }
+            #[cfg(not(feature = "semantic-cache"))]
+            {
+                if let Ok(Some(res)) = cache.query(url, None).await {
+                    if let Some(mut res) = res.into_iter().next() {
+                        metrics.cache_hit = true;
+                        res.metrics = Some(metrics);
+                        return Ok(res);
+                    }
                 }
             }
         }
@@ -332,7 +350,12 @@ impl UrlCascade {
                             );
                         }
                         if let Some(cache) = cache {
-                            let _ = cache.store(url, &[res.clone()], &res.source).await;
+                            #[cfg(feature = "semantic-cache")]
+                            let _ = cache
+                                .store(url, &[res.clone()], &res.source, embedding)
+                                .await;
+                            #[cfg(not(feature = "semantic-cache"))]
+                            let _ = cache.store(url, &[res.clone()], &res.source, None).await;
                         }
                         return Ok(res);
                     } else {
