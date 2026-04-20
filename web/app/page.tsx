@@ -346,6 +346,7 @@ export default function Home() {
         `}
       >
         <button
+          data-testid="sidebar-toggle"
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors min-h-[44px] focus:outline-none"
           aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
