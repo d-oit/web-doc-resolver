@@ -386,7 +386,7 @@ export default function Home() {
                 }))}
               />
               <span className="text-[10px] text-text-dim">
-                Using {profile} profile
+                {isCustomSelection ? `${selectedProviders.length} selected` : `Using ${profile} profile`}
               </span>
               <div className="flex flex-col gap-1 mt-1">
                 <div className="flex items-center justify-between">
