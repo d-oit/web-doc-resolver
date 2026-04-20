@@ -356,7 +356,12 @@ export default function Home() {
               <span className="text-[11px] uppercase tracking-[0.1em] text-text-muted">
                 Configuration
               </span>
-              <span className="text-[10px] text-text-dim">Hide</span>
+              <div className="flex items-center gap-2">
+                <Link href="/settings" className="text-[11px] text-text-muted hover:text-accent">
+                  Keys
+                </Link>
+                <span className="text-[10px] text-text-dim">Hide</span>
+              </div>
             </>
           ) : (
             <span className="w-full text-center text-[10px] text-text-dim">Show</span>
