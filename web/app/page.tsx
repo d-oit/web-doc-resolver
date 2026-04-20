@@ -406,8 +406,9 @@ export default function Home() {
                   const isManual = selectedProviders.includes(provider.id);
                   const needsKey = !provider.free && !available;
                   const tooltipId = `provider-hint-${provider.id}`;
+                  const showHint = needsKey || (provider.id === "duckduckgo" && mistralActive);
                   return (
-                    <div key={provider.id} className="relative">
+                    <div key={provider.id} className="relative group">
                       <button
                         onClick={() => {
                           if (!available) {
@@ -416,7 +417,7 @@ export default function Home() {
                           }
                           handleProviderToggle(provider.id);
                         }}
-                        aria-describedby={needsKey ? tooltipId : undefined}
+                        aria-describedby={showHint ? tooltipId : undefined}
                         className={`
                           px-2 py-1 text-[10px] border-2 transition-colors min-h-[36px]
                           ${
@@ -431,6 +432,15 @@ export default function Home() {
                         {provider.label}
                         {needsKey && <span className="ml-1 text-[9px] text-text-muted">(needs key)</span>}
                       </button>
+                      {showHint && (
+                        <div
+                          id={tooltipId}
+                          role="tooltip"
+                          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[#222] border border-border-muted text-[9px] text-text-muted opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50"
+                        >
+                          {needsKey ? "Requires API key" : "Disabled while Mistral active"}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -445,6 +455,7 @@ export default function Home() {
             {/* API Keys */}
             <div className="flex flex-col gap-2">
               <button
+                data-testid="api-keys-toggle"
                 onClick={() => setApiKeysOpen(!apiKeysOpen)}
                 className="text-[11px] text-text-muted hover:text-foreground text-left min-h-[44px] py-2"
               >

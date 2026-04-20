@@ -37,6 +37,7 @@ export default function ProfileCombobox({ value, onChange, options }: ProfileCom
         className="w-full bg-[#141414] border-2 border-border-muted px-3 py-2 text-left flex items-center justify-between text-[12px] min-h-[44px] hover:border-border-strong focus:border-accent focus:outline-none"
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-label="Change search profile"
       >
         <span>{selectedOption?.label || "Select profile..."}</span>
         <span className="text-[10px] text-text-dim">{open ? "▲" : "▼"}</span>
