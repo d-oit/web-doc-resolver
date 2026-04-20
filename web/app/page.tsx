@@ -359,7 +359,7 @@ export default function Home() {
               <span className="text-[10px] text-text-dim">Hide</span>
             </>
           ) : (
-            <span className="w-full text-center text-text-dim">▶</span>
+            <span className="w-full text-center text-[10px] text-text-dim">Show</span>
           )}
         </button>
 
