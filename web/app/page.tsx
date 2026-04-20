@@ -328,7 +328,7 @@ export default function Home() {
   );
 
   return (
-    <main className="min-h-screen bg-background text-foreground font-mono flex flex-col lg:flex-row">
+    <main className="min-h-screen bg-background text-foreground font-mono flex flex-col lg:flex-row" data-testid="app-loaded">
       {/* Mobile Menu Backdrop */}
       {mobileMenuOpen && (
         <div
