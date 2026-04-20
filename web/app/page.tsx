@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { loadApiKeys, saveApiKeys, ApiKeys, resolveKeySource, KeySource } from "@/lib/keys";
+import { loadApiKeys, saveApiKeys, ApiKeys, resolveKeySource } from "@/lib/keys";
 import { loadUIState, saveUIState, type UIState } from "@/lib/ui-state";
 import History, { HistoryEntry } from "@/app/components/History";
 import ProfileCombobox from "@/app/components/ProfileCombobox";
-import ToggleChip from "@/app/components/ToggleChip";
 import ResultCard from "@/app/components/ResultCard";
 import { parseProviderResults, extractNormalizedUrls, type ProviderResult } from "@/lib/results";
 
@@ -251,61 +250,68 @@ export default function Home() {
 
       setResult(markdown);
       setParsedResults(parsed);
-      setViewRaw(false);
-      setSourceProvider(data.provider || (activeProviders.length > 0 ? activeProviders.join(", ") : profile));
-      setQualityScore(data.quality?.score ?? null);
-      const elapsed = Math.round(performance.now() - startTime);
-      setResolveTime(elapsed);
-      setProviderStatus(null);
+      setSourceProvider(data.provider);
+      setQualityScore(data.quality_score ?? null);
+      const endTime = performance.now();
+      const timeTaken = Math.round(endTime - startTime);
+      setResolveTime(timeTaken);
 
-      // Save to history
       saveToHistory({
         query: query.trim(),
         result: markdown,
-        provider: data.provider || activeProviders.join(", "),
+        provider: data.provider,
         charCount: markdown.length,
-        resolveTime: elapsed,
+        resolveTime: timeTaken,
         url: isUrl ? query.trim() : null,
         profile,
         flags: { skipCache, deepResearch },
         providers: activeProviders,
         normalizedUrlHashes,
       });
+
+      setProviderStatus(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Request failed");
+      setError(err instanceof Error ? err.message : "An error occurred");
       setProviderStatus(null);
     } finally {
       setLoading(false);
     }
-  }, [query, loading, apiKeys, requestProviders, deepResearch, maxChars, skipCache, isUrl, profile, activeProviders, saveToHistory]);
+  }, [query, apiKeys, requestProviders, deepResearch, maxChars, skipCache, isUrl, profile, activeProviders, saveToHistory, loading]);
 
-  const copyText = async (value: string) => {
-    try {
-      await navigator.clipboard.writeText(value);
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = value;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-    }
+  const handleHistoryLoad = (entry: HistoryEntry) => {
+    setQuery(entry.query);
+    setResult(entry.result);
+    setSourceProvider(entry.provider);
+    setResolveTime(entry.resolveTime);
+    setParsedResults(parseProviderResults(entry.result));
+    setError("");
+  };
+
+  const handleKeyChange = (key: keyof ApiKeys, value: string) => {
+    setApiKeys((prev) => ({ ...prev, [key]: value || undefined }));
   };
 
   const handleCopyResult = async () => {
-    if (!result) return;
-    await copyText(result);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1000);
+    try {
+      await navigator.clipboard.writeText(result);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
   };
 
   const handleCardCopy = async (value: string) => {
-    await copyText(value);
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
   };
 
   const toggleHelpful = (id: string) => {
     setHelpfulIds((prev) => {
-      const next = new Set<string>(prev);
+      const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
       } else {
@@ -315,36 +321,15 @@ export default function Home() {
     });
   };
 
-  const handleHistoryLoad = (entry: HistoryEntry) => {
-    setQuery(entry.query);
-    setResult(entry.result);
-    setParsedResults(parseProviderResults(entry.result));
-    setSourceProvider(entry.provider);
-    setResolveTime(entry.resolveTime);
-    setViewRaw(false);
-    setHelpfulIds(new Set());
-    inputRef.current?.focus();
-  };
-
-  const handleKeyChange = (key: keyof ApiKeys, value: string) => {
-    const updated = { ...apiKeys, [key]: value || undefined };
-    setApiKeys(updated);
-    saveApiKeys(updated);
-  };
-
   if (!loaded) return (
-    <main className="min-h-screen bg-[#0c0c0c] flex items-center justify-center">
-      <div className="text-[#666] text-sm" data-testid="app-loading">Loading...</div>
+    <main className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="text-text-muted text-sm" data-testid="app-loading">Loading...</div>
     </main>
   );
 
   return (
-    <main className="min-h-screen bg-[#0c0c0c] text-[#e8e6e3] font-mono flex flex-col lg:flex-row" data-testid="app-loaded">
-      {/* Skip to content link for accessibility */}
-      <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:bg-[#0c0c0c] focus:text-[#00ff41] focus:px-2 focus:py-1 focus:border-2 focus:border-[#00ff41]">
-        Skip to main content
-      </a>
-      {/* Mobile Menu Overlay */}
+    <main className="min-h-screen bg-background text-foreground font-mono flex flex-col lg:flex-row" data-testid="app-loaded">
+      {/* Mobile Menu Backdrop */}
       {mobileMenuOpen && (
         <div
           className="fixed inset-0 bg-black/80 z-40 lg:hidden"
@@ -352,84 +337,77 @@ export default function Home() {
         />
       )}
 
-      {/* Left Sidebar - Configuration */}
-      <aside className={`
-        fixed lg:static inset-y-0 left-0 z-50
-        w-[280px] lg:w-[280px] lg:min-w-[280px]
-        border-r-2 border-[#333]
-        bg-[#0c0c0c]
-        transform transition-transform duration-200
-        ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
-      `}>
-        {/* Sidebar Header - Toggle */}
-        <div
-          role="button"
+      {/* Sidebar - Configuration */}
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-50 w-72 bg-background border-r-2 border-border-muted transition-transform duration-300 lg:relative lg:translate-x-0
+          ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
+          ${sidebarOpen ? "lg:w-72" : "lg:w-16"}
+        `}
+      >
+        <button
           data-testid="sidebar-toggle"
-          tabIndex={0}
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              setSidebarOpen((prev) => !prev);
-            }
-          }}
           className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors min-h-[44px] focus:outline-none"
+          aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
         >
-          <span className="text-[11px] uppercase tracking-[0.1em] text-[#666]">
-            Configuration
-          </span>
-          <div className="flex items-center gap-3">
-            <Link href="/settings" className="text-[11px] text-[#00ff41] hover:underline" onClick={(e) => e.stopPropagation()}>
-              Keys
-            </Link>
-            <span className="text-[10px] text-[#444]">{sidebarOpen ? "Hide" : "Show"}</span>
-            {/* Close button for mobile */}
-            <button
-              onClick={(e) => { e.stopPropagation(); setMobileMenuOpen(false); }}
-              className="lg:hidden text-[#666] hover:text-[#e8e6e3] p-2"
-              aria-label="Close menu"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
+          {sidebarOpen ? (
+            <>
+              <span className="text-[11px] uppercase tracking-[0.1em] text-text-muted">
+                Configuration
+              </span>
+              <div className="flex items-center gap-2">
+                <Link href="/settings" className="text-[11px] text-text-muted hover:text-accent">
+                  Keys
+                </Link>
+                <span className="text-[10px] text-text-dim">Hide</span>
+              </div>
+            </>
+          ) : (
+            <span className="w-full text-center text-[10px] text-text-dim">Show</span>
+          )}
+        </button>
 
         {sidebarOpen && (
-          <div className="px-4 pb-4 flex flex-col gap-4">
-            {/* Profile Selector */}
+          <div className="p-4 flex flex-col gap-8 overflow-y-auto max-h-[calc(100vh-44px)]">
+            {/* Profile */}
             <div className="flex flex-col gap-2">
-              <label className="text-[11px] text-[#888]">Profile</label>
+              <label className="text-[11px] text-text-muted">Profile</label>
               <ProfileCombobox
                 value={profile}
-                options={PROFILES.map((p) => ({ id: p.id, label: p.label, description: `${p.providers.length || 0} providers` }))}
-                onChange={(nextProfile) => {
-                  setProfile(nextProfile);
-                  if (nextProfile !== "custom") {
-                    setSelectedProviders([]);
-                  }
+                onChange={(p) => {
+                  setProfile(p as ProfileId);
+                  setSelectedProviders([]);
                 }}
+                options={PROFILES.map((p) => ({
+                  id: p.id,
+                  label: p.label,
+                  description: p.providers.join(", "),
+                }))}
               />
-              <div className="flex flex-wrap gap-2 mt-2" aria-label="Advanced search toggles">
-                <ToggleChip label="Deep research" pressed={deepResearch} onPressedChange={setDeepResearch} />
-                <ToggleChip label="Skip cache" pressed={skipCache} onPressedChange={setSkipCache} />
-                <div className="flex items-center gap-2">
-                  <label className="text-[9px] text-[#777]">Max chars</label>
-                  <select
-                    value={maxChars}
-                    onChange={(e) => setMaxChars(parseInt(e.target.value) || 8000)}
-                    className="bg-[#141414] border border-[#333] px-2 py-1 text-[11px] text-[#e8e6e3] focus:border-[#00ff41] focus:outline-none"
-                  >
-                    {[4000, 8000, 12000].map((value) => (
-                      <option key={value} value={value}>{value.toLocaleString()}</option>
-                    ))}
-                  </select>
+              <span className="text-[10px] text-text-dim">
+                {isCustomSelection ? `${selectedProviders.length} selected` : `Using ${profile} profile`}
+              </span>
+              <div className="flex flex-col gap-1 mt-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-[9px] text-text-muted">Max chars</label>
+                  <span className="text-[9px] text-accent">{(maxChars / 1000).toFixed(0)}k</span>
                 </div>
+                <input
+                  type="range"
+                  min="1000"
+                  max="32000"
+                  step="1000"
+                  value={maxChars}
+                  onChange={(e) => setMaxChars(parseInt(e.target.value))}
+                  className="w-full h-1 bg-border-muted accent-accent appearance-none cursor-pointer"
+                />
               </div>
             </div>
 
             {/* Provider Selection */}
             <div className="flex flex-col gap-2">
-              <div className="text-[11px] text-[#888]">Providers</div>
+              <div className="text-[11px] text-text-muted">Providers</div>
               <div className="flex flex-wrap gap-1">
                 {PROVIDERS.map((provider) => {
                   const available = isProviderAvailable(provider.id);
@@ -437,103 +415,97 @@ export default function Home() {
                   const isManual = selectedProviders.includes(provider.id);
                   const needsKey = !provider.free && !available;
                   const tooltipId = `provider-hint-${provider.id}`;
+                  const showHint = needsKey || (provider.id === "duckduckgo" && mistralActive);
                   return (
-                    <div key={provider.id} className="relative">
+                    <div key={provider.id} className="relative group">
                       <button
                         onClick={() => {
                           if (!available) {
-                            setSidebarOpen(true);
                             setApiKeysOpen(true);
-                            setProviderStatus(`${provider.label} needs API key`);
                             return;
                           }
                           handleProviderToggle(provider.id);
                         }}
-                        title={needsKey ? `${provider.label} needs API key` : undefined}
-                        aria-pressed={isManual}
-                        aria-describedby={!available ? tooltipId : undefined}
-                        aria-label={`${provider.label} provider ${isManual ? "selected" : available ? "available" : "requires API key"}`}
-                        className={`px-2 py-2 text-[11px] border-2 min-h-[44px] ${
-                          isManual
-                            ? "bg-[#00ff41] text-[#0c0c0c] border-[#00ff41]"
-                            : isActive
-                            ? "bg-[#1a3a1a] text-[#00ff41] border-[#00ff41]"
-                            : available
-                            ? "bg-transparent text-[#888] border-[#333] hover:border-[#00ff41]"
-                            : "bg-transparent text-[#444] border-[#222]"
-                        }`}
+                        aria-describedby={showHint ? tooltipId : undefined}
+                        className={`
+                          px-2 py-1 text-[10px] border-2 transition-colors min-h-[36px]
+                          ${
+                            isActive
+                              ? isManual
+                                ? "bg-accent text-background border-accent font-bold"
+                                : "border-accent text-accent"
+                              : "bg-transparent text-text-dim border-border-muted hover:border-border-strong"
+                          }
+                        `}
                       >
-                        <span>{provider.label}</span>
-                        {needsKey && <span className="ml-1 text-[9px]">(needs key)</span>}
+                        {provider.label}
+                        {needsKey && <span className="ml-1 text-[9px] text-text-muted">(needs key)</span>}
                       </button>
-                      {!available && (
-                        <span id={tooltipId} className="sr-only">
-                          {provider.label} requires an API key. Click to open API keys panel.
-                        </span>
+                      {showHint && (
+                        <div
+                          id={tooltipId}
+                          role="tooltip"
+                          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[#222] border border-border-muted text-[9px] text-text-muted opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50"
+                        >
+                          {needsKey ? "Requires API key" : "Disabled while Mistral active"}
+                        </div>
                       )}
                     </div>
                   );
                 })}
               </div>
-              <p className="text-[10px] text-[#555]">
+              <p className="text-[10px] text-text-dim">
                 {isCustomSelection
-                  ? `${selectedProviders.length} selected`
-                  : `Using ${profile} profile · ${profileProviders.length} providers`}
+                  ? "Custom selection active. Deselect all to return to profile defaults."
+                  : "Profile-recommended providers are outlined in green."}
               </p>
             </div>
 
-            {/* Advanced Options */}
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                className="text-[11px] text-[#666] hover:text-[#888] text-left min-h-[44px] py-2"
-              >
-                {showAdvanced ? "▼" : "▶"} Advanced
-              </button>
-              {showAdvanced && (
-                <div className="flex flex-col gap-3 pl-2">
-                  <div className="flex items-center justify-between min-h-[44px]">
-                    <label className="text-[11px] text-[#888]">Max chars</label>
-                    <input
-                      type="number"
-                      value={maxChars}
-                      onChange={(e) => setMaxChars(parseInt(e.target.value) || 8000)}
-                      className="w-20 bg-[#141414] border-2 border-[#333] px-2 py-2 text-[11px] text-[#e8e6e3] focus:border-[#00ff41] focus:outline-none min-h-[44px]"
-                    />
-                  </div>
-                  <label className="flex items-center gap-3 text-[11px] text-[#888] min-h-[44px] py-2">
-                    <input
-                      type="checkbox"
-                      checked={skipCache}
-                      onChange={(e) => setSkipCache(e.target.checked)}
-                      className="w-5 h-5 bg-[#141414] border-2 border-[#333]"
-                    />
-                    Skip cache
-                  </label>
-                  <label className="flex items-center gap-3 text-[11px] text-[#888] min-h-[44px] py-2">
-                    <input
-                      type="checkbox"
-                      checked={deepResearch}
-                      onChange={(e) => setDeepResearch(e.target.checked)}
-                      className="w-5 h-5 bg-[#141414] border-2 border-[#333]"
-                    />
-                    Deep research
-                  </label>
-                </div>
-              )}
-            </div>
-
-            {/* API Keys - Collapsible */}
+            {/* API Keys */}
             <div className="flex flex-col gap-2">
               <button
                 data-testid="api-keys-toggle"
                 onClick={() => setApiKeysOpen(!apiKeysOpen)}
-                className="text-[11px] text-[#666] hover:text-[#888] text-left min-h-[44px] py-2"
+                className="text-[11px] text-text-muted hover:text-foreground text-left min-h-[44px] py-2"
               >
                 {apiKeysOpen ? "▼" : "▶"} API Keys
               </button>
               {apiKeysOpen && (
                 <div className="flex flex-col gap-3 pl-2">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[11px] text-text-muted">Max chars</label>
+                      <span className="text-[9px] text-accent">{(maxChars / 1000).toFixed(0)}k</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1000"
+                      max="32000"
+                      step="1000"
+                      value={maxChars}
+                      onChange={(e) => setMaxChars(parseInt(e.target.value))}
+                      className="w-full h-1 bg-border-muted accent-accent appearance-none cursor-pointer"
+                    />
+                  </div>
+                  <label className="flex items-center gap-3 text-[11px] text-text-muted min-h-[44px] py-2">
+                    <input
+                      type="checkbox"
+                      checked={skipCache}
+                      onChange={(e) => setSkipCache(e.target.checked)}
+                      className="w-5 h-5 bg-[#141414] border-2 border-border-muted accent-accent"
+                    />
+                    Skip cache
+                  </label>
+                  <label className="flex items-center gap-3 text-[11px] text-text-muted min-h-[44px] py-2">
+                    <input
+                      type="checkbox"
+                      checked={deepResearch}
+                      onChange={(e) => setDeepResearch(e.target.checked)}
+                      className="w-5 h-5 bg-[#141414] border-2 border-border-muted accent-accent"
+                    />
+                    Deep research
+                  </label>
+                  <hr className="border-border-muted my-1" />
                   {PROVIDERS.filter((p) => !p.free).map((provider) => {
                     const key = `${provider.id}_api_key` as keyof ApiKeys;
                     const value = apiKeys[key] || "";
@@ -541,13 +513,13 @@ export default function Home() {
                     const hasServer = source === "server";
                     return (
                       <div key={provider.id} className="flex flex-col gap-1">
-                        <label className="text-[10px] text-[#666]">{provider.label} {hasServer && !value && "(server)"}</label>
+                        <label className="text-[10px] text-text-muted">{provider.label} {hasServer && !value && "(server)"}</label>
                         <input
                           type="password"
                           value={value}
                           onChange={(e) => handleKeyChange(key, e.target.value)}
                           placeholder={hasServer && !value ? "Using server key" : "sk-..."}
-                          className="bg-[#141414] border-2 border-[#333] px-2 py-2 text-[12px] text-[#e8e6e3] placeholder:text-[#444] focus:border-[#00ff41] focus:outline-none min-h-[44px]"
+                          className="bg-[#141414] border-2 border-border-muted px-2 py-2 text-[12px] text-foreground placeholder:text-text-dim focus:border-accent focus:outline-none min-h-[44px]"
                         />
                       </div>
                     );
@@ -565,27 +537,27 @@ export default function Home() {
       {/* Center - Input/Output */}
       <div id="main-content" className="flex-1 flex flex-col min-h-0">
         {/* Header */}
-        <div className="border-b-2 border-[#333] p-2 flex items-center justify-between min-h-[44px]">
+        <div className="border-b-2 border-border-muted p-2 flex items-center justify-between min-h-[44px]">
           <div className="flex items-center gap-2">
             {/* Hamburger menu - mobile only */}
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="lg:hidden p-2 text-[#666] hover:text-[#e8e6e3] min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="lg:hidden p-2 text-text-muted hover:text-foreground min-h-[44px] min-w-[44px] flex items-center justify-center"
               aria-label="Open menu"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <span className="text-[11px] text-[#666]">do-web-doc-resolver</span>
+            <span className="text-[11px] text-text-muted">do-web-doc-resolver</span>
           </div>
-          <Link href="/help" className="text-[11px] text-[#666] hover:text-[#00ff41] min-h-[44px] flex items-center px-2">
+          <Link href="/help" className="text-[11px] text-text-muted hover:text-accent min-h-[44px] flex items-center px-2">
             Help
           </Link>
         </div>
 
         {/* Input */}
-        <div className="border-b-2 border-[#333] p-4">
+        <div className="border-b-2 border-border-muted p-4">
           <div className="flex items-center gap-4">
             <input
               ref={inputRef}
@@ -594,7 +566,7 @@ export default function Home() {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
               placeholder="URL or search query..."
-              className="flex-1 bg-transparent text-[20px] sm:text-[24px] text-[#e8e6e3] placeholder:text-[#444] focus:outline-none tracking-tight"
+              className="flex-1 bg-transparent text-[20px] sm:text-[24px] text-foreground placeholder:text-text-dim focus:outline-none tracking-tight"
             />
             {query.trim() && (
               <div className="flex items-center gap-2">
@@ -602,7 +574,7 @@ export default function Home() {
                   onClick={() => handleSubmit()}
                   disabled={loading}
                   aria-label={loading ? "..." : "Fetch results"}
-                  className="bg-[#00ff41] text-[#0c0c0c] px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50 min-w-[60px] min-h-[44px]"
+                  className="bg-accent text-background px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50 min-w-[60px] min-h-[44px]"
                 >
                   {loading ? "..." : "Fetch"}
                 </button>
@@ -620,7 +592,7 @@ export default function Home() {
                     setViewRaw(false);
                   }}
                   aria-label="Clear input and results"
-                  className="bg-transparent text-[#888] px-4 py-2 text-[13px] border-2 border-[#333] hover:border-[#00ff41] hover:text-[#00ff41] min-h-[44px]"
+                  className="bg-transparent text-text-dim px-4 py-2 text-[13px] border-2 border-border-muted hover:border-accent hover:text-accent min-h-[44px]"
                 >
                   Clear
                 </button>
@@ -628,12 +600,12 @@ export default function Home() {
             )}
           </div>
           {query.trim() && (
-            <div className="text-[11px] text-[#555] mt-2 uppercase tracking-wider">
+            <div className="text-[11px] text-text-muted mt-2 uppercase tracking-wider">
               {isUrl ? "Resolving as URL" : "Searching"}
             </div>
           )}
           {providerStatus && (
-            <div className="text-[11px] text-[#00ff41] mt-2 animate-pulse">
+            <div className="text-[11px] text-accent mt-2 animate-pulse">
               {providerStatus}
             </div>
           )}
@@ -641,7 +613,7 @@ export default function Home() {
 
         {/* Error */}
         {error && (
-          <div className="p-4 border-b-2 border-[#333] text-[#ff4444] text-[13px]">
+          <div className="p-4 border-b-2 border-border-muted text-error text-[13px]">
             {error}
           </div>
         )}
@@ -651,30 +623,30 @@ export default function Home() {
           {result ? (
             <>
               {/* Metadata bar */}
-              <div className="flex items-center justify-between flex-wrap gap-3 px-4 py-2 border-b-2 border-[#333] text-[11px] text-[#666]">
+              <div className="flex items-center justify-between flex-wrap gap-3 px-4 py-2 border-b-2 border-border-muted text-[11px] text-text-muted">
                 <div className="flex items-center gap-4 flex-wrap">
                   <span>
-                    Source: <span className="text-[#00ff41]">{sourceProvider}</span>
+                    Source: <span className="text-accent">{sourceProvider}</span>
                   </span>
                   {resolveTime && <span>{resolveTime}ms</span>}
                   <span>{charCount.toLocaleString()} chars</span>
                   {qualityScore !== null && (
                     <span title="Quality score (0-100)">
-                      Quality: <span className={qualityScore >= 70 ? "text-[#00ff41]" : qualityScore >= 40 ? "text-[#ffaa00]" : "text-[#ff4444]"}>{qualityScore}</span>
+                      Quality: <span className={qualityScore >= 70 ? "text-accent" : qualityScore >= 40 ? "text-[#ffaa00]" : "text-error"}>{qualityScore}</span>
                     </span>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setViewRaw(false)}
-                    className={`px-3 py-1 border border-[#333] ${!viewRaw ? "text-[#00ff41] border-[#00ff41]" : "text-[#666]"}`}
+                    className={`px-3 py-1 border border-border-muted ${!viewRaw ? "text-accent border-accent" : "text-text-muted"}`}
                     aria-pressed={!viewRaw}
                   >
                     Cards
                   </button>
                   <button
                     onClick={() => setViewRaw(true)}
-                    className={`px-3 py-1 border border-[#333] ${viewRaw ? "text-[#00ff41] border-[#00ff41]" : "text-[#666]"}`}
+                    className={`px-3 py-1 border border-border-muted ${viewRaw ? "text-accent border-accent" : "text-text-muted"}`}
                     aria-pressed={viewRaw}
                   >
                     Raw
@@ -683,7 +655,7 @@ export default function Home() {
                     onClick={handleCopyResult}
                     aria-label={copied ? "Copied to clipboard" : "Copy to clipboard"}
                     aria-live="polite"
-                    className="hover:text-[#e8e6e3] transition-colors min-h-[36px] px-2"
+                    className="hover:text-foreground transition-colors min-h-[36px] px-2"
                   >
                     {copied ? "Copied" : "Copy"}
                   </button>
@@ -693,10 +665,10 @@ export default function Home() {
                 <textarea
                   readOnly
                   value={result}
-                  className="flex-1 bg-[#141414] p-4 text-[13px] text-[#e8e6e3] font-mono resize-none focus:outline-none whitespace-pre-wrap overflow-auto min-h-[200px]"
+                  className="flex-1 bg-[#141414] p-4 text-[13px] text-foreground font-mono resize-none focus:outline-none whitespace-pre-wrap overflow-auto min-h-[200px]"
                 />
               ) : (
-                <div className="flex-1 overflow-auto bg-[#0c0c0c] p-4 space-y-4">
+                <div className="flex-1 overflow-auto bg-background p-4 space-y-4">
                   {parsedResults.map((parsed) => (
                     <ResultCard
                       key={parsed.id}
@@ -710,7 +682,7 @@ export default function Home() {
               )}
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-[#444] text-[13px] p-4 text-center">
+            <div className="flex-1 flex items-center justify-center text-text-dim text-[13px] p-4 text-center">
               Paste a URL or enter a search query
             </div>
           )}
@@ -724,14 +696,14 @@ export default function Home() {
           onClick={() => setShowShortcuts(false)}
         >
           <div
-            className="bg-[#0c0c0c] border-2 border-[#333] p-6 max-w-md w-full mx-4"
+            className="bg-background border-2 border-border-muted p-6 max-w-md w-full mx-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between mb-4">
-              <h2 className="text-[13px] font-bold text-[#e8e6e3]">Keyboard Shortcuts</h2>
+              <h2 className="text-[13px] font-bold text-foreground">Keyboard Shortcuts</h2>
               <button
                 onClick={() => setShowShortcuts(false)}
-                className="text-[#666] hover:text-[#e8e6e3] text-[18px] leading-none"
+                className="text-text-muted hover:text-foreground text-[18px] leading-none"
                 aria-label="Close shortcuts"
               >
                 ×
@@ -745,8 +717,8 @@ export default function Home() {
                 { key: "Escape", action: "Clear input or close modal" },
               ].map(({ key, action }) => (
                 <div key={key} className="flex justify-between text-[11px]">
-                  <span className="text-[#888]">{action}</span>
-                  <kbd className="bg-[#222] px-2 py-1 text-[#e8e6e3] border border-[#333]">{key}</kbd>
+                  <span className="text-text-muted">{action}</span>
+                  <kbd className="bg-[#222] px-2 py-1 text-foreground border border-border-muted">{key}</kbd>
                 </div>
               ))}
             </div>
