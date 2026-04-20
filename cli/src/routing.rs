@@ -83,12 +83,13 @@ pub fn plan_provider_order(
             "duckduckgo".into(),
         ]
     } else {
+        // DuckDuckGo deprioritized due to instability (Alert 2026-04-20)
         vec![
             "exa_mcp".into(),
             "exa".into(),
             "tavily".into(),
-            "duckduckgo".into(),
             "mistral_websearch".into(),
+            "duckduckgo".into(),
         ]
     };
 
