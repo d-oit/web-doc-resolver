@@ -385,6 +385,9 @@ export default function Home() {
                   description: p.providers.join(", "),
                 }))}
               />
+              <span className="text-[10px] text-text-dim">
+                Using {profile} profile
+              </span>
               <div className="flex flex-col gap-1 mt-1">
                 <div className="flex items-center justify-between">
                   <label className="text-[9px] text-text-muted">Max chars</label>
