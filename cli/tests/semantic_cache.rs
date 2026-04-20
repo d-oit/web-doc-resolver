@@ -74,7 +74,10 @@ mod semantic_cache_tests {
         // Note: Semantic similarity depends on the TextEncoder's encoding quality
         // This test verifies the encoding and similarity check work correctly
         let similar_query = "Rust programming language TUTORIAL"; // Case difference
-        let loaded = cache.query(similar_query, None).await.expect("Failed to query");
+        let loaded = cache
+            .query(similar_query, None)
+            .await
+            .expect("Failed to query");
 
         // Normalization makes this identical query hit with score 1.0
         assert!(
@@ -145,7 +148,10 @@ mod semantic_cache_tests {
             .expect("Failed to store");
 
         // Query URL should return single result
-        let loaded = cache.query_url(url, None).await.expect("Failed to query_url");
+        let loaded = cache
+            .query_url(url, None)
+            .await
+            .expect("Failed to query_url");
         assert!(loaded.is_some(), "Expected cache hit for URL");
         assert_eq!(loaded.unwrap().source, "jina");
     }

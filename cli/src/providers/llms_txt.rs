@@ -79,8 +79,14 @@ impl crate::providers::UrlProvider for LlmsTxtProvider {
             reqwest::header::HeaderValue::from_static("WDR/1.0 (LLM documentation resolver)"),
         );
 
-        let response: reqwest::Response =
-            safe_request(&self.client, reqwest::Method::GET, &llms_txt_url, headers, None).await?;
+        let response: reqwest::Response = safe_request(
+            &self.client,
+            reqwest::Method::GET,
+            &llms_txt_url,
+            headers,
+            None,
+        )
+        .await?;
 
         if response.status() == 404 {
             return Err(ResolverError::NotFound("llms.txt not found".to_string()));

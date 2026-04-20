@@ -70,13 +70,9 @@ pub async fn is_safe_url_async(url_str: &str) -> bool {
         None => return false,
     };
 
-    let port = parsed.port().unwrap_or_else(|| {
-        if parsed.scheme() == "https" {
-            443
-        } else {
-            80
-        }
-    });
+    let port = parsed
+        .port()
+        .unwrap_or_else(|| if parsed.scheme() == "https" { 443 } else { 80 });
 
     // Resolve DNS
     match lookup_host(format!("{}:{}", host, port)).await {
