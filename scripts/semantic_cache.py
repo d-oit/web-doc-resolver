@@ -177,7 +177,7 @@ class SemanticCache:
 
                 logger.info(f"Loading sentence-transformers model: {self._model_name}")
                 self._model = SentenceTransformer(self._model_name)
-                self._embedding_dimension = self._model.get_sentence_embedding_dimension()
+                self._embedding_dimension = self._model.get_embedding_dimension()
                 logger.info(f"Model loaded. Embedding dimension: {self._embedding_dimension}")
 
                 # Create vector table now that we know the dimension

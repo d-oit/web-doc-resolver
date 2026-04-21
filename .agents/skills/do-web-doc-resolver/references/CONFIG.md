@@ -192,6 +192,26 @@ Blocked schemes:
 - `data:`
 - `vbscript:`
 
+## Known Issues
+
+### Semantic Cache (#251)
+
+Python semantic cache may fail to retrieve stored results due to sqlite-vec vec0 insert syntax.
+
+**Workaround**: Disable with environment variable:
+```bash
+DO_WDR_SEMANTIC_CACHE=0
+```
+
+### Deprecated API (#252)
+
+`sentence_transformers.SentenceTransformer.get_sentence_embedding_dimension()` is deprecated.
+Use `get_embedding_dimension()` instead.
+
+### Rust Security Alerts (#253)
+
+The optional `semantic-cache` Cargo feature has upstream security alerts. Avoid in production.
+
 ## Logging
 
 ### Log Levels

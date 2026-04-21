@@ -70,6 +70,32 @@ cd web && npx playwright test --project=desktop
 | Project overview | [`agents-docs/OVERVIEW.md`](agents-docs/OVERVIEW.md) |
 | CI triage heuristics | [`.agents/skills/do-github-pr-sentinel/references/heuristics.md`](.agents/skills/do-github-pr-sentinel/references/heuristics.md) |
 
+## Known Issues
+
+See [CHANGELOG.md](CHANGELOG.md) for current known issues:
+
+| Issue | Description | Status |
+|-------|-------------|--------|
+| [#251](https://github.com/d-oit/do-web-doc-resolver/issues/251) | Python semantic cache sqlite-vec compatibility | Open |
+| [#252](https://github.com/d-oit/do-web-doc-resolver/issues/252) | Deprecated `get_sentence_embedding_dimension` API | Fixed |
+| [#253](https://github.com/d-oit/do-web-doc-resolver/issues/253) | Rust semantic-cache security alerts (upstream) | Open |
+| [#255](https://github.com/d-oit/do-web-doc-resolver/issues/255) | Dependabot vulnerabilities pending review | Open |
+| [#256](https://github.com/d-oit/do-web-doc-resolver/issues/256) | Release workflow out-of-order merge handling | Open |
+
+### Semantic Cache Workaround
+
+Disable semantic cache in CI/tests:
+```bash
+DO_WDR_SEMANTIC_CACHE=0 python -m pytest tests/ -v -m "not live"
+```
+
+### Issue Resolution Workflow
+
+**Full workflow before closing issues:**
+1. Apply fix → 2. Dogfood/test → 3. Atomic commit → 4. Push → 5. PR → 6. CI must pass → 7. Merge → 8. Close issue → 9. Update docs/memory
+
+**Do NOT close issues early.** An unmerged fix is not a fixed issue.
+
 ## Skills
 
 | Skill | Location | Description |

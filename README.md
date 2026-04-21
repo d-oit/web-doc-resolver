@@ -496,6 +496,18 @@ Screenshots and visual assets are stored in `assets/screenshots/`. See [assets/R
 ./scripts/capture/capture-responsive.sh
 ```
 
+## Known Issues
+
+| Issue | Description | Workaround/Fix |
+|-------|-------------|----------------|
+| [#251](https://github.com/d-oit/do-web-doc-resolver/issues/251) | Python semantic cache sqlite-vec vec0 insert syntax | Disable with `DO_WDR_SEMANTIC_CACHE=0` |
+| [#252](https://github.com/d-oit/do-web-doc-resolver/issues/252) | Deprecated `get_sentence_embedding_dimension` API | **Fixed** in `scripts/semantic_cache.py:180` |
+| [#253](https://github.com/d-oit/do-web-doc-resolver/issues/253) | Rust semantic-cache feature security alerts | Avoid `semantic-cache` feature; track upstream `chaotic_semantic_memory#88` |
+| [#255](https://github.com/d-oit/do-web-doc-resolver/issues/255) | Dependabot vulnerabilities (1 moderate, 4 low) | Pending review |
+| [#256](https://github.com/d-oit/do-web-doc-resolver/issues/256) | Release workflow squash merge resets versions | Re-apply version bumps after out-of-order merges |
+
+For detailed tracking, see [CHANGELOG.md](CHANGELOG.md).
+
 ## License
 
 MIT License - see LICENSE file for details.

@@ -262,6 +262,87 @@ cargo flamegraph --bin do-wdr -- resolve "query"
 3. Run tests to isolate issue
 4. Check provider status pages
 
+## Known Issues
+
+### Python Semantic Cache (#251)
+
+The sqlite-vec vec0 virtual table insert syntax is causing cache retrieval failures.
+
+**Symptom**: `query()` returns None even after `store()` succeeds.
+
+**Workaround**: Disable semantic cache in tests:
+```bash
+DO_WDR_SEMANTIC_CACHE=0 python -m pytest tests/ -v -m "not live"
+```
+
+**Investigation needed**: Verify vec0 schema and insert syntax compatibility with sqlite-vec 0.1.9.
+
+### Deprecated sentence-transformers API (#252)
+
+The `get_sentence_embedding_dimension()` method was deprecated in sentence-transformers 5.x.
+
+**Location**: `scripts/semantic_cache.py:180`
+
+**Status**: **Fixed** - Changed to `get_embedding_dimension()`.
+
+### Rust semantic-cache security alerts (#253)
+
+The optional `semantic-cache` feature pulls an upstream-constrained dependency chain with open Rust security alerts.
+
+**Affected**: `chaotic_semantic_memory -> libsql` dependency chain
+
+**Workaround**: Do not enable `semantic-cache` feature in production.
+
+**Tracking**: Upstream issue `d-o-hub/chaotic_semantic_memory#88`
+
+### DuckDuckGo package renamed
+
+The `duckduckgo_search` package is now `ddgs`. Update `requirements.txt` when updating dependencies.
+
+## Issue Resolution Workflow
+
+**Full workflow before closing GitHub issues:**
+
+1. **Apply fix** - Make code changes
+2. **Dogfood/test** - Run the actual feature/code to verify it works locally
+3. **Atomic commit** - Single focused commit with conventional commit message
+4. **Push branch** - Push to remote
+5. **Create PR** - Open pull request
+6. **Wait for CI** - All GitHub Actions must pass
+7. **Merge PR** - Merge after CI green
+8. **Close issue** - Only after merge is complete
+9. **Update learnings** - Document what was learned in memory/CHANGELOG
+
+**Do NOT close issues early.** An unmerged fix is not a fixed issue.
+
+Example workflow:
+```bash
+# 1-2. Apply fix and test locally
+python -c "from scripts.semantic_cache import SemanticCache; ..."
+
+# 3. Atomic commit
+git add scripts/semantic_cache.py
+git commit -m "fix(cache): update deprecated sentence-transformers API"
+
+# 4. Push
+git push origin fix-semantic-cache-api
+
+# 5. Create PR
+gh pr create --title "Fix deprecated API" --body "Closes #252"
+
+# 6. Wait for CI (use do-github-pr-sentinel skill)
+gh pr checks <number> --watch
+
+# 7. Merge after green
+gh pr merge <number> --squash
+
+# 8. Close issue (with evidence)
+gh issue close 252 --comment "Verified, merged, CI passed."
+
+# 9. Update docs/memory
+# Edit CHANGELOG.md, AGENTS.md, etc.
+```
+
 ## Lessons Learned
 
 ### Vercel Monorepo Setup
