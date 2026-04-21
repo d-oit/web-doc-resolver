@@ -177,7 +177,7 @@ class SemanticCache:
 
                 logger.info(f"Loading sentence-transformers model: {self._model_name}")
                 self._model = SentenceTransformer(self._model_name)
-                self._embedding_dimension = self._model.get_embedding_dimension()
+                self._embedding_dimension = self._model.get_sentence_embedding_dimension()
                 logger.info(f"Model loaded. Embedding dimension: {self._embedding_dimension}")
 
                 # Create vector table now that we know the dimension
@@ -317,19 +317,6 @@ class SemanticCache:
             embedding = self._compute_embedding(query_str)
             embedding_blob = self._embedding_to_blob(embedding)
 
-            # Check for existing entry and delete its vector if present
-            cursor = self._conn.execute(
-                "SELECT id FROM cache_entries WHERE query = ?",
-                (query_str,),
-            )
-            old_row = cursor.fetchone()
-            if old_row:
-                # Delete old vector entry before replacing
-                self._conn.execute(
-                    "DELETE FROM vec_cache WHERE entry_id = ?",
-                    (old_row["id"],),
-                )
-
             # Insert into main table
             cursor = self._conn.execute(
                 """
@@ -341,13 +328,13 @@ class SemanticCache:
             )
             entry_id = cursor.lastrowid
 
-            # Insert into vector table - let SQLite assign rowid automatically
+            # Insert into vector table
             self._conn.execute(
                 """
-                INSERT INTO vec_cache (embedding, entry_id)
-                VALUES (?, ?)
+                INSERT OR REPLACE INTO vec_cache (rowid, embedding, entry_id)
+                VALUES (?, ?, ?)
             """,
-                (embedding_blob, entry_id),
+                (entry_id, embedding_blob, entry_id),
             )
 
             self._conn.commit()

@@ -645,7 +645,7 @@ dependencies = [
 
 [[package]]
 name = "do-wdr"
-version = "0.3.1"
+version = "1.1.0"
 dependencies = [
  "anyhow",
  "async-trait",

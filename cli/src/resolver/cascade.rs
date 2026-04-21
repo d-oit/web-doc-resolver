@@ -4,7 +4,6 @@
 
 use crate::error::ResolverError;
 use std::time::Duration;
-use tokio::net::lookup_host;
 
 /// Check if input is a URL
 pub fn is_url(input: &str) -> bool {
@@ -51,110 +50,6 @@ pub fn is_safe_url(url_str: &str) -> bool {
         }
         url::Host::Ipv4(ip) => !is_private_ipv4(ip),
         url::Host::Ipv6(ip) => !is_private_ipv6(ip),
-    }
-}
-
-/// Asynchronously check if a URL is safe from SSRF by resolving DNS
-pub async fn is_safe_url_async(url_str: &str) -> bool {
-    if !is_safe_url(url_str) {
-        return false;
-    }
-
-    let parsed = match url::Url::parse(url_str) {
-        Ok(u) => u,
-        Err(_) => return false,
-    };
-
-    let host = match parsed.host_str() {
-        Some(h) => h,
-        None => return false,
-    };
-
-    let port = parsed
-        .port()
-        .unwrap_or_else(|| if parsed.scheme() == "https" { 443 } else { 80 });
-
-    // Resolve DNS
-    match lookup_host(format!("{}:{}", host, port)).await {
-        Ok(addrs) => {
-            for addr in addrs {
-                let ip = addr.ip();
-                match ip {
-                    std::net::IpAddr::V4(ipv4) => {
-                        if is_private_ipv4(ipv4) {
-                            return false;
-                        }
-                    }
-                    std::net::IpAddr::V6(ipv6) => {
-                        if is_private_ipv6(ipv6) {
-                            return false;
-                        }
-                    }
-                }
-            }
-            true
-        }
-        Err(_) => false,
-    }
-}
-
-/// Perform a safe HTTP request with redirect handling and SSRF protection
-pub async fn safe_request(
-    client: &reqwest::Client,
-    method: reqwest::Method,
-    url_str: &str,
-    headers: reqwest::header::HeaderMap,
-    body: Option<Vec<u8>>,
-) -> Result<reqwest::Response, ResolverError> {
-    let mut current_url = url_str.to_string();
-    let mut hops = 0;
-
-    loop {
-        if hops >= 5 {
-            return Err(ResolverError::Network("Too many redirects".to_string()));
-        }
-
-        if !is_safe_url_async(&current_url).await {
-            return Err(ResolverError::Auth(format!(
-                "URL blocked (SSRF): {}",
-                current_url
-            )));
-        }
-
-        let mut request = client.request(method.clone(), &current_url);
-        for (name, value) in &headers {
-            request = request.header(name, value);
-        }
-
-        if let Some(ref b) = body {
-            request = request.body(b.clone());
-        }
-
-        let response = request
-            .send()
-            .await
-            .map_err(|e| ResolverError::Network(e.to_string()))?;
-
-        if response.status().is_redirection() {
-            if let Some(location) = response.headers().get(reqwest::header::LOCATION) {
-                let location_str = location
-                    .to_str()
-                    .map_err(|_| ResolverError::Parse("Invalid location header".to_string()))?;
-
-                // Handle relative redirects
-                let base = url::Url::parse(&current_url)
-                    .map_err(|_| ResolverError::Parse("Invalid current URL".to_string()))?;
-                let next_url = base
-                    .join(location_str)
-                    .map_err(|_| ResolverError::Parse("Invalid redirect URL".to_string()))?;
-
-                current_url = next_url.to_string();
-                hops += 1;
-                continue;
-            }
-        }
-
-        return Ok(response);
     }
 }
 
@@ -233,16 +128,6 @@ mod tests {
         assert!(!is_safe_url("http://[::1]"));
         assert!(!is_safe_url("http://192.168.0.1"));
         assert!(!is_safe_url("file:///etc/passwd"));
-    }
-
-    #[tokio::test]
-    async fn test_is_safe_url_async() {
-        // These should work even if DNS is not available as they exit early
-        assert!(!is_safe_url_async("http://127.0.0.1").await);
-        assert!(!is_safe_url_async("http://192.168.1.1").await);
-
-        // This might fail if no internet, but usually example.com is safe
-        // assert!(is_safe_url_async("https://example.com").await);
     }
 
     #[test]

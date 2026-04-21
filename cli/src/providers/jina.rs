@@ -3,7 +3,6 @@
 //! Free content extraction via https://r.jina.ai/<url>
 
 use crate::error::{ResolverError, detect_error_type};
-use crate::resolver::cascade::safe_request;
 use crate::types::ResolvedResult;
 use async_trait::async_trait;
 use std::result::Result;
@@ -20,10 +19,7 @@ impl JinaProvider {
     /// Create a new Jina provider
     pub fn new() -> Self {
         Self {
-            client: reqwest::Client::builder()
-                .redirect(reqwest::redirect::Policy::none())
-                .build()
-                .unwrap_or_default(),
+            client: reqwest::Client::new(),
             rate_limited: Arc::new(AtomicBool::new(false)),
         }
     }
@@ -63,14 +59,13 @@ impl crate::providers::UrlProvider for JinaProvider {
         // Use Jina Reader API
         let jina_url = format!("https://r.jina.ai/{}", url);
 
-        let mut headers = reqwest::header::HeaderMap::new();
-        headers.insert(
-            reqwest::header::USER_AGENT,
-            reqwest::header::HeaderValue::from_static("WDR/1.0 (LLM documentation resolver)"),
-        );
-
-        let response: reqwest::Response =
-            safe_request(&self.client, reqwest::Method::GET, &jina_url, headers, None).await?;
+        let response = self
+            .client
+            .get(&jina_url)
+            .header("User-Agent", "WDR/1.0 (LLM documentation resolver)")
+            .send()
+            .await
+            .map_err(|e| ResolverError::Network(e.to_string()))?;
 
         if response.status() == 429 {
             self.set_rate_limited(true);

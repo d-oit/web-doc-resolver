@@ -34,7 +34,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run tests
-        run: DO_WDR_SEMANTIC_CACHE=0 python -m pytest tests/ -v -m "not live"
+        run: python -m pytest tests/ -v -m "not live"
 
   rust-test:
     name: Rust CLI Test

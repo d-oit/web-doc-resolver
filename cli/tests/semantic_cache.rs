@@ -41,12 +41,12 @@ mod semantic_cache_tests {
         let query = "tokio async runtime";
         let results = create_test_result("test_provider", "Test content about Tokio async runtime");
         cache
-            .store(query, &results, "test_provider", None)
+            .store(query, &results, "test_provider")
             .await
             .expect("Failed to store");
 
         // Query should hit
-        let loaded = cache.query(query, None).await.expect("Failed to query");
+        let loaded = cache.query(query).await.expect("Failed to query");
         assert!(loaded.is_some(), "Expected cache hit for stored query");
 
         let loaded_results = loaded.unwrap();
@@ -66,7 +66,7 @@ mod semantic_cache_tests {
         let query = "rust programming language tutorial";
         let results = create_test_result("rust_docs", "Learn Rust programming");
         cache
-            .store(query, &results, "rust_docs", None)
+            .store(query, &results, "rust_docs")
             .await
             .expect("Failed to store");
 
@@ -74,10 +74,7 @@ mod semantic_cache_tests {
         // Note: Semantic similarity depends on the TextEncoder's encoding quality
         // This test verifies the encoding and similarity check work correctly
         let similar_query = "Rust programming language TUTORIAL"; // Case difference
-        let loaded = cache
-            .query(similar_query, None)
-            .await
-            .expect("Failed to query");
+        let loaded = cache.query(similar_query).await.expect("Failed to query");
 
         // Normalization makes this identical query hit with score 1.0
         assert!(
@@ -94,19 +91,19 @@ mod semantic_cache_tests {
         let query = "unique test query for removal";
         let results = create_test_result("remove_test", "Content to be removed");
         cache
-            .store(query, &results, "remove_test", None)
+            .store(query, &results, "remove_test")
             .await
             .expect("Failed to store");
 
         // Verify it's stored
-        let loaded = cache.query(query, None).await.expect("Failed to query");
+        let loaded = cache.query(query).await.expect("Failed to query");
         assert!(loaded.is_some(), "Expected cache hit after store");
 
         // Remove the entry
         cache.remove(query).await.expect("Failed to remove");
 
         // Query should now miss
-        let loaded = cache.query(query, None).await.expect("Failed to query");
+        let loaded = cache.query(query).await.expect("Failed to query");
         assert!(loaded.is_none(), "Expected cache miss after remove");
     }
 
@@ -122,14 +119,14 @@ mod semantic_cache_tests {
                 &format!("Content for {}", query),
             );
             cache
-                .store(query, &results, &format!("provider_{}", i), None)
+                .store(query, &results, &format!("provider_{}", i))
                 .await
                 .expect("Failed to store");
         }
 
         // Each query should hit separately
         for (i, query) in queries.iter().enumerate() {
-            let loaded = cache.query(query, None).await.expect("Failed to query");
+            let loaded = cache.query(query).await.expect("Failed to query");
             assert!(loaded.is_some(), "Expected cache hit for query: {}", query);
             assert_eq!(loaded.unwrap()[0].source, format!("provider_{}", i));
         }
@@ -143,15 +140,12 @@ mod semantic_cache_tests {
         let url = "https://docs.rs/tokio";
         let results = create_test_result("jina", "Tokio documentation content");
         cache
-            .store(url, &results, "jina", None)
+            .store(url, &results, "jina")
             .await
             .expect("Failed to store");
 
         // Query URL should return single result
-        let loaded = cache
-            .query_url(url, None)
-            .await
-            .expect("Failed to query_url");
+        let loaded = cache.query_url(url).await.expect("Failed to query_url");
         assert!(loaded.is_some(), "Expected cache hit for URL");
         assert_eq!(loaded.unwrap().source, "jina");
     }
@@ -166,13 +160,13 @@ mod semantic_cache_tests {
         let key = format!("{}:{}", provider, query);
         let results = create_test_result(provider, "Exa MCP result");
         cache
-            .store(&key, &results, provider, None)
+            .store(&key, &results, provider)
             .await
             .expect("Failed to store");
 
         // Query with provider should hit
         let loaded = cache
-            .query_provider(query, provider, None)
+            .query_provider(query, provider)
             .await
             .expect("Failed to query_provider");
         assert!(
