@@ -250,18 +250,12 @@ AI-powered web search via Mistral.
 
 ## Known Issues
 
-### DuckDuckGo Provider (#254)
+### DuckDuckGo Provider (#254, #260)
 
-The `duckduckgo_search` Python package has been renamed to `ddgs`.
+The `duckduckgo_search` Python package has been renamed to `ddgs`. This has been updated in the codebase.
 
-**Symptom**: Import errors after dependency update.
-
-**Fix**: Update import in provider implementation:
+**Import implementation**:
 ```python
-# Old
-from duckduckgo_search import DDGS
-
-# New
 from ddgs import DDGS
 ```
 
