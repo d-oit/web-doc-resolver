@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **E2E**: Fix sidebar toggle, profile status, and Keys link locators for Playwright tests.
 - **CLI**: Fix semantic cache benchmark compilation with updated API signatures.
 - **Providers**: Fix ruff lint errors in provider diagnostics script.
+- **Semantic Cache**: Fix vec0 virtual table insert syntax to properly store and retrieve cached results.
 
 ### Known Issues
 
