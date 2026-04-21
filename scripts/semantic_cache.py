@@ -8,7 +8,10 @@ The all-MiniLM-L6-v2 model is used (small, ~80MB, fast) and runs entirely locall
 import json
 import logging
 import os
-import sqlite3
+try:
+    from pysqlite3 import dbapi2 as sqlite3
+except ImportError:
+    import sqlite3
 import struct
 import time
 from dataclasses import dataclass, field
@@ -194,17 +197,11 @@ class SemanticCache:
         if self._embedding_dimension is None:
             return
 
-        # Drop existing table if dimension changed
-        try:
-            self._conn.execute("DROP TABLE IF EXISTS vec_cache")
-        except sqlite3.OperationalError:
-            pass
-
         # Create virtual table with float32 embeddings
+        # We use the implicit rowid to link to cache_entries.id
         self._conn.execute(f"""
             CREATE VIRTUAL TABLE IF NOT EXISTS vec_cache USING vec0(
-                embedding float[{self._embedding_dimension}],
-                +entry_id INTEGER
+                embedding float[{self._embedding_dimension}]
             )
         """)
         self._conn.commit()
@@ -256,7 +253,7 @@ class SemanticCache:
                 SELECT ce.id, ce.query, ce.result_json, ce.timestamp,
                        vec_distance_cosine(vc.embedding, ?) as distance
                 FROM vec_cache vc
-                JOIN cache_entries ce ON ce.id = vc.entry_id
+                JOIN cache_entries ce ON ce.id = vc.rowid
                 ORDER BY distance ASC
                 LIMIT 1
             """,
@@ -268,7 +265,9 @@ class SemanticCache:
                 return None
 
             # Convert distance to similarity (cosine distance = 1 - cosine similarity)
-            distance = row["distance"] or 1.0
+            distance = row["distance"]
+            if distance is None:
+                distance = 1.0
             similarity = 1.0 - distance
 
             if similarity < self.threshold:
@@ -317,23 +316,22 @@ class SemanticCache:
             embedding = self._compute_embedding(query_str)
             embedding_blob = self._embedding_to_blob(embedding)
 
-            # Check for existing entry and delete its vector if present
+            # Check for existing entry and delete if present
+            # Virtual tables (vec0) don't support REPLACE well, so we delete manually
             cursor = self._conn.execute(
                 "SELECT id FROM cache_entries WHERE query = ?",
                 (query_str,),
             )
             old_row = cursor.fetchone()
             if old_row:
-                # Delete old vector entry before replacing
-                self._conn.execute(
-                    "DELETE FROM vec_cache WHERE entry_id = ?",
-                    (old_row["id"],),
-                )
+                old_id = old_row["id"]
+                self._conn.execute("DELETE FROM vec_cache WHERE rowid = ?", (old_id,))
+                self._conn.execute("DELETE FROM cache_entries WHERE id = ?", (old_id,))
 
             # Insert into main table
             cursor = self._conn.execute(
                 """
-                INSERT OR REPLACE INTO cache_entries
+                INSERT INTO cache_entries
                 (query, result_json, timestamp, last_accessed)
                 VALUES (?, ?, ?, ?)
             """,
@@ -341,13 +339,13 @@ class SemanticCache:
             )
             entry_id = cursor.lastrowid
 
-            # Insert into vector table - let SQLite assign rowid automatically
+            # Insert into vector table using the same ID as rowid
             self._conn.execute(
                 """
-                INSERT INTO vec_cache (embedding, entry_id)
+                INSERT INTO vec_cache (rowid, embedding)
                 VALUES (?, ?)
             """,
-                (embedding_blob, entry_id),
+                (entry_id, embedding_blob),
             )
 
             self._conn.commit()
@@ -382,7 +380,7 @@ class SemanticCache:
                 ids_to_delete = [row["id"] for row in cursor.fetchall()]
 
                 for entry_id in ids_to_delete:
-                    self._conn.execute("DELETE FROM vec_cache WHERE entry_id = ?", (entry_id,))
+                    self._conn.execute("DELETE FROM vec_cache WHERE rowid = ?", (entry_id,))
                     self._conn.execute("DELETE FROM cache_entries WHERE id = ?", (entry_id,))
 
                 self._conn.commit()
