@@ -220,9 +220,6 @@ def synthesize_results(query: str, results: list[ResolvedResult], api_key: str, 
 def resolve_url(
     url: str, max_chars: int = MAX_CHARS, profile: Profile = Profile.BALANCED
 ) -> dict[str, Any]:
-    # Convert string profile to enum if needed
-    if isinstance(profile, str):
-        profile = Profile(profile.lower())
     for result in resolve_url_stream(url, max_chars, profile):
         if result.get("source") != "partial":
             return result
@@ -232,9 +229,6 @@ def resolve_url(
 def resolve_url_stream(
     url: str, max_chars: int = MAX_CHARS, profile: Profile = Profile.BALANCED
 ) -> Generator[dict[str, Any], None, None]:
-    # Convert string profile to enum if needed
-    if isinstance(profile, str):
-        profile = Profile(profile.lower())
     logger.info(f"Resolving URL: {url}")
 
     # Check semantic cache first

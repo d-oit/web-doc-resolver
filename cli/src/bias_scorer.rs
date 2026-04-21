@@ -27,11 +27,6 @@ pub fn score_result(url: &str, content: &str) -> f64 {
             "mozilla.org",
             "rust-lang.org",
             "tokio.rs",
-            "python.org",
-            "react.dev",
-            "nextjs.org",
-            "npmjs.com",
-            "pypi.org",
         ];
         if dev_sites.iter().any(|&site| domain.contains(site)) {
             score += 0.2;

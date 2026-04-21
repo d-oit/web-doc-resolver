@@ -59,7 +59,7 @@ fn bench_store(c: &mut Criterion) {
             let test_results = create_test_results(*size);
             b.to_async(&rt).iter(|| async {
                 cache
-                    .store(&query, &test_results, "test_provider", None)
+                    .store(&query, &test_results, "test_provider")
                     .await
                     .unwrap();
             });
@@ -93,10 +93,7 @@ fn bench_query(c: &mut Criterion) {
 
         for (_i, query) in queries.iter().enumerate() {
             let results = create_test_results(3);
-            cache
-                .store(query, &results, "test_provider", None)
-                .await
-                .unwrap();
+            cache.store(query, &results, "test_provider").await.unwrap();
         }
 
         cache
@@ -109,17 +106,14 @@ fn bench_query(c: &mut Criterion) {
     // Benchmark querying with exact match
     group.bench_function("exact_match", |b| {
         b.to_async(&rt).iter(|| async {
-            cache
-                .query("rust programming tutorial", None)
-                .await
-                .unwrap();
+            cache.query("rust programming tutorial").await.unwrap();
         });
     });
 
     // Benchmark querying with similar (semantic) match
     group.bench_function("semantic_match", |b| {
         b.to_async(&rt).iter(|| async {
-            cache.query("rust coding tutorial", None).await.unwrap();
+            cache.query("rust coding tutorial").await.unwrap();
         });
     });
 
@@ -127,7 +121,7 @@ fn bench_query(c: &mut Criterion) {
     group.bench_function("no_match", |b| {
         b.to_async(&rt).iter(|| async {
             cache
-                .query("completely unrelated query about gardening", None)
+                .query("completely unrelated query about gardening")
                 .await
                 .unwrap();
         });
@@ -152,7 +146,7 @@ fn bench_concurrent(c: &mut Criterion) {
         // Pre-populate cache with test data
         let results = create_test_results(3);
         cache
-            .store("base query", &results, "test_provider", None)
+            .store("base query", &results, "test_provider")
             .await
             .unwrap();
 
@@ -172,7 +166,7 @@ fn bench_concurrent(c: &mut Criterion) {
                 } else {
                     &format!("rapid query {}", i)
                 };
-                let _ = cache.query(query, None).await;
+                let _ = cache.query(query).await;
             }
         });
     });
@@ -183,8 +177,8 @@ fn bench_concurrent(c: &mut Criterion) {
             for i in 0..5 {
                 let query = format!("bench query {}", i);
                 let results = create_test_results(2);
-                let _ = cache.store(&query, &results, "test_provider", None).await;
-                let _ = cache.query(&query, None).await;
+                let _ = cache.store(&query, &results, "test_provider").await;
+                let _ = cache.query(&query).await;
             }
         });
     });
