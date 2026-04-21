@@ -81,6 +81,8 @@ See [CHANGELOG.md](CHANGELOG.md) for current known issues:
 | [#253](https://github.com/d-oit/do-web-doc-resolver/issues/253) | Rust semantic-cache security alerts (upstream) | Open |
 | [#255](https://github.com/d-oit/do-web-doc-resolver/issues/255) | Dependabot vulnerabilities pending review | Open |
 | [#256](https://github.com/d-oit/do-web-doc-resolver/issues/256) | Release workflow out-of-order merge handling | Open |
+| [#259](https://github.com/d-oit/do-web-doc-resolver/issues/259) | Python URL resolver needs quality threshold fallback | Open |
+| [#260](https://github.com/d-oit/do-web-doc-resolver/issues/260) | Update duckduckgo_search to ddgs package | Open |
 
 ### Semantic Cache Workaround
 

@@ -505,6 +505,8 @@ Screenshots and visual assets are stored in `assets/screenshots/`. See [assets/R
 | [#253](https://github.com/d-oit/do-web-doc-resolver/issues/253) | Rust semantic-cache feature security alerts | Avoid `semantic-cache` feature; track upstream `chaotic_semantic_memory#88` |
 | [#255](https://github.com/d-oit/do-web-doc-resolver/issues/255) | Dependabot vulnerabilities (1 moderate, 4 low) | Pending review |
 | [#256](https://github.com/d-oit/do-web-doc-resolver/issues/256) | Release workflow squash merge resets versions | Re-apply version bumps after out-of-order merges |
+| [#259](https://github.com/d-oit/do-web-doc-resolver/issues/259) | Python URL resolver rejects content below quality threshold | CLI returns best available; Python needs fallback logic |
+| [#260](https://github.com/d-oit/do-web-doc-resolver/issues/260) | duckduckgo_search package renamed to ddgs | Update import: `from ddgs import DDGS` |
 
 For detailed tracking, see [CHANGELOG.md](CHANGELOG.md).
 
