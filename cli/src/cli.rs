@@ -8,7 +8,7 @@ use clap::{Parser, Subcommand};
 #[derive(Parser, Debug)]
 #[command(name = "do-wdr")]
 #[command(about = "Web Documentation Resolver - Resolve URLs and queries into documentation", long_about = None)]
-#[command(version = "1.1.0")]
+#[command(version = "0.3.2")]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
