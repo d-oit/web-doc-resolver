@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2026-04-21
+
+### Added
+
+- **Security**: Comprehensive SSRF hardening across Python, Web UI, and Rust CLI with DNS-aware validation and redirect tracking.
+- **Security**: DNS caching for SSRF validation with LRU cache and time-bucketing to reduce redundant lookups.
+- **Performance**: Optimized `score_content` by caching lowercased text to avoid repeated string operations.
+- **UX**: History panel auto-focus, clear button, and accessible contrast improvements.
+- **UX**: Keyboard accessibility improvements with enhanced focus indicators across the UI.
+- **Providers**: DuckDuckGo deprioritized in cascade due to reliability issues (CAPTCHA/rate limiting).
+- **CLI**: Optimized Rust semantic cache with hardened SSRF protection in HTTP client.
+
+### Changed
+
+- **Dependencies**: Update patched Rust transitive dependencies including `rustls-webpki` and `rand`.
+- **Dependencies**: Update npm dependencies in `/web` with security patches.
+- **Dependencies**: Update GitHub Actions to latest versions.
+- **UI**: Improve dark theme contrast and accessibility across components.
+- **UI**: Sidebar improvements with "Show" text, Keys link, and profile status display.
+- **CI**: Prevent grouped npm major Dependabot update regressions with isolated PR workflow.
+
+### Fixed
+
+- **E2E**: Fix sidebar toggle, profile status, and Keys link locators for Playwright tests.
+- **CLI**: Fix semantic cache benchmark compilation with updated API signatures.
+- **Providers**: Fix ruff lint errors in provider diagnostics script.
+
+### Known Issues
+
+- The optional `semantic-cache` feature still pulls an upstream-constrained `chaotic_semantic_memory -> libsql` dependency chain that keeps several Rust security alerts open.
+- Upstream tracking issue: `d-o-hub/chaotic_semantic_memory#88`.
+
 ## [0.3.1] - 2026-04-20
 
 ### Changed

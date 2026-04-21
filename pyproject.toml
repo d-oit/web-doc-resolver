@@ -1,6 +1,6 @@
 [project]
 name = "do-web-doc-resolver"
-version = "0.3.1"
+version = "0.3.2"
 description = "Resolve queries or URLs into compact, LLM-ready markdown using a low-cost cascade"
 readme = "README.md"
 license = {text = "MIT"}
