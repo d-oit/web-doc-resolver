@@ -1,0 +1,57 @@
+name: Nightly Bridge Integration
+
+on:
+  schedule:
+    - cron: '0 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  nightly-build-and-test:
+    name: Nightly Build and Integration Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install ruff black
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build Rust CLI
+        run: cd cli && cargo build --release
+
+      - name: Run Integration Tests
+        run: PYTHONPATH=. pytest tests/integration/test_cli_markdown.py
+
+      - name: Format Python
+        run: |
+          ruff format .
+          black .
+
+      - name: Format Rust
+        run: cd cli && cargo fmt
+
+      - name: Commit and Push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(nightly): automated format and fixup"
+            git push
+          else
+            echo "No changes to commit"
+          fi
