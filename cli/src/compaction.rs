@@ -49,6 +49,15 @@ fn is_boilerplate(line: &str) -> bool {
         "click here",
     ];
 
-    boilerplate_terms.iter().any(|&term| lower.contains(term))
-        || (line.len() < 10 && line.chars().all(|c| !c.is_alphanumeric()))
+    if boilerplate_terms.iter().any(|&term| lower.contains(term)) {
+        return true;
+    }
+
+    // Protect Markdown structural elements and LaTeX markers from being treated as boilerplate
+    let protected_markers = ["```", "$$", "---", "###", "---", "|", ">"];
+    if protected_markers.iter().any(|&m| line.contains(m)) {
+        return false;
+    }
+
+    line.len() < 10 && !line.is_empty() && line.chars().all(|c| !c.is_alphanumeric())
 }
