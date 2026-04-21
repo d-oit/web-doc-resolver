@@ -317,6 +317,19 @@ class SemanticCache:
             embedding = self._compute_embedding(query_str)
             embedding_blob = self._embedding_to_blob(embedding)
 
+            # Check for existing entry and delete its vector if present
+            cursor = self._conn.execute(
+                "SELECT id FROM cache_entries WHERE query = ?",
+                (query_str,),
+            )
+            old_row = cursor.fetchone()
+            if old_row:
+                # Delete old vector entry before replacing
+                self._conn.execute(
+                    "DELETE FROM vec_cache WHERE entry_id = ?",
+                    (old_row["id"],),
+                )
+
             # Insert into main table
             cursor = self._conn.execute(
                 """
@@ -328,13 +341,13 @@ class SemanticCache:
             )
             entry_id = cursor.lastrowid
 
-            # Insert into vector table
+            # Insert into vector table - let SQLite assign rowid automatically
             self._conn.execute(
                 """
-                INSERT OR REPLACE INTO vec_cache (rowid, embedding, entry_id)
-                VALUES (?, ?, ?)
+                INSERT INTO vec_cache (embedding, entry_id)
+                VALUES (?, ?)
             """,
-                (entry_id, embedding_blob, entry_id),
+                (embedding_blob, entry_id),
             )
 
             self._conn.commit()
