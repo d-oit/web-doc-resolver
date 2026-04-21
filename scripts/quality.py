@@ -15,7 +15,9 @@ class QualityScore:
     acceptable: bool
 
 
-def score_content(markdown: str, links: list[str] | None = None) -> QualityScore:
+def score_content(
+    markdown: str, links: list[str] | None = None, threshold: float = 0.65
+) -> QualityScore:
     # Handle MagicMocks in tests
     if not isinstance(markdown, str):
         return QualityScore(1.0, False, False, False, False, True)
@@ -54,7 +56,7 @@ def score_content(markdown: str, links: list[str] | None = None) -> QualityScore
     score = max(0.0, score)
 
     # Threshold for acceptance as per #59: 0.65 and not too_short
-    acceptable = score >= 0.65 and not too_short
+    acceptable = score >= threshold and not too_short
 
     return QualityScore(
         score=score,

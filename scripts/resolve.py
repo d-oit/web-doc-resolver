@@ -248,6 +248,10 @@ def resolve_url_stream(
     budget_data = scripts.routing.PROFILE_BUDGETS.get(
         profile.value, scripts.routing.PROFILE_BUDGETS["balanced"]
     )
+    quality_threshold = budget_data.get("quality_threshold", 0.65)
+    best_result = None
+    best_score = -1.0
+
     budget = scripts.routing.ResolutionBudget(
         max_provider_attempts=budget_data["max_provider_attempts"],
         max_paid_attempts=budget_data["max_paid_attempts"],
@@ -346,7 +350,7 @@ def resolve_url_stream(
                         else:
                             content = str(res_or_content)
 
-                        q_score = scripts.quality.score_content(content)
+                        q_score = scripts.quality.score_content(content, threshold=quality_threshold)
                         if q_score.acceptable or pt_done == ProviderType.LLMS_TXT:
                             _circuit_breakers.record_success(p_name_done)
                             metrics.record_provider(pt_done, latency, True)
@@ -375,6 +379,23 @@ def resolve_url_stream(
                                 yield result_dict
                             break
                         else:
+                            # Not acceptable, but track as best available
+                            if q_score.score > best_score:
+                                best_score = q_score.score
+                                if isinstance(res_or_content, ResolvedResult):
+                                    best_result = res_or_content.to_dict()
+                                    best_result["score"] = q_score.score
+                                    best_result["metrics"] = metrics
+                                else:
+                                    best_result = {
+                                        "source": p_name_done,
+                                        "url": url,
+                                        "content": compact_content(content, max_chars),
+                                        "score": q_score.score,
+                                        "metrics": metrics,
+                                    }
+
+                            metrics.record_provider(pt_done, latency, False)
                             scripts.cache_negative.write_negative_cache(
                                 cache, url, p_name_done, "thin_content", 1800
                             )
@@ -394,6 +415,13 @@ def resolve_url_stream(
                     break
     finally:
         executor.shutdown(wait=False, cancel_futures=True)
+
+    if best_result:
+        best_result["metadata"] = best_result.get("metadata", {})
+        best_result["metadata"]["fallback"] = True
+        _store_in_semantic_cache(url, best_result)
+        yield best_result
+        return
 
     yield {
         "source": "none",
@@ -434,6 +462,10 @@ def resolve_query_stream(
     budget_data = scripts.routing.PROFILE_BUDGETS.get(
         profile.value, scripts.routing.PROFILE_BUDGETS["balanced"]
     )
+    quality_threshold = budget_data.get("quality_threshold", 0.65)
+    best_result = None
+    best_score = -1.0
+
     budget = scripts.routing.ResolutionBudget(
         max_provider_attempts=budget_data["max_provider_attempts"],
         max_paid_attempts=budget_data["max_paid_attempts"],
@@ -497,7 +529,7 @@ def resolve_query_stream(
                         metrics.record_provider(pt_done, latency, False)
                         continue
                     if res:
-                        q_score = scripts.quality.score_content(res.content)
+                        q_score = scripts.quality.score_content(res.content, threshold=quality_threshold)
                         if q_score.acceptable:
                             _circuit_breakers.record_success(p_name_done)
                             metrics.record_provider(pt_done, latency, True)
@@ -512,6 +544,14 @@ def resolve_query_stream(
                             yield result_dict
                             break
                         else:
+                            # Not acceptable, but track as best available
+                            if q_score.score > best_score:
+                                best_score = q_score.score
+                                best_result = res.to_dict()
+                                best_result["score"] = q_score.score
+                                best_result["metrics"] = metrics
+
+                            metrics.record_provider(pt_done, latency, False)
                             scripts.cache_negative.write_negative_cache(
                                 cache, query, p_name_done, "thin_content", 1800
                             )
@@ -530,6 +570,13 @@ def resolve_query_stream(
                     break
     finally:
         executor.shutdown(wait=False, cancel_futures=True)
+
+    if best_result:
+        best_result["metadata"] = best_result.get("metadata", {})
+        best_result["metadata"]["fallback"] = True
+        _store_in_semantic_cache(query, best_result)
+        yield best_result
+        return
 
     yield {
         "source": "none",
