@@ -14,7 +14,6 @@ class ResolutionBudget:
     max_paid_attempts: int
     max_total_latency_ms: int
     allow_paid: bool = True
-    quality_threshold: float = 0.65
     attempts: int = 0
     paid_attempts: int = 0
     elapsed_ms: int = 0
@@ -48,28 +47,24 @@ PROFILE_BUDGETS = {
         "max_paid_attempts": 0,
         "max_total_latency_ms": 6000,
         "allow_paid": False,
-        "quality_threshold": 0.70,
     },
     "balanced": {
         "max_provider_attempts": 6,
         "max_paid_attempts": 2,
         "max_total_latency_ms": 12000,
         "allow_paid": True,
-        "quality_threshold": 0.65,
     },
     "fast": {
         "max_provider_attempts": 2,
         "max_paid_attempts": 1,
         "max_total_latency_ms": 4000,
         "allow_paid": True,
-        "quality_threshold": 0.60,
     },
     "quality": {
         "max_provider_attempts": 10,
         "max_paid_attempts": 5,
         "max_total_latency_ms": 20000,
         "allow_paid": True,
-        "quality_threshold": 0.55,
     },
 }
 

@@ -44,7 +44,7 @@ def setup_test_env():
 
         # Mock quality check to always pass and return 1.0
         original_score = scripts.quality.score_content
-        scripts.quality.score_content = lambda x, **kwargs: Mock(acceptable=True, score=1.0)
+        scripts.quality.score_content = lambda x: Mock(acceptable=True, score=1.0)
 
         # Mock synthesis to avoid LLM calls
         original_should_synth = scripts.synthesis.should_call_llm_synthesis
