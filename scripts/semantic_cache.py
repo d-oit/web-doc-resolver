@@ -99,9 +99,9 @@ class SemanticCache:
             self._init_db()
             self._init_model()
             self.enabled = True
-            logger.info(f"Semantic cache initialized at {self.db_path}")
+            logger.info("Semantic cache initialized at %s", self.db_path)
         except Exception as e:
-            logger.warning(f"Semantic cache initialization failed: {e}. Cache disabled.")
+            logger.warning("Semantic cache initialization failed: %s. Cache disabled.", e)
             self.enabled = False
 
     def _init_db(self) -> None:
@@ -122,7 +122,7 @@ class SemanticCache:
         except ImportError:
             logger.warning("sqlite-vec not installed, trying dynamic loading")
         except Exception as e:
-            logger.warning(f"Failed to load sqlite-vec via Python API: {e}")
+            logger.warning("Failed to load sqlite-vec via Python API: %s", e)
 
         if not vec_loaded:
             # Try loading as dynamic library
@@ -140,13 +140,13 @@ class SemanticCache:
                     try:
                         self._conn.execute(f"SELECT load_extension('{lib}')")
                         vec_loaded = True
-                        logger.debug(f"Loaded sqlite-vec from {lib}")
+                        logger.debug("Loaded sqlite-vec from %s", lib)
                         break
                     except sqlite3.OperationalError:
                         continue
                 self._conn.enable_load_extension(False)
             except Exception as e:
-                logger.warning(f"Failed to load sqlite-vec dynamically: {e}")
+                logger.warning("Failed to load sqlite-vec dynamically: %s", e)
 
         if not vec_loaded:
             raise RuntimeError("sqlite-vec extension could not be loaded")
@@ -179,15 +179,15 @@ class SemanticCache:
             try:
                 from sentence_transformers import SentenceTransformer
 
-                logger.info(f"Loading sentence-transformers model: {self._model_name}")
+                logger.info("Loading sentence-transformers model: %s", self._model_name)
                 self._model = SentenceTransformer(self._model_name)
                 self._embedding_dimension = self._model.get_embedding_dimension()
-                logger.info(f"Model loaded. Embedding dimension: {self._embedding_dimension}")
+                logger.info("Model loaded. Embedding dimension: %s", self._embedding_dimension)
 
                 # Create vector table now that we know the dimension
                 self._create_vector_table()
             except Exception as e:
-                logger.error(f"Failed to load embedding model: {e}")
+                logger.error("Failed to load embedding model: %s", e)
                 raise
             finally:
                 self._model_loading = False
@@ -295,7 +295,7 @@ class SemanticCache:
             )
 
         except Exception as e:
-            logger.warning(f"Semantic cache query failed: {e}")
+            logger.warning("Semantic cache query failed: %s", e)
             return None
 
     def store(self, query_str: str, result: dict[str, Any]) -> bool:
@@ -357,7 +357,7 @@ class SemanticCache:
             return True
 
         except Exception as e:
-            logger.warning(f"Failed to store in semantic cache: {e}")
+            logger.warning("Failed to store in semantic cache: %s", e)
             return False
 
     def _maybe_evict(self) -> None:
@@ -385,10 +385,10 @@ class SemanticCache:
                     self._conn.execute("DELETE FROM cache_entries WHERE id = ?", (entry_id,))
 
                 self._conn.commit()
-                logger.info(f"Evicted {len(ids_to_delete)} old semantic cache entries")
+                logger.info("Evicted %d old semantic cache entries", len(ids_to_delete))
 
         except Exception as e:
-            logger.warning(f"Cache eviction failed: {e}")
+            logger.warning("Cache eviction failed: %s", e)
 
     def close(self) -> None:
         """Close database connection."""
@@ -413,7 +413,7 @@ class SemanticCache:
             logger.info("Semantic cache cleared")
             return True
         except Exception as e:
-            logger.warning(f"Failed to clear semantic cache: {e}")
+            logger.warning("Failed to clear semantic cache: %s", e)
             return False
 
     def stats(self) -> dict[str, Any]:
@@ -444,7 +444,7 @@ class SemanticCache:
                 "db_path": self.db_path,
             }
         except Exception as e:
-            logger.warning(f"Failed to get cache stats: {e}")
+            logger.warning("Failed to get cache stats: %s", e)
             return {"enabled": True, "error": str(e)}
 
     def __enter__(self) -> "SemanticCache":
@@ -483,7 +483,7 @@ def get_semantic_cache() -> SemanticCache | None:
             if not _semantic_cache_instance.enabled:
                 return None
         except Exception as e:
-            logger.warning(f"Failed to initialize semantic cache: {e}")
+            logger.warning("Failed to initialize semantic cache: %s", e)
             return None
 
     return _semantic_cache_instance if _semantic_cache_instance.enabled else None
