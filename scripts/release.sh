@@ -103,24 +103,7 @@ fi
 # Step 3: Update versions
 echo ""
 echo -e "${BLUE}Step 3: Updating versions to v$NEW_VERSION...${NC}"
-
-# Update web/package.json
-if [ -f "$ROOT_DIR/web/package.json" ]; then
-    sed -i "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" "$ROOT_DIR/web/package.json"
-    echo -e "  ✓ web/package.json"
-fi
-
-# Update cli/Cargo.toml
-if [ -f "$ROOT_DIR/cli/Cargo.toml" ]; then
-    sed -i "s/^version = \".*\"/version = \"$NEW_VERSION\"/" "$ROOT_DIR/cli/Cargo.toml"
-    echo -e "  ✓ cli/Cargo.toml"
-fi
-
-# Update pyproject.toml or setup.py
-if [ -f "$ROOT_DIR/pyproject.toml" ]; then
-    sed -i "s/version = \".*\"/version = \"$NEW_VERSION\"/" "$ROOT_DIR/pyproject.toml"
-    echo -e "  ✓ pyproject.toml"
-fi
+python3 "$ROOT_DIR/scripts/sync_versions.py" --set "$NEW_VERSION"
 
 # Step 4: Capture screenshots
 echo ""
@@ -137,7 +120,7 @@ echo ""
 echo -e "${BLUE}Step 5: Generating changelog...${NC}"
 LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
 if [ -n "$LATEST_TAG" ]; then
-    echo "## v$NEW_VERSION ($(date +%Y-%m-%d))" > /tmp/CHANGELOG_NEW.md
+    echo "## [$NEW_VERSION] - $(date +%Y-%m-%d)" > /tmp/CHANGELOG_NEW.md
     echo "" >> /tmp/CHANGELOG_NEW.md
     git log "$LATEST_TAG"..HEAD --oneline --no-merges --format="- %s (%h)" >> /tmp/CHANGELOG_NEW.md
     echo "" >> /tmp/CHANGELOG_NEW.md
@@ -151,7 +134,7 @@ if [ -n "$LATEST_TAG" ]; then
     echo -e "${GREEN}Changelog generated${NC}"
 else
     echo -e "${YELLOW}No previous tag found, creating initial changelog${NC}"
-    echo "## v$NEW_VERSION ($(date +%Y-%m-%d))" > "$ROOT_DIR/CHANGELOG.md"
+    echo "## [$NEW_VERSION] - $(date +%Y-%m-%d)" > "$ROOT_DIR/CHANGELOG.md"
     echo "" >> "$ROOT_DIR/CHANGELOG.md"
     git log --oneline --no-merges --format="- %s (%h)" | head -20 >> "$ROOT_DIR/CHANGELOG.md"
 fi
