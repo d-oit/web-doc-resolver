@@ -297,7 +297,7 @@ The optional `semantic-cache` feature pulls an upstream-constrained dependency c
 
 ### DuckDuckGo package renamed
 
-The `duckduckgo_search` package is now `ddgs`. This has been updated throughout the codebase.
+The `duckduckgo_search` package is now `ddgs`. Update `requirements.txt` when updating dependencies.
 
 ## Issue Resolution Workflow
 

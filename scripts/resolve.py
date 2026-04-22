@@ -350,7 +350,9 @@ def resolve_url_stream(
                         else:
                             content = str(res_or_content)
 
-                        q_score = scripts.quality.score_content(content, threshold=quality_threshold)
+                        q_score = scripts.quality.score_content(
+                            content, threshold=quality_threshold
+                        )
                         if q_score.acceptable or pt_done == ProviderType.LLMS_TXT:
                             _circuit_breakers.record_success(p_name_done)
                             metrics.record_provider(pt_done, latency, True)
@@ -529,7 +531,9 @@ def resolve_query_stream(
                         metrics.record_provider(pt_done, latency, False)
                         continue
                     if res:
-                        q_score = scripts.quality.score_content(res.content, threshold=quality_threshold)
+                        q_score = scripts.quality.score_content(
+                            res.content, threshold=quality_threshold
+                        )
                         if q_score.acceptable:
                             _circuit_breakers.record_success(p_name_done)
                             metrics.record_provider(pt_done, latency, True)

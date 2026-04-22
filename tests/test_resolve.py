@@ -480,7 +480,7 @@ class TestDuckDuckGoFallback:
 
     @patch("scripts.utils._get_from_cache")
     @patch("scripts.providers_impl._is_rate_limited")
-    @patch("ddgs.DDGS")
+    @patch("duckduckgo_search.DDGS")
     def test_duckduckgo_successful_search(self, mock_ddgs_class, mock_rate_limited, mock_cache):
         """Test successful DuckDuckGo search."""
         mock_cache.return_value = None
@@ -514,7 +514,7 @@ class TestDuckDuckGoFallback:
 
     @patch("scripts.utils._get_from_cache")
     @patch("scripts.providers_impl._is_rate_limited")
-    @patch("ddgs.DDGS")
+    @patch("duckduckgo_search.DDGS")
     def test_duckduckgo_empty_results(self, mock_ddgs_class, mock_rate_limited, mock_cache):
         """Test DuckDuckGo with empty results."""
         mock_cache.return_value = None
@@ -921,7 +921,7 @@ class TestAdditionalEdgeCases:
     @patch("scripts.utils._get_from_cache")
     @patch("scripts.providers_impl._is_rate_limited")
     @patch("scripts.utils._save_to_cache")
-    @patch("ddgs.DDGS")
+    @patch("duckduckgo_search.DDGS")
     def test_duckduckgo_network_error(
         self, mock_ddgs_class, mock_save, mock_rate_limited, mock_cache
     ):
@@ -942,7 +942,7 @@ class TestAdditionalEdgeCases:
     @patch("scripts.utils._get_from_cache")
     @patch("scripts.providers_impl._is_rate_limited")
     @patch("scripts.utils._save_to_cache")
-    @patch("ddgs.DDGS")
+    @patch("duckduckgo_search.DDGS")
     def test_duckduckgo_with_unicode_query(
         self, mock_ddgs_class, mock_save, mock_rate_limited, mock_cache
     ):

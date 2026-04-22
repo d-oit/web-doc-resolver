@@ -112,7 +112,7 @@ jobs:
           cache: 'pip'
 
       - name: Install dependencies
-        run: pip install pytest pytest-cov requests ddgs
+        run: pip install pytest pytest-cov requests duckduckgo-search
 
       - name: Run tests
         run: python -m pytest -m "not live" --cov=scripts --cov-report=xml --cov-report=term
