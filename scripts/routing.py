@@ -14,6 +14,7 @@ class ResolutionBudget:
     max_paid_attempts: int
     max_total_latency_ms: int
     allow_paid: bool = True
+    quality_threshold: float = 0.65
     attempts: int = 0
     paid_attempts: int = 0
     elapsed_ms: int = 0
