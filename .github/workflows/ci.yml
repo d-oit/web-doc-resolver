@@ -52,6 +52,19 @@ jobs:
         run: |
           python scripts/validate_skill_symlink.py
 
+  validate-versions:
+    name: Validate Version Sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Check version consistency
+        run: python scripts/sync_versions.py
+
   validate-docs:
     name: Validate Documentation
     runs-on: ubuntu-latest

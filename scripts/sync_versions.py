@@ -20,26 +20,37 @@ VERSION_FILES: list[dict[str, str]] = [
     {
         "path": "pyproject.toml",
         "pattern": r'^version\s*=\s*"([^"]+)"',
-        "template": 'version = "{version}"',
         "label": "pyproject.toml",
     },
     {
         "path": "cli/Cargo.toml",
         "pattern": r'^version\s*=\s*"([^"]+)"',
-        "template": 'version = "{version}"',
         "label": "cli/Cargo.toml",
     },
     {
         "path": "web/package.json",
         "pattern": r'"version"\s*:\s*"([^"]+)"',
-        "template": None,
         "label": "web/package.json",
     },
     {
         "path": "cli/src/cli.rs",
         "pattern": r'#\[command\(version\s*=\s*"([^"]+)"\)\]',
-        "template": '#[command(version = "{version}")]',
         "label": "cli/src/cli.rs",
+    },
+    {
+        "path": ".agents/skills/do-web-doc-resolver/pyproject.toml",
+        "pattern": r'^version\s*=\s*"([^"]+)"',
+        "label": "skill/pyproject.toml",
+    },
+    {
+        "path": ".agents/skills/do-web-doc-resolver/SKILL.md",
+        "pattern": r'version: "([^"]+)"',
+        "label": "skill/SKILL.md",
+    },
+    {
+        "path": "CHANGELOG.md",
+        "pattern": r"## \[([^\]]+)\]",
+        "label": "CHANGELOG.md",
     },
 ]
 
@@ -95,6 +106,23 @@ def write_version_rs(filepath: Path, new_version: str) -> None:
     filepath.write_text(updated)
 
 
+def write_version_md(filepath: Path, new_version: str, entry: dict[str, str]) -> None:
+    """Update version in a Markdown file using the entry's pattern."""
+    text = filepath.read_text()
+    pattern = entry["pattern"]
+    # We want to replace the first capture group with new_version
+    # This assumes the pattern has exactly one capture group
+
+    def replace_func(match: re.Match) -> str:
+        full_match = match.group(0)
+        start = match.start(1) - match.start(0)
+        end = match.end(1) - match.start(0)
+        return full_match[:start] + new_version + full_match[end:]
+
+    updated = re.sub(pattern, replace_func, text, count=1, flags=re.MULTILINE)
+    filepath.write_text(updated)
+
+
 def write_version(entry: dict[str, str], new_version: str) -> None:
     """Write version to the appropriate file type."""
     filepath = ROOT / entry["path"]
@@ -102,6 +130,8 @@ def write_version(entry: dict[str, str], new_version: str) -> None:
         write_version_json(filepath, new_version)
     elif entry["path"].endswith(".rs"):
         write_version_rs(filepath, new_version)
+    elif entry["path"].endswith(".md"):
+        write_version_md(filepath, new_version, entry)
     else:
         write_version_toml(filepath, new_version)
 
