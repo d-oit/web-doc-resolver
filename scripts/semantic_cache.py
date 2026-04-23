@@ -8,11 +8,15 @@ The all-MiniLM-L6-v2 model is used (small, ~80MB, fast) and runs entirely locall
 import json
 import logging
 import os
-import sqlite3
 import struct
 import time
 from dataclasses import dataclass, field
 from typing import Any
+
+try:
+    from pysqlite3 import dbapi2 as sqlite3
+except ImportError:
+    import sqlite3
 
 logger = logging.getLogger(__name__)
 
@@ -95,9 +99,9 @@ class SemanticCache:
             self._init_db()
             self._init_model()
             self.enabled = True
-            logger.info(f"Semantic cache initialized at {self.db_path}")
+            logger.info("Semantic cache initialized at %s", self.db_path)
         except Exception as e:
-            logger.warning(f"Semantic cache initialization failed: {e}. Cache disabled.")
+            logger.warning("Semantic cache initialization failed: %s. Cache disabled.", e)
             self.enabled = False
 
     def _init_db(self) -> None:
@@ -118,7 +122,7 @@ class SemanticCache:
         except ImportError:
             logger.warning("sqlite-vec not installed, trying dynamic loading")
         except Exception as e:
-            logger.warning(f"Failed to load sqlite-vec via Python API: {e}")
+            logger.warning("Failed to load sqlite-vec via Python API: %s", e)
 
         if not vec_loaded:
             # Try loading as dynamic library
@@ -136,13 +140,13 @@ class SemanticCache:
                     try:
                         self._conn.execute(f"SELECT load_extension('{lib}')")
                         vec_loaded = True
-                        logger.debug(f"Loaded sqlite-vec from {lib}")
+                        logger.debug("Loaded sqlite-vec from %s", lib)
                         break
                     except sqlite3.OperationalError:
                         continue
                 self._conn.enable_load_extension(False)
             except Exception as e:
-                logger.warning(f"Failed to load sqlite-vec dynamically: {e}")
+                logger.warning("Failed to load sqlite-vec dynamically: %s", e)
 
         if not vec_loaded:
             raise RuntimeError("sqlite-vec extension could not be loaded")
@@ -175,15 +179,15 @@ class SemanticCache:
             try:
                 from sentence_transformers import SentenceTransformer
 
-                logger.info(f"Loading sentence-transformers model: {self._model_name}")
+                logger.info("Loading sentence-transformers model: %s", self._model_name)
                 self._model = SentenceTransformer(self._model_name)
                 self._embedding_dimension = self._model.get_embedding_dimension()
-                logger.info(f"Model loaded. Embedding dimension: {self._embedding_dimension}")
+                logger.info("Model loaded. Embedding dimension: %s", self._embedding_dimension)
 
                 # Create vector table now that we know the dimension
                 self._create_vector_table()
             except Exception as e:
-                logger.error(f"Failed to load embedding model: {e}")
+                logger.error("Failed to load embedding model: %s", e)
                 raise
             finally:
                 self._model_loading = False
@@ -194,17 +198,11 @@ class SemanticCache:
         if self._embedding_dimension is None:
             return
 
-        # Drop existing table if dimension changed
-        try:
-            self._conn.execute("DROP TABLE IF EXISTS vec_cache")
-        except sqlite3.OperationalError:
-            pass
-
         # Create virtual table with float32 embeddings
+        # We use the implicit rowid to link to cache_entries.id
         self._conn.execute(f"""
             CREATE VIRTUAL TABLE IF NOT EXISTS vec_cache USING vec0(
-                embedding float[{self._embedding_dimension}],
-                +entry_id INTEGER
+                embedding float[{self._embedding_dimension}]
             )
         """)
         self._conn.commit()
@@ -256,7 +254,7 @@ class SemanticCache:
                 SELECT ce.id, ce.query, ce.result_json, ce.timestamp,
                        vec_distance_cosine(vc.embedding, ?) as distance
                 FROM vec_cache vc
-                JOIN cache_entries ce ON ce.id = vc.entry_id
+                JOIN cache_entries ce ON ce.id = vc.rowid
                 ORDER BY distance ASC
                 LIMIT 1
             """,
@@ -268,7 +266,9 @@ class SemanticCache:
                 return None
 
             # Convert distance to similarity (cosine distance = 1 - cosine similarity)
-            distance = row["distance"] or 1.0
+            distance = row["distance"]
+            if distance is None:
+                distance = 1.0
             similarity = 1.0 - distance
 
             if similarity < self.threshold:
@@ -295,7 +295,7 @@ class SemanticCache:
             )
 
         except Exception as e:
-            logger.warning(f"Semantic cache query failed: {e}")
+            logger.warning("Semantic cache query failed: %s", e)
             return None
 
     def store(self, query_str: str, result: dict[str, Any]) -> bool:
@@ -317,23 +317,22 @@ class SemanticCache:
             embedding = self._compute_embedding(query_str)
             embedding_blob = self._embedding_to_blob(embedding)
 
-            # Check for existing entry and delete its vector if present
+            # Check for existing entry and delete if present
+            # Virtual tables (vec0) don't support REPLACE well, so we delete manually
             cursor = self._conn.execute(
                 "SELECT id FROM cache_entries WHERE query = ?",
                 (query_str,),
             )
             old_row = cursor.fetchone()
             if old_row:
-                # Delete old vector entry before replacing
-                self._conn.execute(
-                    "DELETE FROM vec_cache WHERE entry_id = ?",
-                    (old_row["id"],),
-                )
+                old_id = old_row["id"]
+                self._conn.execute("DELETE FROM vec_cache WHERE rowid = ?", (old_id,))
+                self._conn.execute("DELETE FROM cache_entries WHERE id = ?", (old_id,))
 
             # Insert into main table
             cursor = self._conn.execute(
                 """
-                INSERT OR REPLACE INTO cache_entries
+                INSERT INTO cache_entries
                 (query, result_json, timestamp, last_accessed)
                 VALUES (?, ?, ?, ?)
             """,
@@ -341,13 +340,13 @@ class SemanticCache:
             )
             entry_id = cursor.lastrowid
 
-            # Insert into vector table - let SQLite assign rowid automatically
+            # Insert into vector table using the same ID as rowid
             self._conn.execute(
                 """
-                INSERT INTO vec_cache (embedding, entry_id)
+                INSERT INTO vec_cache (rowid, embedding)
                 VALUES (?, ?)
             """,
-                (embedding_blob, entry_id),
+                (entry_id, embedding_blob),
             )
 
             self._conn.commit()
@@ -358,7 +357,7 @@ class SemanticCache:
             return True
 
         except Exception as e:
-            logger.warning(f"Failed to store in semantic cache: {e}")
+            logger.warning("Failed to store in semantic cache: %s", e)
             return False
 
     def _maybe_evict(self) -> None:
@@ -382,14 +381,14 @@ class SemanticCache:
                 ids_to_delete = [row["id"] for row in cursor.fetchall()]
 
                 for entry_id in ids_to_delete:
-                    self._conn.execute("DELETE FROM vec_cache WHERE entry_id = ?", (entry_id,))
+                    self._conn.execute("DELETE FROM vec_cache WHERE rowid = ?", (entry_id,))
                     self._conn.execute("DELETE FROM cache_entries WHERE id = ?", (entry_id,))
 
                 self._conn.commit()
-                logger.info(f"Evicted {len(ids_to_delete)} old semantic cache entries")
+                logger.info("Evicted %d old semantic cache entries", len(ids_to_delete))
 
         except Exception as e:
-            logger.warning(f"Cache eviction failed: {e}")
+            logger.warning("Cache eviction failed: %s", e)
 
     def close(self) -> None:
         """Close database connection."""
@@ -414,7 +413,7 @@ class SemanticCache:
             logger.info("Semantic cache cleared")
             return True
         except Exception as e:
-            logger.warning(f"Failed to clear semantic cache: {e}")
+            logger.warning("Failed to clear semantic cache: %s", e)
             return False
 
     def stats(self) -> dict[str, Any]:
@@ -445,7 +444,7 @@ class SemanticCache:
                 "db_path": self.db_path,
             }
         except Exception as e:
-            logger.warning(f"Failed to get cache stats: {e}")
+            logger.warning("Failed to get cache stats: %s", e)
             return {"enabled": True, "error": str(e)}
 
     def __enter__(self) -> "SemanticCache":
@@ -484,7 +483,7 @@ def get_semantic_cache() -> SemanticCache | None:
             if not _semantic_cache_instance.enabled:
                 return None
         except Exception as e:
-            logger.warning(f"Failed to initialize semantic cache: {e}")
+            logger.warning("Failed to initialize semantic cache: %s", e)
             return None
 
     return _semantic_cache_instance if _semantic_cache_instance.enabled else None

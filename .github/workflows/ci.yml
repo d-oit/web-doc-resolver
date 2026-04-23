@@ -196,6 +196,7 @@ jobs:
     if: >
       (github.event_name == 'workflow_dispatch' &&
        (inputs.test_mistral == true || inputs.test_mistral == 'true')) ||
+      (github.event_name == 'pull_request') ||
       (github.event_name == 'push' && github.ref == 'refs/heads/main')
     steps:
       - uses: actions/checkout@v6
@@ -223,6 +224,7 @@ jobs:
     if: >
       (github.event_name == 'workflow_dispatch' &&
        (inputs.test_firecrawl == true || inputs.test_firecrawl == 'true')) ||
+      (github.event_name == 'pull_request') ||
       (github.event_name == 'push' && github.ref == 'refs/heads/main')
     steps:
       - uses: actions/checkout@v6
@@ -250,6 +252,7 @@ jobs:
     if: >
       (github.event_name == 'workflow_dispatch' &&
        (inputs.test_tavily == true || inputs.test_tavily == 'true')) ||
+      (github.event_name == 'pull_request') ||
       (github.event_name == 'push' && github.ref == 'refs/heads/main')
     steps:
       - uses: actions/checkout@v6
