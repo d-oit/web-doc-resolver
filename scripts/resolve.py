@@ -78,10 +78,7 @@ set_rate_limit = _set_rate_limit
 
 def _get_semantic_cache():
     """Get or initialize the semantic cache."""
-    global _semantic_cache
-    if _semantic_cache is None:
-        _semantic_cache = get_semantic_cache()
-    return _semantic_cache
+    return get_semantic_cache()
 
 
 def _check_semantic_cache(query_or_url: str) -> dict:

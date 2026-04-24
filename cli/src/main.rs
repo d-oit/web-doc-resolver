@@ -15,11 +15,6 @@ use do_wdr_lib::{
     types::ProviderType,
 };
 
-/// Initialize environment from .env file if present
-fn init_env() {
-    let _ = dotenvy::dotenv().ok();
-}
-
 /// Initialize logging based on verbosity level
 fn init_logging(verbose: u8) {
     let filter = match verbose {
@@ -168,9 +163,6 @@ async fn handle_resolve(
 }
 
 fn main() -> ExitCode {
-    // Load .env file if present
-    init_env();
-
     let cli = Cli::parse_args();
 
     // Initialize logging
