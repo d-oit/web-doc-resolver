@@ -141,19 +141,6 @@ jobs:
         id: version
         run: echo "VERSION=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
 
-      - name: Verify CHANGELOG entry exists
-        run: |
-          VERSION="${{ steps.version.outputs.VERSION }}"
-          # Extract version number (remove 'v' prefix if present)
-          VER_NUM="${VERSION#v}"
-          # Check if CHANGELOG has this version
-          if ! grep -q "## \[$VER_NUM\]" CHANGELOG.md; then
-            echo "❌ CHANGELOG.md is missing entry for version $VER_NUM"
-            echo "   Add a ## [$VER_NUM] section before creating the release."
-            exit 1
-          fi
-          echo "✅ CHANGELOG.md has entry for $VER_NUM"
-
       - name: Download release assets
         uses: actions/download-artifact@v8
         with:

@@ -251,12 +251,11 @@ class SemanticCache:
             # sqlite-vec returns distance (1 - similarity for cosine)
             cursor = self._conn.execute(
                 """
-                SELECT ce.id, ce.query, ce.result_json, ce.timestamp,
-                       vec_distance_cosine(vc.embedding, ?) as distance
+                SELECT ce.id, ce.query, ce.result_json, ce.timestamp, vc.distance
                 FROM vec_cache vc
                 JOIN cache_entries ce ON ce.id = vc.rowid
-                ORDER BY distance ASC
-                LIMIT 1
+                WHERE embedding MATCH ?
+                AND k = 1
             """,
                 (embedding_blob,),
             )
@@ -265,11 +264,16 @@ class SemanticCache:
             if row is None:
                 return None
 
-            # Convert distance to similarity (cosine distance = 1 - cosine similarity)
+            # Convert distance to similarity
+            # Since we use normalized embeddings, sqlite-vec uses L2 distance by default
+            # cosine_similarity = 1 - (L2_distance^2 / 2)
             distance = row["distance"]
             if distance is None:
-                distance = 1.0
-            similarity = 1.0 - distance
+                distance = (
+                    2.0  # Max L2 distance for normalized vectors is sqrt(2^2) = 2.0? No, it's 2.
+                )
+
+            similarity = 1.0 - (distance * distance / 2.0)
 
             if similarity < self.threshold:
                 return None

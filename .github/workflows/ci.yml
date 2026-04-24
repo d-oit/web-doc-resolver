@@ -112,9 +112,11 @@ jobs:
           cache: 'pip'
 
       - name: Install dependencies
-        run: pip install pytest pytest-cov requests duckduckgo-search
+        run: pip install -r requirements.txt
 
       - name: Run tests
+        env:
+          DO_WDR_SEMANTIC_CACHE: "1"
         run: python -m pytest -m "not live" --cov=scripts --cov-report=xml --cov-report=term
 
       - name: Upload coverage report

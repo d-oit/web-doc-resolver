@@ -4,6 +4,10 @@
 
 ## Overview
 
+This project implements a v4 cascade resolver with Python core, Rust CLI, and web UI that prioritizes free and low-cost data sources.
+
+## Overview
+
 This project implements a v4 cascade resolver with Python core, Rust CLI, and web UI that prioritizes free and low-cost data sources:
 
 ### Query Resolution Cascade
