@@ -5,38 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.3] - 2026-04-24
-
-### Fixed
-
-- **Shared Resolver State**: Fixed state sharing between submodules to ensure consistent configuration across the Python resolver
-- **Semantic Cache**: Updated deprecated `sentence-transformers` API from `get_sentence_embedding_dimension()` to `get_embedding_dimension()`
-- **Package Update**: Updated `duckduckgo_search` package to new `ddgs` package name
-- **CI Integration**: Fixed CLI binary path in integration tests
-
-### Changed
-
-- **Release Workflow**: Improved version synchronization and release automation
-- **Nightly Bridge**: Added automated nightly bridge with markdown parsing fixes
-- **Query Resolution**: Implemented best-available fallback when primary providers fail
-
-## [0.3.2] - 2026-04-23
-
-### Added
-
-- **SSRF Protection**: Redirect-aware IP validation with DNS resolution across Python, Web, and Rust
-- **DNS Caching**: LRU cache with time-bucketing for SSRF validation
-- **Provider Health**: DuckDuckGo deprioritization and health monitoring
-- **Accessibility**: Keyboard accessibility and focus indicators
-
-### Changed
-
-- **UI**: History panel search and dark theme contrast
-
-### Fixed
-
-- **Semantic Cache**: Correct vec0 virtual table insert syntax
-
 ## [0.3.1] - 2026-04-20
 
 ### Changed

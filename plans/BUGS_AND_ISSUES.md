@@ -1,7 +1,7 @@
 # Pre-Existing Bugs and Issues — CLI/Web
 
-**Last Updated**: 2026-04-23
-**Status**: Post-v0.3.2 fixes applied, remaining issues are upstream or config-dependent
+**Last Updated**: 2026-03-27
+**Status**: Multiple bugs fixed, remaining are config-dependent or blocked
 
 ---
 
@@ -16,15 +16,6 @@
 | BUG-5 | MEDIUM | CLI `exa` SDK | Config | N/A |
 | BUG-6 | LOW | CLI `--synthesize` | Blocked | Small |
 | BUG-7 | MEDIUM | CLI `duckduckgo` URLs | **FIXED** | Small |
-| BUG-8 | MEDIUM | DuckDuckGo Instability | Known | External |
-| BUG-9 | LOW | Semantic Cache vec0 | **FIXED** | Small |
-
-**2026-04-23 Post-v0.3.2 Fixes**:
-- BUG-8: DuckDuckGo instability documented (2026-04-20). Deprioritized in cascade.
-- BUG-9: Fixed vec0 virtual table INSERT syntax in semantic cache.
-- Nightly bridge automation added.
-- Best-available fallback feature added.
-- SSRF protection hardened across Python, Web, and Rust.
 
 **2026-03-27 Fix Summary**:
 - BUG-1: Fixed MCP protocol (Accept header, tools/call method, SSE parsing)

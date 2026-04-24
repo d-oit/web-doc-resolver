@@ -18,19 +18,6 @@ cd web && npx playwright test --project=desktop
 ./scripts/quality_gate.sh
 ```
 
-## Release Guard Rails
-
-**NEVER create a release without completing this checklist:**
-
-1. **PRs Merged**: All planned PRs must be merged into `main` BEFORE tagging
-2. **CHANGELOG Entry**: Add entry for new version in `CHANGELOG.md` BEFORE tagging
-3. **Version Sync**: Ensure `pyproject.toml`, `cli/Cargo.toml`, `web/package.json` all have same version
-4. **Quality Gate**: Run `./scripts/quality_gate.sh` - all checks must pass
-5. **Tag Only After Merge**: Use `git push --tags` ONLY after PRs are merged to main
-
-**Release workflow:**
-1. Merge all PRs →2. Run quality gate →3. Add CHANGELOG entry →4. Commit + tag + push tags →5. GitHub Actions creates release automatically
-
 ## Code style
 
 ### Python
@@ -60,8 +47,7 @@ cd web && npx playwright test --project=desktop
 ├── web/                   # Next.js web UI
 ├── tests/                 # Python test suite
 ├── .agents/skills/        # Canonical skill definitions
-├── agents-docs/           # Reference docs for AGENTS.md
-└── plans/                 # Implementation plans & status
+└── agents-docs/           # Reference docs for AGENTS.md
 ```
 
 ## Cascade & Security

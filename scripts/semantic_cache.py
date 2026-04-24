@@ -269,7 +269,9 @@ class SemanticCache:
             # cosine_similarity = 1 - (L2_distance^2 / 2)
             distance = row["distance"]
             if distance is None:
-                distance = 2.0  # Max L2 distance for normalized vectors is sqrt(2^2) = 2.0? No, it's 2.
+                distance = (
+                    2.0  # Max L2 distance for normalized vectors is sqrt(2^2) = 2.0? No, it's 2.
+                )
 
             similarity = 1.0 - (distance * distance / 2.0)
 

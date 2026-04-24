@@ -222,96 +222,16 @@ gh release create v0.2.0 \
   --generate-notes
 ```
 
-## Release Guard Rails
-
-**CRITICAL: NEVER skip these steps. Releases without guard rails create orphaned artifacts.**
-
-### Pre-Release Checklist (Must ALL Pass)
-
-1. **All PRs Merged**: No open PRs related to this release
-   ```bash
-   gh pr list --state open  # Must be empty or only unrelated PRs
-   ```
-
-2. **Quality Gate Passes**: All checks green
-   ```bash
-   ./scripts/quality_gate.sh  # Must exit 0
-   ```
-
-3. **Lint Clean**: No warnings
-   ```bash
-   ruff check . && cd cli && cargo clippy -- -D warnings
-   ```
-
-4. **CHANGELOG Entry Exists**: Entry for new version in `CHANGELOG.md`
-   ```bash
-   grep "## \[$VERSION\]" CHANGELOG.md  # Must exist
-   ```
-
-5. **Version Sync**: All manifests have the same version
-   ```bash
-   grep "^version" pyproject.toml cli/Cargo.toml web/package.json
-   ```
-
-### Release Workflow (In Order)
-
-```bash
-# 1. Ensure all PRs are merged to main
-gh pr list --state open --base main
-
-# 2. Sync main to local
-git checkout main && git pull
-
-# 3. Run quality gate
-./scripts/quality_gate.sh
-
-# 4. Add CHANGELOG entry (if not exists)
-# Edit CHANGELOG.md with new version section
-
-# 5. Commit changelog
-git add CHANGELOG.md
-git commit -m "chore: add v$VERSION changelog entry"
-
-# 6. Push commits
-git push origin main
-
-# 7. Create and push tag ONLY AFTER push completes
-git tag v$VERSION -m "Release v$VERSION"
-git push origin v$VERSION
-
-# 8. GitHub Actions release.yml workflow runs automatically
-# Verify: gh run list --workflow release.yml
-```
-
-### Anti-Patterns (Never Do)
-
-- ❌ **NEVER** create a tag from a feature branch
-- ❌ **NEVER** push tags before commits are on main
-- ❌ **NEVER** skip CHANGELOG validation (release.yml fails otherwise)
-- ❌ **NEVER** tag while open PRs exist (causes release drift)
-- ❌ **NEVER** create release manually (use `git push --tags`)
-
-### GitHub Actions Release Workflow
-
-The `release.yml` workflow validates:
-1. Python tests pass
-2. Rust CLI tests pass (clippy + fmt)
-3. CHANGELOG entry exists
-4. Builds binaries for Linux/macOS/Windows
-5. Creates GitHub release with auto-generated notes
-
-Do NOT manually create releases. The tag push triggers automation.
-
 ## Release Checklist
 
 - [ ] All tests pass (`./scripts/quality_gate.sh`)
-- [ ] All PRs merged to main
-- [ ] CHANGELOG updated with new version
-- [ ] Version synced across all manifests
-- [ ] Commits pushed to main
-- [ ] Tag pushed (triggers release.yml)
-- [ ] Release run completes successfully
-- [ ] GitHub release published
+- [ ] Screenshots captured (`./scripts/capture/capture-release.sh`)
+- [ ] Version bumped in all files
+- [ ] Changelog updated
+- [ ] Tag created
+- [ ] Pushed to remote
+- [ ] GitHub release created
+- [ ] Assets uploaded
 
 ## Automation
 
