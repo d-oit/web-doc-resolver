@@ -43,6 +43,11 @@ name = "semantic_cache_bench"
 harness = false
 path = "benches/semantic_cache_bench.rs"
 
+[[bench]]
+name = "link_validator_bench"
+harness = false
+path = "benches/link_validator_bench.rs"
+
 [[bin]]
 name = "do-wdr"
 path = "src/main.rs"
