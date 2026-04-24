@@ -401,6 +401,10 @@ class TestSemanticCacheIntegration:
         if not DEPS_AVAILABLE:
             pytest.skip("Dependencies not available")
 
+        import scripts
+        import scripts._query_resolve
+        import scripts._url_resolve
+        import scripts.semantic_cache
         from scripts import resolve
         from scripts.semantic_cache import SemanticCache
 
@@ -426,8 +430,9 @@ class TestSemanticCacheIntegration:
             cache.store(test_query, cached_result)
 
             # Test the helper functions directly
-            # Reset global cache to use our test cache
+            # Reset global cache to use our test cache (set the singleton)
             resolve._semantic_cache = cache
+            scripts.semantic_cache._semantic_cache_instance = cache
 
             result = resolve._check_semantic_cache(test_query)
             assert result is not None

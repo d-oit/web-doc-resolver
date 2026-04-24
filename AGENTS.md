@@ -47,7 +47,8 @@ cd web && npx playwright test --project=desktop
 ├── web/                   # Next.js web UI
 ├── tests/                 # Python test suite
 ├── .agents/skills/        # Canonical skill definitions
-└── agents-docs/           # Reference docs for AGENTS.md
+├── agents-docs/           # Reference docs for AGENTS.md
+└── plans/                 # Implementation plans & status
 ```
 
 ## Cascade & Security
