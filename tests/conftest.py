@@ -30,10 +30,19 @@ def setup_test_env():
     # Fresh cache for every test to avoid cross-test contamination
     cache = MemoryCache()
 
+    # Import submodules
+    import scripts._query_resolve
+    import scripts._url_resolve
+
     # Apply to all possible locations
     scripts.utils._cache = cache
     if hasattr(scripts.resolve, "_cache"):
         scripts.resolve._cache = cache
+
+    # Reset semantic caches too
+    scripts.resolve._semantic_cache = None
+    scripts._query_resolve._semantic_cache = None
+    scripts._url_resolve._semantic_cache = None
 
     # Mock get_cache to return our memory cache
     with patch("scripts.utils.get_cache", return_value=cache):
@@ -81,6 +90,7 @@ def setup_test_env():
                 base = ["exa_mcp", "exa", "tavily", "duckduckgo", "mistral_websearch"]
 
             skip = skip_providers or set()
+            # Filter out skipped providers
             return [p for p in base if p not in skip]
 
         scripts.routing.plan_provider_order = mock_plan
