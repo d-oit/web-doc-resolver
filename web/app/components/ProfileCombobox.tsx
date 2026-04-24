@@ -34,7 +34,7 @@ export default function ProfileCombobox({ value, onChange, options }: ProfileCom
     <div className="relative" ref={containerRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="w-full bg-[#141414] border-2 border-border-muted px-3 py-2 text-left flex items-center justify-between text-[12px] min-h-[44px] hover:border-border-strong focus:border-accent focus:outline-none"
+        className="w-full bg-[#141414] border-2 border-border-muted px-3 py-2 text-left flex items-center justify-between text-[12px] min-h-[44px] hover:border-border-strong focus:border-accent"
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-label="Change search profile"
