@@ -2,14 +2,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-import scripts.providers_impl
-import scripts.quality
-import scripts.resolve
-import scripts.routing
-import scripts.routing_memory
-import scripts.synthesis
-import scripts.utils
-
 
 class MemoryCache:
     def __init__(self):

@@ -401,11 +401,11 @@ class TestSemanticCacheIntegration:
         if not DEPS_AVAILABLE:
             pytest.skip("Dependencies not available")
 
-        from scripts import resolve
         import scripts
         import scripts._query_resolve
         import scripts._url_resolve
         import scripts.semantic_cache
+        from scripts import resolve
         from scripts.semantic_cache import SemanticCache
 
         # Create and inject cache
