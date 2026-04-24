@@ -348,7 +348,7 @@ export default function Home() {
         <button
           data-testid="sidebar-toggle"
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors min-h-[44px] focus:outline-none"
+          className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors min-h-[44px]"
           aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
         >
           {sidebarOpen ? (
@@ -445,7 +445,7 @@ export default function Home() {
                         <div
                           id={tooltipId}
                           role="tooltip"
-                          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[#222] border border-border-muted text-[9px] text-text-muted opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50"
+                          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-[#222] border border-border-muted text-[9px] text-text-muted opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50"
                         >
                           {needsKey ? "Requires API key" : "Disabled while Mistral active"}
                         </div>
@@ -519,7 +519,7 @@ export default function Home() {
                           value={value}
                           onChange={(e) => handleKeyChange(key, e.target.value)}
                           placeholder={hasServer && !value ? "Using server key" : "sk-..."}
-                          className="bg-[#141414] border-2 border-border-muted px-2 py-2 text-[12px] text-foreground placeholder:text-text-dim focus:border-accent focus:outline-none min-h-[44px]"
+                          className="bg-[#141414] border-2 border-border-muted px-2 py-2 text-[12px] text-foreground placeholder:text-text-dim focus:border-accent min-h-[44px]"
                         />
                       </div>
                     );
@@ -566,14 +566,14 @@ export default function Home() {
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
               placeholder="URL or search query..."
-              className="flex-1 bg-transparent text-[20px] sm:text-[24px] text-foreground placeholder:text-text-dim focus:outline-none tracking-tight"
+              className="flex-1 bg-transparent text-[20px] sm:text-[24px] text-foreground placeholder:text-text-dim tracking-tight"
             />
             {query.trim() && (
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleSubmit()}
                   disabled={loading}
-                  aria-label={loading ? "..." : "Fetch results"}
+                  aria-label={loading ? "Fetching results..." : "Fetch results"}
                   className="bg-accent text-background px-4 py-2 text-[13px] font-bold hover:bg-[#00cc33] disabled:opacity-50 min-w-[60px] min-h-[44px]"
                 >
                   {loading ? "..." : "Fetch"}
@@ -665,7 +665,7 @@ export default function Home() {
                 <textarea
                   readOnly
                   value={result}
-                  className="flex-1 bg-[#141414] p-4 text-[13px] text-foreground font-mono resize-none focus:outline-none whitespace-pre-wrap overflow-auto min-h-[200px]"
+                  className="flex-1 bg-[#141414] p-4 text-[13px] text-foreground font-mono resize-none whitespace-pre-wrap overflow-auto min-h-[200px]"
                 />
               ) : (
                 <div className="flex-1 overflow-auto bg-background p-4 space-y-4">
