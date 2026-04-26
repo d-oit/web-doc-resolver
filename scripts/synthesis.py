@@ -8,7 +8,7 @@ from difflib import SequenceMatcher
 
 import requests
 
-from .models import ResolvedResult
+from scripts.models import ResolvedResult
 
 logger = logging.getLogger(__name__)
 
