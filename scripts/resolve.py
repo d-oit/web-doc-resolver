@@ -139,40 +139,7 @@ resolve_query_stream = scripts._query_resolve.resolve_query_stream
 
 
 def synthesize_results(query: str, results: list[ResolvedResult], api_key: str, model: str) -> str:
-    if not results:
-        return "No results to synthesize."
-    if not scripts.synthesis.should_call_llm_synthesis(results):
-        return scripts.synthesis.deterministic_merge(results)
-    context = "".join(
-        [
-            f"\nResult {i + 1}:\nURL: {res.url or 'unk'}\nContent: {res.content}\n---\n"
-            for i, res in enumerate(results)
-        ]
-    )
-    prompt = (
-        f"Synthesize for query: '{query}'. Provide markdown with citations.\n\nContext:\n{context}"
-    )
-    try:
-        import requests
-
-        resp = requests.post(
-            "https://api.mistral.ai/v1/chat/completions",
-            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json={
-                "model": model,
-                "messages": [
-                    {"role": "system", "content": "Assistant"},
-                    {"role": "user", "content": prompt},
-                ],
-            },
-            timeout=30,
-        )
-        resp.raise_for_status()
-        content = resp.json()["choices"][0]["message"]["content"]
-        return str(content)
-    except Exception as e:
-        logger.error(f"LLM Synthesis failed: {e}")
-        return scripts.synthesis.deterministic_merge(results)
+    return scripts.synthesis.synthesize_results(query, results, api_key, model)
 
 
 def resolve(

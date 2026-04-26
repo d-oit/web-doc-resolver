@@ -2,6 +2,7 @@
 Two-stage synthesis gating logic for the Web Doc Resolver.
 """
 
+import datetime
 import logging
 from difflib import SequenceMatcher
 
@@ -110,3 +111,72 @@ def deterministic_merge(results: list[ResolvedResult]) -> str:
             merged.append(f"### Source {i + 1}: {source_label}\n{content}")
 
     return "\n\n---\n\n".join(merged)
+
+
+def synthesize_results(query: str, results: list[ResolvedResult], api_key: str, model: str) -> str:
+    """
+    Synthesize multiple results into a cohesive, LLM-ready markdown document.
+    Follows 2026 LLM-Readable-Doc standards.
+    """
+    if not results:
+        return "No results to synthesize."
+
+    if not should_call_llm_synthesis(results):
+        return deterministic_merge(results)
+
+    context = "".join(
+        [
+            f"\nResult {i + 1}:\nURL: {res.url or 'unk'}\nContent: {res.content}\n---\n"
+            for i, res in enumerate(results)
+        ]
+    )
+
+    current_date = datetime.date.today().isoformat()
+
+    system_prompt = (
+        "You are an expert research assistant. Synthesize the provided context into a high-quality, "
+        "LLM-ready markdown document following the 2026 LLM-Readable-Doc standards.\n\n"
+        "REQUIRED FORMAT:\n"
+        "1. Start with a YAML frontmatter block:\n"
+        "---\n"
+        "relevance_score: <0.0-1.0>\n"
+        "intent_category: <Technical|Informational|Comparative|Debugging>\n"
+        "token_estimate: <estimate>\n"
+        f"last_updated: {current_date}\n"
+        "---\n\n"
+        "2. Use Structural Anchors to partition the content:\n"
+        "- [ANCHOR: SUMMARY]\n"
+        "- [ANCHOR: TECHNICAL_DETAILS]\n"
+        "- [ANCHOR: COMPARISON] (if applicable)\n"
+        "- [ANCHOR: CITATIONS]\n\n"
+        "3. Provide precise citations using [1], [2], etc., mapping to the CITATIONS anchor.\n"
+        "4. Aggressively deduplicate and prioritize technical accuracy."
+    )
+
+    user_prompt = f"Query: '{query}'\n\nContext:\n{context}"
+
+    try:
+        import requests
+
+        resp = requests.post(
+            "https://api.mistral.ai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                "temperature": 0.3,
+            },
+            timeout=30,
+        )
+        resp.raise_for_status()
+        content = resp.json()["choices"][0]["message"]["content"]
+        return str(content)
+    except Exception as e:
+        logger.error(f"LLM Synthesis failed: {e}")
+        return deterministic_merge(results)
