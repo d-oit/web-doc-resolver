@@ -10,6 +10,7 @@
 pip install -r requirements.txt
 cd cli && cargo build --release
 cd web && npm install && npx playwright install chromium
+cd cli/ui && pnpm install
 
 # Run tests
 python -m pytest tests/ -v -m "not live"
@@ -44,8 +45,11 @@ cd web && npx playwright test --project=desktop
 ├── README.md              # Human-readable docs
 ├── scripts/               # Python logic
 ├── cli/                   # Rust CLI (do-wdr)
-├── web/                   # Next.js web UI
+│   └── ui/                # Design system (tokens, components, Storybook)
+├── web/                   # Next.js web UI (Vercel deployment)
 ├── tests/                 # Python test suite
+├── docs/                  # Standards, examples
+├── plans/                 # Roadmap & audit (see plans/AUDIT.md)
 ├── .agents/skills/        # Canonical skill definitions
 └── agents-docs/           # Reference docs for AGENTS.md
 ```

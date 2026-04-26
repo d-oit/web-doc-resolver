@@ -144,7 +144,7 @@ cd web && npx playwright test --project=desktop
 
 ### Rust
 
-- Rust stable, edition 2021
+- Rust stable, edition 2024
 - `cargo fmt` + `cargo clippy -- -D warnings`
 - Maximum 500 lines per file
 - Each provider in its own module
@@ -152,7 +152,7 @@ cd web && npx playwright test --project=desktop
 
 ### Web (Next.js)
 
-- Next.js 15 + React 19, App Router
+- Next.js 16 + React 19, App Router
 - Tailwind CSS v4 (CSS-first config)
 - TypeScript strict mode
 - Playwright for E2E tests

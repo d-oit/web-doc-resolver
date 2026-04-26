@@ -9,7 +9,7 @@ use tracing_subscriber::{EnvFilter, fmt};
 
 use do_wdr_lib::{
     cli::Cli,
-    config::Config,
+    config::{Config, routing_profile_defaults},
     output::{ConfigOutput, JsonOutput, ProviderList},
     resolver::Resolver,
     types::ProviderType,
@@ -65,9 +65,22 @@ fn build_config(
         config.min_chars = m;
     }
 
-    if let Some(p) = profile {
+    if let Some(ref p) = profile {
         if let Ok(prof) = p.parse() {
             config.profile = prof;
+            let defaults = routing_profile_defaults(p);
+            if quality_threshold.is_none() {
+                config.quality_threshold = Some(defaults.quality_threshold);
+            }
+            if max_provider_attempts.is_none() {
+                config.max_provider_attempts = Some(defaults.max_provider_attempts);
+            }
+            if max_paid_attempts.is_none() {
+                config.max_paid_attempts = Some(defaults.max_paid_attempts);
+            }
+            if max_total_latency_ms.is_none() {
+                config.max_total_latency_ms = Some(defaults.max_total_latency_ms);
+            }
         }
     }
 

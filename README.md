@@ -4,10 +4,6 @@
 
 ## Overview
 
-This project implements a v4 cascade resolver with Python core, Rust CLI, and web UI that prioritizes free and low-cost data sources.
-
-## Overview
-
 This project implements a v4 cascade resolver with Python core, Rust CLI, and web UI that prioritizes free and low-cost data sources:
 
 ### Query Resolution Cascade
@@ -432,13 +428,14 @@ cd web && npx playwright test --ui
 │   └── setup-hooks.sh     # Git hook installer
 ├── cli/                   # Rust CLI (do-wdr binary)
 │   ├── Cargo.toml
-│   └── src/
-│       ├── main.rs        # Entry point
-│       ├── cli.rs         # Clap CLI definition
-│       ├── config.rs      # Config loading (TOML + env)
-│       ├── resolver/       # Cascade orchestrator
-│       ├── providers/     # 13 provider modules
-│       └── ...            # quality, metrics, synthesis, etc.
+│   ├── src/
+│   │   ├── main.rs        # Entry point
+│   │   ├── cli.rs         # Clap CLI definition
+│   │   ├── config.rs      # Config loading (TOML + env)
+│   │   ├── resolver/       # Cascade orchestrator
+│   │   ├── providers/     # 13 provider modules
+│   │   └── ...            # quality, metrics, synthesis, etc.
+│   └── ui/                # Design system (tokens, components, Storybook)
 ├── web/                   # Next.js web UI (Vercel)
 │   ├── app/
 │   │   ├── page.tsx       # Resolver form
@@ -446,6 +443,8 @@ cd web && npx playwright test --ui
 │   ├── tests/e2e/         # Playwright E2E tests
 │   └── vercel.json        # Deployment config
 ├── tests/                 # Python test suite
+├── docs/                  # Standards, examples
+├── plans/                 # Roadmap & audit
 ├── .agents/skills/        # Canonical skill definitions
 │   └── do-web-doc-resolver/
 │       ├── SKILL.md       # Main skill file

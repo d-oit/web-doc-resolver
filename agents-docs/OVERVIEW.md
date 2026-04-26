@@ -87,7 +87,7 @@ do-web-doc-resolver/
 │   └── tests/e2e/
 ├── tests/                   # Python test suite
 ├── .agents/skills/          # Skill definitions
-│   └── web-doc-resolver/
+│   └── do-web-doc-resolver/
 ├── agents-docs/             # Project documentation
 └── AGENTS.md               # Agent instructions
 ```

@@ -170,7 +170,7 @@ jobs:
         run: |
           npm run start &
           npx wait-on http://localhost:3000 -t 60000
-          npx playwright test --project=desktop
+          npx playwright test --project=desktop --project=mobile --project=tablet
         working-directory: web
         env:
           BASE_URL: http://localhost:3000

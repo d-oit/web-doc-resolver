@@ -7,7 +7,7 @@ import { save as saveRecord } from "@/lib/records";
 import { Logger } from "@/lib/log";
 import { searchViaExaMcpWithMistral } from "@/lib/resolvers/query";
 import { isUrl, queryProviders, urlProviders, ProviderKeys } from "@/lib/resolvers/index";
-import { validateResolveRequest } from "@/lib/validation";
+import { validateResolveRequest, validateUrlForFetchAsync } from "@/lib/validation";
 
 // Allow up to 60 seconds for resolver operations
 export const maxDuration = 60;
@@ -226,6 +226,14 @@ export async function POST(request: NextRequest) {
 
     const urlMode = isUrl(rawInput);
     const source = urlMode ? "url" : "query";
+
+    // SSRF protection: validate URL before fetching
+    if (urlMode) {
+      const urlCheck = await validateUrlForFetchAsync(rawInput);
+      if (!urlCheck.valid) {
+        return NextResponse.json({ error: urlCheck.error || "URL not allowed" }, { status: 400 });
+      }
+    }
 
     // Check cache first
     if (!skipCache) {
