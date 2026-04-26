@@ -6,7 +6,9 @@ import datetime
 import logging
 from difflib import SequenceMatcher
 
-from scripts.models import ResolvedResult
+import requests
+
+from .models import ResolvedResult
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +143,7 @@ def synthesize_results(query: str, results: list[ResolvedResult], api_key: str, 
         "---\n"
         "relevance_score: <0.0-1.0>\n"
         "intent_category: <Technical|Informational|Comparative|Debugging>\n"
-        "token_estimate: <estimate>\n"
+        "token_estimate: <int>\n"
         f"last_updated: {current_date}\n"
         "---\n\n"
         "2. Use Structural Anchors to partition the content:\n"
@@ -156,8 +158,6 @@ def synthesize_results(query: str, results: list[ResolvedResult], api_key: str, 
     user_prompt = f"Query: '{query}'\n\nContext:\n{context}"
 
     try:
-        import requests
-
         resp = requests.post(
             "https://api.mistral.ai/v1/chat/completions",
             headers={
