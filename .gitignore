@@ -227,3 +227,6 @@ web/playwright-report
 # Runtime state
 .do_wdr_state.toml
 videos/
+
+# Semantic Cache
+.do-wdr_cache/

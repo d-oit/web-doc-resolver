@@ -348,7 +348,7 @@ impl SemanticCache {
         // Check in-memory cache
         if let Ok(cache) = self.embedding_cache.lock() {
             if let Some(vec) = cache.get(&normalized) {
-                return vec.clone();
+                return *vec;
             }
         }
 
@@ -359,7 +359,7 @@ impl SemanticCache {
         if let Ok(mut cache) = self.embedding_cache.lock() {
             // Basic size limit for in-memory cache to prevent leaks
             if cache.len() < 1000 {
-                cache.insert(normalized, vec.clone());
+                cache.insert(normalized, vec);
             }
         }
 
