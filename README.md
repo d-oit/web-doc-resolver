@@ -438,13 +438,25 @@ cd web && npx playwright test --ui
 │   └── ui/                # Design system (tokens, components, Storybook)
 ├── web/                   # Next.js web UI (Vercel)
 │   ├── app/
-│   │   ├── page.tsx       # Resolver form
+│   │   ├── page.tsx       # Resolver form (356 lines)
+│   │   ├── components/    # Extracted components
+│   │   │   ├── Sidebar.tsx
+│   │   │   ├── MainContent.tsx
+│   │   │   ├── KeyboardShortcutsModal.tsx
+│   │   │   ├── History.tsx
+│   │   │   ├── ResultCard.tsx
+│   │   │   └── ProfileCombobox.tsx
+│   │   ├── constants.ts   # Profile/provider constants
+│   │   ├── middleware.ts  # Rate limiting
+│   │   ├── error.tsx      # Error boundary
+│   │   ├── not-found.tsx  # 404 page
 │   │   └── help/page.tsx  # Help & FAQ
-│   ├── tests/e2e/         # Playwright E2E tests
+│   ├── lib/               # Utilities (circuit-breaker, errors, quality, keys, routing)
+│   ├── tests/             # Unit tests (Vitest) + E2E (Playwright)
 │   └── vercel.json        # Deployment config
 ├── tests/                 # Python test suite
 ├── docs/                  # Standards, examples
-├── plans/                 # Roadmap & audit
+├── plans/                 # Roadmap & audit (see plans/AUDIT.md)
 ├── .agents/skills/        # Canonical skill definitions
 │   └── do-web-doc-resolver/
 │       ├── SKILL.md       # Main skill file
