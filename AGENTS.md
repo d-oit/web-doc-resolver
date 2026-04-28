@@ -47,8 +47,6 @@ cd web && npx playwright test --project=desktop
 ├── cli/                   # Rust CLI (do-wdr)
 │   └── ui/                # Design system (tokens, components, Storybook)
 ├── web/                   # Next.js web UI (Vercel deployment)
-│   └── app/
-│       └── components/    # Extracted UI components (Sidebar, MainContent, etc.)
 ├── tests/                 # Python test suite
 ├── docs/                  # Standards, examples
 ├── plans/                 # Roadmap & audit (see plans/AUDIT.md)

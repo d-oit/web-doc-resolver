@@ -156,14 +156,6 @@ cd web && npx playwright test --project=desktop
 - Tailwind CSS v4 (CSS-first config)
 - TypeScript strict mode
 - Playwright for E2E tests
-- **Component Architecture**: `page.tsx` (<500 lines) with extracted components in `web/app/components/`:
-  - `Sidebar.tsx` — Configuration panel (profile, providers, API keys)
-  - `MainContent.tsx` — Input/output area
-  - `KeyboardShortcutsModal.tsx` — Keyboard help modal
-  - `History.tsx` — Search history
-  - `ResultCard.tsx` — Result display cards
-  - `ProfileCombobox.tsx` — Profile selector
-- `web/middleware.ts` — Rate limiting (30 req/min per IP)
 - Shared key utility in `web/lib/keys.ts` (imported by page.tsx and settings/page.tsx)
 - `react-markdown` for result preview toggle
 
