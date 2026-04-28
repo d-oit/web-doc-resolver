@@ -121,8 +121,7 @@ fn strip_html(html: &str) -> String {
     .cloned()
     .collect();
 
-    let mut chars = html.chars().peekable();
-    while let Some(ch) = chars.next() {
+    for ch in html.chars() {
         if ch == '<' {
             in_tag = true;
             current_tag.clear();
@@ -145,10 +144,9 @@ fn strip_html(html: &str) -> String {
             } else if skip_content_depth == 0 {
                 if !is_closing {
                     // Opening tags
-                    if block_tags.contains(tag_name) {
-                        if !result.is_empty() && !result.ends_with('\n') {
-                            result.push('\n');
-                        }
+                    if block_tags.contains(tag_name) && !result.is_empty() && !result.ends_with('\n')
+                    {
+                        result.push('\n');
                     }
                     if tag_name == "code" {
                         result.push('`');
@@ -161,10 +159,11 @@ fn strip_html(html: &str) -> String {
                         result.push('`');
                     } else if tag_name == "pre" {
                         result.push_str("\n```\n");
-                    } else if block_tags.contains(tag_name) {
-                        if !result.is_empty() && !result.ends_with('\n') {
-                            result.push('\n');
-                        }
+                    } else if block_tags.contains(tag_name)
+                        && !result.is_empty()
+                        && !result.ends_with('\n')
+                    {
+                        result.push('\n');
                     }
                 }
             }
