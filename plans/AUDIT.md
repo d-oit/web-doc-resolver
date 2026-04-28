@@ -1,4 +1,4 @@
-# Project Audit — 2026-04-26
+# Project Audit — 2026-04-28
 
 > Single source of truth for project health. Supersedes all prior audit/bug/issue files in `plans/`.
 
@@ -23,6 +23,20 @@
 | `CLAUDE.md` still exists | ⚪ KEPT | Contains only `@AGENTS.md` redirect — harmless |
 
 ---
+
+## 2026-04-28 Updates — P0/P1 Items Resolved
+
+| Issue | Status | Resolution |
+|---|---|---|
+| M1: No Next.js error boundary | ✅ RESOLVED | `web/app/error.tsx` exists |
+| M2: No rate-limiting middleware | ✅ RESOLVED | `web/middleware.ts` created, uses `lib/rate-limit.ts` |
+| M3: No 404 page | ✅ RESOLVED | `web/app/not-found.tsx` exists |
+| M4: SSRF check not called | ✅ RESOLVED | `validateUrlForFetchAsync()` called in `route.ts:232` |
+| M5: No unit tests for web utilities | ✅ RESOLVED | Tests added: `circuit-breaker.test.ts`, `errors.test.ts`, `quality.test.ts`, `keys.test.ts` |
+| M7: Mobile/tablet Playwright not in CI | ✅ RESOLVED | `ci-ui.yml` includes `--project=desktop --project=mobile --project=tablet` with `--workers=3` |
+| Q1: `page.tsx` exceeds 500 lines | ✅ RESOLVED | Split: `page.tsx` (356 lines), `Sidebar.tsx` (272), `MainContent.tsx` (201), `KeyboardShortcutsModal.tsx` (45), `constants.ts` (31) |
+| Issue #281: CI E2E timeout | ✅ RESOLVED | Timeout 45min, parallel workers, quality-gate includes web-e2e, skip dependabot |
+| Issue #282: Flaky benchmark | ✅ RESOLVED | P95 latency threshold, 5 warm-up iterations |
 
 ## Open Issues
 
