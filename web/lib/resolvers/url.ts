@@ -124,11 +124,11 @@ function decodeEntities(text: string): string {
   return text
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
-    .replace(/&amp;/g, "&")
     .replace(/&quot;/g, '"')
     .replace(/&#x27;/g, "'")
     .replace(/&#39;/g, "'")
     .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&") // Ampersand last to avoid double-unescaping
     .replace(/\u2060/g, ""); // Remove word joiner
 }
 
@@ -156,7 +156,7 @@ function extractTextFromHtml(html: string): string {
       inTag = false;
       const tagLower = currentTag.toLowerCase();
       const isClosing = tagLower.startsWith("/");
-      const tagName = tagLower.replace(/^\//, "").split(/\s/)[0];
+      const tagName = tagLower.replace(/^\//, "").split(/\s/)[0] || "";
 
       if (tagName === "script" || tagName === "style") {
         if (isClosing) {
