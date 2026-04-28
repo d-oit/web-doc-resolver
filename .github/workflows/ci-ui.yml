@@ -140,8 +140,9 @@ jobs:
   web-e2e:
     name: E2E Tests (web)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     needs: [web-build]
+    if: github.actor != 'dependabot[bot]'
     steps:
       - uses: actions/checkout@v6
 
@@ -170,7 +171,7 @@ jobs:
         run: |
           npm run start &
           npx wait-on http://localhost:3000 -t 60000
-          npx playwright test --project=desktop --project=mobile --project=tablet
+          npx playwright test --project=desktop --project=mobile --project=tablet --workers=3
         working-directory: web
         env:
           BASE_URL: http://localhost:3000
@@ -180,7 +181,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: always()
-    needs: [lint, test, web-lint, web-typecheck, web-test, web-build]
+    needs: [lint, test, web-lint, web-typecheck, web-test, web-build, web-e2e]
     steps:
       - name: Check results
         run: |
@@ -191,6 +192,7 @@ jobs:
             "${{ needs.web-typecheck.result }}"
             "${{ needs.web-test.result }}"
             "${{ needs.web-build.result }}"
+            "${{ needs.web-e2e.result }}"
           )
           failed=false
           for result in "${results[@]}"; do
