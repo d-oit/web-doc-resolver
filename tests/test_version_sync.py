@@ -79,6 +79,6 @@ def test_versions_are_valid_semver():
 
         assert m, f"Should find version in {name}"
         version = m.group(1)
-        assert re.match(
-            semver_pattern, version
-        ), f"Version in {name} should be valid semver: {version}"
+        assert re.match(semver_pattern, version), (
+            f"Version in {name} should be valid semver: {version}"
+        )

@@ -310,9 +310,9 @@ class TestSemanticCacheEviction:
 
             # Should only have 5 entries
             stats = small_cache.stats()
-            assert (
-                stats["total_entries"] <= 5
-            ), f"Expected <= 5 entries, got {stats['total_entries']}"
+            assert stats["total_entries"] <= 5, (
+                f"Expected <= 5 entries, got {stats['total_entries']}"
+            )
 
         finally:
             small_cache.close()
