@@ -37,25 +37,6 @@ async function mockAppState(page: import("@playwright/test").Page): Promise<void
   });
 }
 
-// Helper to open sidebar on mobile viewports
-async function openSidebarIfMobile(page: import("@playwright/test").Page): Promise<void> {
-  const openMenuButton = page.getByRole("button", { name: "Open menu" });
-  if (await openMenuButton.isVisible()) {
-    await openMenuButton.click();
-    // Wait for transition animation
-    await page.waitForTimeout(500);
-  }
-}
-
-// Helper to close sidebar on mobile viewports
-async function closeSidebarIfMobile(page: import("@playwright/test").Page): Promise<void> {
-  const backdrop = page.locator(".fixed.inset-0.bg-black\\/80.z-40.lg\\:hidden");
-  if (await backdrop.isVisible()) {
-    await backdrop.click({ position: { x: 300, y: 10 } }); // Click outside the sidebar area
-    await page.waitForTimeout(500);
-  }
-}
-
 // Helper to wait for app to be fully loaded (async state initialization)
 async function waitForApp(page: import("@playwright/test").Page): Promise<void> {
   await mockAppState(page);
@@ -68,10 +49,25 @@ function historyPanel(page: import("@playwright/test").Page) {
   return page.locator("#history-panel");
 }
 
+// Helper to ensure sidebar is open (needed for small viewports)
+async function ensureSidebarOpen(page: import("@playwright/test").Page): Promise<void> {
+  const isMobile = await page.evaluate(() => window.innerWidth < 1024);
+  if (isMobile) {
+    const backdrop = page.locator("div.fixed.inset-0.bg-black\\/80");
+    const menuButton = page.getByRole("button", { name: "Open menu" });
+
+    // Check if backdrop is visible (meaning menu is already open)
+    const backdropVisible = await backdrop.isVisible();
+    if (!backdropVisible) {
+      await menuButton.click();
+      await expect(backdrop).toBeVisible();
+    }
+  }
+}
+
 test.describe("History Panel", () => {
   test("history panel is collapsed by default", async ({ page }) => {
     await waitForApp(page);
-    await openSidebarIfMobile(page);
     // History toggle should be visible
     await expect(page.getByText(/History/)).toBeVisible();
     // History panel content should not be visible
@@ -80,7 +76,7 @@ test.describe("History Panel", () => {
 
   test("clicking History toggle opens the panel", async ({ page }) => {
     await waitForApp(page);
-    await openSidebarIfMobile(page);
+    await ensureSidebarOpen(page);
     // Click the History toggle button
     await page.getByRole("button", { name: /History/ }).click();
     // Panel should now show search input
@@ -89,14 +85,14 @@ test.describe("History Panel", () => {
 
   test("shows 'No history yet' when empty", async ({ page }) => {
     await waitForApp(page);
-    await openSidebarIfMobile(page);
+    await ensureSidebarOpen(page);
     await page.getByRole("button", { name: /History/ }).click();
     await expect(page.locator("text=No history yet")).toBeVisible();
   });
 
   test("history panel closes on second click", async ({ page }) => {
     await waitForApp(page);
-    await openSidebarIfMobile(page);
+    await ensureSidebarOpen(page);
     const toggle = page.getByRole("button", { name: /History/ });
     // Open panel
     await toggle.click();
@@ -159,7 +155,7 @@ test.describe("History Entry Creation", () => {
     await expect(page.locator("textarea")).toContainText("Test Result");
 
     // Open history panel
-    await openSidebarIfMobile(page);
+    await ensureSidebarOpen(page);
     await page.getByRole("button", { name: /History/ }).click();
 
     // Should show the entry
@@ -206,7 +202,7 @@ test.describe("History Entry Creation", () => {
     await page.getByRole("button", { name: "Fetch" }).click();
 
     await expect(page.locator("textarea")).toContainText("Content");
-    await openSidebarIfMobile(page);
+    await ensureSidebarOpen(page);
     await page.getByRole("button", { name: /History/ }).click();
 
     // Check for provider in metadata line within history panel
@@ -255,7 +251,7 @@ test.describe("History Entry Creation", () => {
     await expect(page.locator("textarea")).toBeVisible();
 
     // Open history and check character count
-    await openSidebarIfMobile(page);
+    await ensureSidebarOpen(page);
     await page.getByRole("button", { name: /History/ }).click();
 
     // Wait for history to load and check for character count within history panel
@@ -286,7 +282,7 @@ test.describe("History Search", () => {
     });
 
     await waitForApp(page);
-    await openSidebarIfMobile(page);
+    await ensureSidebarOpen(page);
     await page.getByRole("button", { name: /History/ }).click();
 
     // All entries should be visible initially
@@ -334,7 +330,7 @@ test.describe("History Delete", () => {
     });
 
     await waitForApp(page);
-    await openSidebarIfMobile(page);
+    await ensureSidebarOpen(page);
     await page.getByRole("button", { name: /History/ }).click();
     await expect(page.locator("text=test entry to delete")).toBeVisible();
 
@@ -366,7 +362,7 @@ test.describe("History Load", () => {
     });
 
     await waitForApp(page);
-    await openSidebarIfMobile(page);
+    await ensureSidebarOpen(page);
     await page.getByRole("button", { name: /History/ }).click();
 
     // Click on the history entry
@@ -401,7 +397,7 @@ test.describe("History Persistence", () => {
     });
 
     await waitForApp(page);
-    await openSidebarIfMobile(page);
+    await ensureSidebarOpen(page);
     await page.getByRole("button", { name: /History/ }).click();
     await expect(page.locator("text=persistent query")).toBeVisible();
 
@@ -410,7 +406,7 @@ test.describe("History Persistence", () => {
     await expect(page.getByTestId("app-loaded")).toBeVisible();
 
     // Open history
-    await openSidebarIfMobile(page);
+    await ensureSidebarOpen(page);
     await page.getByRole("button", { name: /History/ }).click();
 
     // Entry should still be there
@@ -431,7 +427,7 @@ test.describe("History Persistence", () => {
     });
 
     await waitForApp(page);
-    await openSidebarIfMobile(page);
+    await ensureSidebarOpen(page);
     await page.getByRole("button", { name: /History/ }).click();
 
     // Wait a bit for the cookie to be set
@@ -448,7 +444,7 @@ test.describe("History Persistence", () => {
 test.describe("History Accessibility", () => {
   test("history toggle has correct aria attributes", async ({ page }) => {
     await waitForApp(page);
-    await openSidebarIfMobile(page);
+    await ensureSidebarOpen(page);
     const toggle = page.getByRole("button", { name: /History/ });
 
     // Check aria-expanded is false initially
@@ -461,7 +457,7 @@ test.describe("History Accessibility", () => {
 
   test("history panel has correct id for aria-controls", async ({ page }) => {
     await waitForApp(page);
-    await openSidebarIfMobile(page);
+    await ensureSidebarOpen(page);
     const toggle = page.getByRole("button", { name: /History/ });
 
     // Check aria-controls points to panel

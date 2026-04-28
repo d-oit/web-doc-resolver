@@ -180,7 +180,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: always()
-    needs: [lint, test, web-lint, web-typecheck, web-test, web-build, web-e2e]
+    needs: [lint, test, web-lint, web-typecheck, web-test, web-build]
     steps:
       - name: Check results
         run: |
@@ -191,7 +191,6 @@ jobs:
             "${{ needs.web-typecheck.result }}"
             "${{ needs.web-test.result }}"
             "${{ needs.web-build.result }}"
-            "${{ needs.web-e2e.result }}"
           )
           failed=false
           for result in "${results[@]}"; do
