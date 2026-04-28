@@ -86,8 +86,9 @@ class TestSemanticCachePerformance:
             latencies.append((end - start) * 1000)  # Convert to ms
 
         avg_latency = sum(latencies) / len(latencies)
+        max_latency = max(latencies)
         sorted_latencies = sorted(latencies)
-        p95_latency = sorted_latencies[int(len(latencies) * 0.95)]
+        _p95_latency = sorted_latencies[int(len(latencies) * 0.95)]
 
         # Increased thresholds for CI environments
         # Should be under 200ms on average
