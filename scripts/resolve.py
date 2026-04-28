@@ -166,6 +166,7 @@ def resolve_direct(input_str: str, provider: ProviderType, max_chars: int = MAX_
         ProviderType.FIRECRAWL: resolve_with_firecrawl,
         ProviderType.MISTRAL_BROWSER: resolve_with_mistral_browser,
         ProviderType.MISTRAL_WEBSEARCH: resolve_with_mistral_websearch,
+        ProviderType.DIRECT_FETCH: fetch_url_content,
     }
     if provider in funcs:
         res = funcs[provider](input_str, max_chars)
