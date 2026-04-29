@@ -1,78 +1,66 @@
 # Contributing to do-web-doc-resolver
 
-Thank you for your interest in contributing! This document outlines the process for contributing to this project.
-
 ## Getting Started
 
-1. Fork the repository
-2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/do-web-doc-resolver.git`
-3. Install dependencies: `pip install -r requirements.txt`
+1. Fork the repository.
+2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/do-web-doc-resolver.git`.
+3. Install dependencies: `pip install -r requirements.txt`.
 
-## Development Setup
+## Development Workflow
 
 ### Python
 ```bash
-# Install dev dependencies
-pip install -r requirements.txt
-
 # Run tests
 python -m pytest tests/ -v -m "not live"
 
-# Run linting
-black --check scripts/ tests/
-flake8 scripts/ tests/
-mypy scripts/
+# Linting and formatting
+python -m ruff check .
+python -m black .
 ```
 
 ### Rust CLI
 ```bash
 cd cli
-cargo build --release
 cargo test
 cargo clippy -- -D warnings
-cargo fmt --check
+cargo fmt
 ```
 
-## Making Changes
+### Web UI
+```bash
+cd web
+npm run lint
+npm run typecheck
+npx playwright test --project=desktop
+```
 
-1. Create a feature branch: `git checkout -b feature/your-feature-name`
-2. Make your changes and add tests
-3. Ensure all tests pass
-4. Commit your changes: `git commit -m "feat: add your feature"`
-5. Push to your fork: `git push origin feature/your-feature-name`
-6. Open a Pull Request
+### Quality Gate
+Run the full suite before submitting:
+```bash
+./scripts/quality_gate.sh
+```
 
-## Coding Standards
+## Standards
 
-- Python: Follow [Black](https://black.readthedocs.io/) formatting
-- Rust: Follow standard Rust idioms, run `cargo fmt` and `cargo clippy`
-- Add type hints to Python functions
-- Include docstrings for public APIs
-
-## Testing
-
-- Run unit tests: `python -m pytest tests/test_resolve.py -v -m "not live"`
-- Run live API tests (requires API keys): `python -m pytest tests/test_live_api_integrations.py -v`
-- Test coverage target: 90%+
-
-## Commit Messages
-
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
-- `feat:` new feature
-- `fix:` bug fix
-- `docs:` documentation changes
-- `chore:` maintenance tasks
-- `refactor:` code refactoring
-- `test:` adding or updating tests
+- **Python**: Follow Black formatting and Ruff rules. Use type hints for all public functions.
+- **Rust**: Use standard idioms. Ensure `cargo clippy` and `cargo fmt` pass.
+- **Commits**: Use [Conventional Commits](https://www.conventionalcommits.org/):
+  - `feat:` new feature
+  - `fix:` bug fix
+  - `docs:` documentation
+  - `chore:` maintenance
+  - `refactor:` code restructuring
+  - `test:` test updates
+- **Branching**: Use `feat/`, `fix/`, `chore/`, or `docs/` prefixes.
+- **File Size**: Source files should not exceed 500 lines. Split into sub-modules if they grow larger.
 
 ## Pull Request Process
 
-1. Update documentation if needed
-2. Add tests for new features
-3. Ensure CI passes
-4. Update CHANGELOG.md with your changes
-5. Request review from maintainers
+1. Update documentation for any user-facing changes.
+2. Add tests for new features or bug fixes.
+3. Ensure the quality gate passes.
+4. Update `CHANGELOG.md`.
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the MIT License.
+By contributing, you agree that your work will be licensed under the MIT License.
