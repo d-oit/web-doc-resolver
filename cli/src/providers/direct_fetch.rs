@@ -144,7 +144,9 @@ fn strip_html(html: &str) -> String {
             } else if skip_content_depth == 0 {
                 if !is_closing {
                     // Opening tags
-                    if block_tags.contains(tag_name) && !result.is_empty() && !result.ends_with('\n')
+                    if block_tags.contains(tag_name)
+                        && !result.is_empty()
+                        && !result.ends_with('\n')
                     {
                         result.push('\n');
                     }

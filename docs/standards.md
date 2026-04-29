@@ -1,10 +1,10 @@
 # LLM-Readable-Doc Standards (2026 Edition)
 
-As LLM context windows have expanded and RAG architectures have matured, "LLM-ready" documentation must prioritize token efficiency and structural clarity. These standards ensure that synthesized outputs from the Web Doc Resolver are optimized for downstream LLM consumption.
+Synthesized outputs from the Web Doc Resolver must prioritize token efficiency and structural clarity for downstream LLM consumption.
 
 ## 1. Token-Efficiency Headers
 
-Every synthesized document MUST begin with a YAML frontmatter block containing metadata that allows the consuming LLM to quickly assess relevance without processing the entire body.
+Every synthesized document must begin with a YAML frontmatter block. This allows consuming models to assess relevance without processing the entire body.
 
 ```yaml
 ---
@@ -17,15 +17,15 @@ last_updated: YYYY-MM-DD
 
 ## 2. Structural Anchors
 
-To facilitate better RAG performance and citation mapping, content must be partitioned using standardized structural anchors. These anchors allow models to perform precise "needle-in-a-haystack" retrieval and cross-referencing.
+Content must be partitioned using standardized structural anchors to facilitate RAG performance and citation mapping.
 
 - `[ANCHOR: SUMMARY]` - High-level synthesis of findings.
-- `[ANCHOR: TECHNICAL_DETAILS]` - Deep dive into specs, code, or architecture.
-- `[ANCHOR: COMPARISON]` - Trade-offs and alternatives (if applicable).
-- `[ANCHOR: CITATIONS]` - Mapping of claims to source URLs.
+- `[ANCHOR: TECHNICAL_DETAILS]` - Specs, code, or architecture details.
+- `[ANCHOR: COMPARISON]` - Trade-offs and alternatives.
+- `[ANCHOR: CITATIONS]` - Source URL mapping.
 
 ## 3. Formatting Requirements
 
-- **Markdown-Strict**: Use standard CommonMark for maximum compatibility.
-- **Deduplication**: Aggressively merge redundant information across sources.
-- **Citation Precision**: Every claim should ideally be followed by a bracketed citation index matching the CITATIONS anchor.
+- **CommonMark**: Use strict Markdown for maximum compatibility.
+- **Deduplication**: Merge redundant information across sources.
+- **Citation Precision**: Follow claims with bracketed citation indices (e.g., [1]) matching the CITATIONS anchor.
