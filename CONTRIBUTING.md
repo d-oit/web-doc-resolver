@@ -1,11 +1,5 @@
 # Contributing to do-web-doc-resolver
 
-## Getting Started
-
-1. Fork the repository.
-2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/do-web-doc-resolver.git`.
-3. Install dependencies: `pip install -r requirements.txt`.
-
 ## Development Workflow
 
 ### Python
@@ -52,14 +46,14 @@ Run the full suite before submitting:
   - `refactor:` code restructuring
   - `test:` test updates
 - **Branching**: Use `feat/`, `fix/`, `chore/`, or `docs/` prefixes.
-- **File Size**: Source files should not exceed 500 lines. Split into sub-modules if they grow larger.
+- **File Size**: Source files must not exceed 500 lines. Split into sub-modules if they grow larger.
 
 ## Pull Request Process
 
-1. Update documentation for any user-facing changes.
+1. Update documentation for user-facing changes.
 2. Add tests for new features or bug fixes.
-3. Ensure the quality gate passes.
-4. Update `CHANGELOG.md`.
+3. Ensure the quality gate passes: `./scripts/quality_gate.sh`.
+4. Update `AGENTS.md` if the repository structure or skills change.
 
 ## License
 
