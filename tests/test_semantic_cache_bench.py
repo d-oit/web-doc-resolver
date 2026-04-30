@@ -78,7 +78,7 @@ class TestSemanticCachePerformance:
 
         # Measure query latency
         latencies = []
-        for _ in range(10):
+        for _ in range(20):
             start = time.time()
             semantic_cache.query(query)  # Ignore result
             end = time.time()

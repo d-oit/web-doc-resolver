@@ -5,6 +5,7 @@
 use crate::error::{ResolverError, detect_error_type};
 use crate::types::ResolvedResult;
 use async_trait::async_trait;
+use std::collections::HashSet;
 use std::result::Result;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -93,49 +94,109 @@ impl crate::providers::UrlProvider for DirectFetchProvider {
     }
 }
 
-/// Strip HTML tags and convert to plain text
+/// Decode basic HTML entities
+fn decode_entities(text: &str) -> String {
+    text.replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&#x27;", "'")
+        .replace("&#39;", "'")
+        .replace("&nbsp;", " ")
+        .replace("&amp;", "&") // Ampersand last to avoid double-unescaping
+        .replace("\u{2060}", "") // Remove word joiner
+}
+
+/// Strip HTML tags and convert to plain text with basic formatting
 fn strip_html(html: &str) -> String {
     let mut result = String::new();
     let mut in_tag = false;
-    let mut in_script = false;
-    let mut in_style = false;
+    let mut current_tag = String::new();
+    let mut skip_content_depth: usize = 0;
 
-    for line in html.lines() {
-        let line_lower = line.to_lowercase();
+    let block_tags: HashSet<&str> = [
+        "p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "li", "tr", "pre", "br", "article",
+        "section", "header", "footer", "nav", "aside",
+    ]
+    .iter()
+    .cloned()
+    .collect();
 
-        // Check for script/style tags
-        if line_lower.contains("<script") {
-            in_script = true;
-        }
-        if line_lower.contains("</script>") {
-            in_script = false;
-            continue;
-        }
-        if line_lower.contains("<style") {
-            in_style = true;
-        }
-        if line_lower.contains("</style>") {
-            in_style = false;
-            continue;
-        }
+    for ch in html.chars() {
+        if ch == '<' {
+            in_tag = true;
+            current_tag.clear();
+        } else if ch == '>' {
+            in_tag = false;
+            let tag_lower = current_tag.to_lowercase();
+            let is_closing = tag_lower.starts_with('/');
+            let tag_name = tag_lower
+                .trim_start_matches('/')
+                .split_whitespace()
+                .next()
+                .unwrap_or("");
 
-        if in_script || in_style {
-            continue;
-        }
-
-        for ch in line.chars() {
-            match ch {
-                '<' => in_tag = true,
-                '>' => in_tag = false,
-                _ if !in_tag => result.push(ch),
-                _ => {}
+            if tag_name == "script" || tag_name == "style" {
+                if is_closing {
+                    skip_content_depth = skip_content_depth.saturating_sub(1);
+                } else {
+                    skip_content_depth += 1;
+                }
+            } else if skip_content_depth == 0 {
+                if !is_closing {
+                    // Opening tags
+                    if block_tags.contains(tag_name)
+                        && !result.is_empty()
+                        && !result.ends_with('\n')
+                    {
+                        result.push('\n');
+                    }
+                    if tag_name == "code" {
+                        result.push('`');
+                    } else if tag_name == "pre" {
+                        result.push_str("\n```\n");
+                    }
+                } else {
+                    // Closing tags
+                    if tag_name == "code" {
+                        result.push('`');
+                    } else if tag_name == "pre" {
+                        result.push_str("\n```\n");
+                    } else if block_tags.contains(tag_name)
+                        && !result.is_empty()
+                        && !result.ends_with('\n')
+                    {
+                        result.push('\n');
+                    }
+                }
             }
+        } else if in_tag {
+            current_tag.push(ch);
+        } else if skip_content_depth == 0 {
+            result.push(ch);
         }
-        result.push(' ');
     }
 
+    let decoded = decode_entities(&result);
+
     // Clean up whitespace
-    result.split_whitespace().collect::<Vec<_>>().join("\n\n")
+    let mut final_result = String::new();
+    let mut last_was_empty = false;
+
+    for line in decoded.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() {
+            if !last_was_empty && !final_result.is_empty() {
+                final_result.push_str("\n\n");
+                last_was_empty = true;
+            }
+        } else {
+            final_result.push_str(trimmed);
+            final_result.push('\n');
+            last_was_empty = false;
+        }
+    }
+
+    final_result.trim().to_string()
 }
 
 #[cfg(test)]
@@ -151,9 +212,19 @@ mod tests {
 
     #[test]
     fn test_strip_html() {
-        let html = "<p>Hello <b>world</b></p>";
+        let html = "<html><body><h1>Title</h1><p>Hello <b>world</b> &amp; others</p><script>alert(1)</script></body></html>";
         let result = strip_html(html);
-        assert!(result.contains("Hello"));
-        assert!(result.contains("world"));
+        assert!(result.contains("Title"));
+        assert!(result.contains("Hello world & others"));
+        assert!(!result.contains("alert(1)"));
+    }
+
+    #[test]
+    fn test_code_blocks() {
+        let html = "<p>Use <code>fn main()</code></p><pre>println!(\"Hi\");</pre>";
+        let result = strip_html(html);
+        assert!(result.contains("`fn main()`"));
+        assert!(result.contains("```"));
+        assert!(result.contains("println!(\"Hi\");"));
     }
 }

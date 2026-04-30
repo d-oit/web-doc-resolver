@@ -117,6 +117,94 @@ export async function extractViaJina(url: string, log: Logger): Promise<string |
   }
 }
 
+/**
+ * Simple HTML entity decoder
+ */
+function decodeEntities(text: string): string {
+  return text
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&") // Ampersand last to avoid double-unescaping
+    .replace(/\u2060/g, ""); // Remove word joiner
+}
+
+/**
+ * Enhanced HTML to text conversion for direct_fetch
+ */
+function extractTextFromHtml(html: string): string {
+  let result = "";
+  let inTag = false;
+  let currentTag = "";
+  let skipContentDepth = 0;
+
+  const blockTags = new Set([
+    "p", "div", "h1", "h2", "h3", "h4", "h5", "h6",
+    "li", "tr", "pre", "br", "article", "section",
+    "header", "footer", "nav", "aside"
+  ]);
+
+  for (let i = 0; i < html.length; i++) {
+    const ch = html[i];
+    if (ch === "<") {
+      inTag = true;
+      currentTag = "";
+    } else if (ch === ">") {
+      inTag = false;
+      const tagLower = currentTag.toLowerCase();
+      const isClosing = tagLower.startsWith("/");
+      const tagName = tagLower.replace(/^\//, "").split(/\s/)[0] || "";
+
+      if (tagName === "script" || tagName === "style") {
+        if (isClosing) {
+          skipContentDepth = Math.max(0, skipContentDepth - 1);
+        } else {
+          skipContentDepth++;
+        }
+      } else if (skipContentDepth === 0) {
+        if (!isClosing) {
+          // Opening tags
+          if (blockTags.has(tagName)) {
+            if (result && result[result.length - 1] !== "\n") {
+              result += "\n";
+            }
+          }
+          if (tagName === "code") {
+            result += "`";
+          } else if (tagName === "pre") {
+            result += "\n```\n";
+          }
+        } else {
+          // Closing tags
+          if (tagName === "code") {
+            result += "`";
+          } else if (tagName === "pre") {
+            result += "\n```\n";
+          } else if (blockTags.has(tagName)) {
+            if (result && result[result.length - 1] !== "\n") {
+              result += "\n";
+            }
+          }
+        }
+      }
+    } else if (inTag) {
+      currentTag += ch;
+    } else if (skipContentDepth === 0) {
+      result += ch;
+    }
+  }
+
+  const cleaned = result
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+
+  return decodeEntities(cleaned);
+}
+
 export async function extractViaDirectFetch(url: string, log: Logger): Promise<string | null> {
   const start = Date.now();
   log.info("attempt", "direct_fetch", { url });
@@ -132,12 +220,8 @@ export async function extractViaDirectFetch(url: string, log: Logger): Promise<s
       return null;
     }
     const html = await res.text();
-    const text = html
-      .replace(/<script[\s\S]*?<\/script>/gi, "")
-      .replace(/<style[\s\S]*?<\/style>/gi, "")
-      .replace(/<[^>]+>/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
+    const text = extractTextFromHtml(html);
+
     if (text.length > MIN_CHARS) {
       log.info("success", "direct_fetch", { latencyMs: Date.now() - start, chars: text.length });
       return text.slice(0, MAX_CHARS);

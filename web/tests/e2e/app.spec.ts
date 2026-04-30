@@ -44,6 +44,22 @@ async function waitForApp(page: import("@playwright/test").Page): Promise<void> 
   await expect(page.getByTestId("app-loaded")).toBeVisible({ timeout: 10000 });
 }
 
+// Helper to ensure sidebar is open (needed for small viewports)
+async function ensureSidebarOpen(page: import("@playwright/test").Page): Promise<void> {
+  const isMobile = await page.evaluate(() => window.innerWidth < 1024);
+  if (isMobile) {
+    const backdrop = page.locator("div.fixed.inset-0.bg-black\\/80");
+    const menuButton = page.getByRole("button", { name: "Open menu" });
+
+    // Check if backdrop is visible (meaning menu is already open)
+    const backdropVisible = await backdrop.isVisible();
+    if (!backdropVisible) {
+      await menuButton.click();
+      await expect(backdrop).toBeVisible();
+    }
+  }
+}
+
 test.describe("Page Load & Structure", () => {
   test("loads and displays the app name", async ({ page }) => {
     await waitForApp(page);
@@ -537,6 +553,7 @@ test.describe("Collapsible Sidebar", () => {
 
   test("sidebar collapses when clicking Configuration header", async ({ page }) => {
     await waitForApp(page);
+    await ensureSidebarOpen(page);
     await expect(page.locator("label").filter({ hasText: "Profile" })).toBeVisible();
     await page.getByTestId("sidebar-toggle").click();
     await expect(page.locator("label").filter({ hasText: "Profile" })).not.toBeVisible();
@@ -544,6 +561,7 @@ test.describe("Collapsible Sidebar", () => {
 
   test("sidebar expands when clicking Configuration header again", async ({ page }) => {
     await waitForApp(page);
+    await ensureSidebarOpen(page);
     await page.getByTestId("sidebar-toggle").click();
     await expect(page.locator("label").filter({ hasText: "Profile" })).not.toBeVisible();
     await page.getByTestId("sidebar-toggle").click();
@@ -552,6 +570,7 @@ test.describe("Collapsible Sidebar", () => {
 
   test("toggle label shows correct text", async ({ page }) => {
     await waitForApp(page);
+    await ensureSidebarOpen(page);
     await expect(page.getByTestId("sidebar-toggle").locator("text=Hide")).toBeVisible();
     await page.getByTestId("sidebar-toggle").click();
     await expect(page.getByTestId("sidebar-toggle").locator("text=Show")).toBeVisible();
@@ -559,6 +578,7 @@ test.describe("Collapsible Sidebar", () => {
 
   test("Keys link is visible in sidebar header", async ({ page }) => {
     await waitForApp(page);
+    await ensureSidebarOpen(page);
     const keysLink = page.locator('a[href="/settings"]');
     await expect(keysLink).toBeVisible();
     await expect(keysLink).toContainText("Keys");
@@ -566,6 +586,7 @@ test.describe("Collapsible Sidebar", () => {
 
   test("Keys link navigates to settings", async ({ page }) => {
     await waitForApp(page);
+    await ensureSidebarOpen(page);
     await page.locator('a[href="/settings"]').click();
     await expect(page).toHaveURL(/\/settings/);
   });
@@ -574,12 +595,14 @@ test.describe("Collapsible Sidebar", () => {
 test.describe("Collapsible API Keys", () => {
   test("API Keys section is collapsed by default", async ({ page }) => {
     await waitForApp(page);
+    await ensureSidebarOpen(page);
     await expect(page.getByTestId("api-keys-toggle")).toBeVisible();
     await expect(page.locator("label").filter({ hasText: "Serper" })).not.toBeVisible();
   });
 
   test("API Keys section expands on click", async ({ page }) => {
     await waitForApp(page);
+    await ensureSidebarOpen(page);
     await page.getByTestId("api-keys-toggle").click();
     await expect(page.locator("label").filter({ hasText: "Serper" })).toBeVisible();
     await expect(page.locator("label").filter({ hasText: "Tavily" })).toBeVisible();
@@ -587,6 +610,7 @@ test.describe("Collapsible API Keys", () => {
 
   test("API Keys section collapses on second click", async ({ page }) => {
     await waitForApp(page);
+    await ensureSidebarOpen(page);
     await page.getByTestId("api-keys-toggle").click();
     await expect(page.locator("label").filter({ hasText: "Serper" })).toBeVisible();
     await page.getByTestId("api-keys-toggle").click();
@@ -597,6 +621,7 @@ test.describe("Collapsible API Keys", () => {
 test.describe("Profile Provider Indicators", () => {
   test("profile providers are shown as active by default", async ({ page }) => {
     await waitForApp(page);
+    await ensureSidebarOpen(page);
     // Free profile is default: exa_mcp (DuckDuckGo may be disabled if Mistral is active)
     // Exa MCP should have the active style (green border)
     const exaButton = page.locator("button").filter({ hasText: "Exa MCP" });
@@ -608,12 +633,14 @@ test.describe("Profile Provider Indicators", () => {
 
   test("profile status text shows provider count", async ({ page }) => {
     await waitForApp(page);
+    await ensureSidebarOpen(page);
     // Free profile shows exa_mcp, may or may not show DuckDuckGo depending on Mistral gating
     await expect(page.locator("text=Using free profile")).toBeVisible();
   });
 
   test("clicking a provider switches to custom selection", async ({ page }) => {
     await waitForApp(page);
+    await ensureSidebarOpen(page);
     // Click Exa MCP (free, always available) to toggle it off the profile
     await page.locator("button").filter({ hasText: "Exa MCP" }).click();
     // Status should change to custom selection
@@ -622,6 +649,7 @@ test.describe("Profile Provider Indicators", () => {
 
   test("manual selection overrides profile display", async ({ page }) => {
     await waitForApp(page);
+    await ensureSidebarOpen(page);
     // Click Exa MCP (free, always available) to manually toggle
     const exaButton = page.locator("button").filter({ hasText: "Exa MCP" });
     await exaButton.click();
