@@ -8,7 +8,7 @@ import tsParser from "@typescript-eslint/parser";
 import tsPlugin from "@typescript-eslint/eslint-plugin";
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// __dirname not needed for this config
 
 export default [
   {

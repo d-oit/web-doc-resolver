@@ -25,6 +25,7 @@ use crate::synthesis::synthesize_results;
 use crate::types::{ProviderType, ResolvedResult};
 use std::result::Result;
 use std::sync::{Arc, Mutex, OnceLock};
+use std::time::Instant;
 
 static LINK_REGEX: OnceLock<regex::Regex> = OnceLock::new();
 
@@ -120,6 +121,21 @@ impl Resolver {
         let mut metrics = ResolveMetrics::new();
         let query = input; // For now assume query
 
+        // Check semantic cache for aggregated/synthesized result
+        if let Some(cache) = self.cache.as_ref() {
+            let cache_started = Instant::now();
+            let cache_key = format!("aggregated:{}", input);
+            if let Ok(Some(res)) = cache.query(&cache_key).await {
+                if let Some(mut res) = res.into_iter().next() {
+                    let cache_latency = cache_started.elapsed().as_millis() as u64;
+                    metrics.cache_hit = true;
+                    metrics.total_latency_ms = cache_latency;
+                    res.metrics = Some(metrics);
+                    return Ok(res);
+                }
+            }
+        }
+
         let results = if is_url(input) {
             vec![self.resolve_url(input).await?]
         } else {
@@ -178,6 +194,13 @@ impl Resolver {
                 ResolvedResult::new(results[0].url.clone(), Some(synthesized), "synthesis", 1.0);
             metrics.record_provider(ProviderType::MistralWebSearch, 0, true); // Dummy record for synthesis
             res.metrics = Some(metrics);
+
+            // Store in semantic cache
+            if let Some(cache) = self.cache.as_ref() {
+                let cache_key = format!("aggregated:{}", input);
+                let _ = cache.store(&cache_key, &[res.clone()], &res.source).await;
+            }
+
             return Ok(res);
         }
 
