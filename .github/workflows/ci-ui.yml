@@ -141,6 +141,7 @@ jobs:
     name: E2E Tests (web)
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    needs: [web-build]
     if: github.actor != 'dependabot[bot]'
     steps:
       - uses: actions/checkout@v6
@@ -172,7 +173,7 @@ jobs:
           npm run start &
           SERVER_PID=$!
           npx wait-on http://localhost:3000 -t 60000
-          npx playwright test --project=desktop --project=mobile --project=tablet --workers=3
+          npx playwright test --project=desktop --project=mobile --project=tablet
         working-directory: web
         env:
           BASE_URL: http://localhost:3000

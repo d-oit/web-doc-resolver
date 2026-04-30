@@ -64,6 +64,22 @@ function historyPanel(page: import("@playwright/test").Page) {
   return page.locator("#history-panel");
 }
 
+// Helper to ensure sidebar is open (needed for small viewports)
+async function ensureSidebarOpen(page: import("@playwright/test").Page): Promise<void> {
+  const isMobile = await page.evaluate(() => window.innerWidth < 1024);
+  if (isMobile) {
+    const backdrop = page.locator("div.fixed.inset-0.bg-black\\/80");
+    const menuButton = page.getByRole("button", { name: "Open menu" });
+
+    // Check if backdrop is visible (meaning menu is already open)
+    const backdropVisible = await backdrop.isVisible();
+    if (!backdropVisible) {
+      await menuButton.click();
+      await expect(backdrop).toBeVisible();
+    }
+  }
+}
+
 test.describe("History Panel", () => {
   test("history panel is collapsed by default", async ({ page }) => {
     await waitForApp(page);

@@ -30,13 +30,6 @@ Next.js web interface that:
 - Vercel env var → localStorage fallback for API keys
 - Key status API endpoint (booleans only, no key exposure)
 - Shared key utility (`web/lib/keys.ts`) with `resolveKeySource()`
-- **Component Architecture**: Extracted components in `web/app/components/`
-  - `Sidebar.tsx` — Configuration panel
-  - `MainContent.tsx` — Input/output area
-  - `KeyboardShortcutsModal.tsx` — Keyboard help
-  - `History.tsx`, `ResultCard.tsx`, `ProfileCombobox.tsx`
-- Rate limiting via `middleware.ts` (30 req/min per IP)
-- Error boundary at `app/error.tsx`
 - Markdown preview toggle on results
 - ⌘K keyboard shortcut to focus input
 - Lightweight session history (last 10 queries)
@@ -83,31 +76,16 @@ do-web-doc-resolver/
 ├── cli/                     # Rust CLI
 │   ├── Cargo.toml
 │   └── src/
-│   └── ui/                  # Design system (tokens, components)
 ├── web/                     # Next.js web UI
 │   ├── app/
-│   │   ├── page.tsx         # Homepage (356 lines, <500 limit)
-│   │   ├── components/      # Extracted UI components
-│   │   │   ├── Sidebar.tsx
-│   │   │   ├── MainContent.tsx
-│   │   │   ├── KeyboardShortcutsModal.tsx
-│   │   │   ├── History.tsx
-│   │   │   ├── ResultCard.tsx
-│   │   │   └── ProfileCombobox.tsx
-│   │   ├── constants.ts     # Profile/provider constants
-│   │   ├── middleware.ts    # Rate limiting
-│   │   ├── error.tsx        # Error boundary
-│   │   ├── not-found.tsx    # 404 page
+│   │   ├── page.tsx         # Homepage (pills, preview, ⌘K, history)
 │   │   ├── settings/page.tsx # API key management with source badges
 │   │   └── api/
 │   │       ├── resolve/     # Main resolver endpoint
 │   │       └── key-status/  # Boolean key status endpoint
-│   ├── lib/                 # Utilities (keys, circuit-breaker, errors, quality)
-│   ├── tests/               # Unit tests (Vitest) + E2E (Playwright)
-│   └── vercel.json
+│   ├── lib/keys.ts          # Shared key utility
+│   └── tests/e2e/
 ├── tests/                   # Python test suite
-├── docs/                    # Standards, examples
-├── plans/                   # Roadmap & audit (see AUDIT.md)
 ├── .agents/skills/          # Skill definitions
 │   └── do-web-doc-resolver/
 ├── agents-docs/             # Project documentation

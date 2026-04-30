@@ -48,13 +48,14 @@ async function waitForApp(page: import("@playwright/test").Page): Promise<void> 
 async function ensureSidebarOpen(page: import("@playwright/test").Page): Promise<void> {
   const isMobile = (page.viewportSize()?.width || 0) < 1024;
   if (isMobile) {
+    const backdrop = page.locator("div.fixed.inset-0.bg-black\\/80");
     const menuButton = page.getByRole("button", { name: "Open menu" });
-    if (await menuButton.isVisible()) {
+
+    // Check if backdrop is visible (meaning menu is already open)
+    const backdropVisible = await backdrop.isVisible();
+    if (!backdropVisible) {
       await menuButton.click();
-      // Wait for the aside to be visible and in viewport
-      await expect(page.locator("aside")).toBeVisible();
-      // Give it a moment for the transition
-      await page.waitForTimeout(300);
+      await expect(backdrop).toBeVisible();
     }
   }
 }
