@@ -275,6 +275,16 @@ To verify the semantic cache performance and quality synthesis:
 # - Symlink validation
 ```
 
+## Maintenance
+
+### Template Drift Check
+
+The repository tracks several configuration files from the `d-o-hub/github-template-ai-agents` template. A scheduled workflow (`.github/workflows/template-drift-check.yml`) runs every Monday at 08:00 UTC to detect any drift between the local versions and the upstream template.
+
+- **Files tracked**: `.gitleaks.toml`, `.pre-commit-config.yaml`, `commitlint.config.cjs`, `markdownlint.toml`, `.actrc`.
+- **Action on drift**: The workflow opens a GitHub Issue (or comments on an existing one) if changes are detected.
+- **Manual trigger**: The check can be triggered manually via the "Actions" tab in GitHub.
+
 ## Troubleshooting
 
 ### Common Issues

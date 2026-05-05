@@ -23,6 +23,7 @@
   - Markdown linting passes (`markdownlint`)
   - No new secrets committed (Gitleaks)
   - `AGENTS.md` updated if repository structure changed
+  - Configuration files match upstream template (see `template-drift-check` workflow)
 
 ## Repository Structure
 
