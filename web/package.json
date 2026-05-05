@@ -43,7 +43,7 @@
     "eslint-plugin-playwright": "^2.10.2",
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.5.0",
-    "postcss": "^8.5.13",
+    "postcss": "^8.5.14",
     "tailwindcss": "^4.0.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.0",
