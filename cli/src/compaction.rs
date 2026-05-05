@@ -54,7 +54,20 @@ fn is_boilerplate(line: &str) -> bool {
     }
 
     // Protect Markdown structural elements and LaTeX markers from being treated as boilerplate
-    let protected_markers = ["```", "$$", "---", "###", "---", "|", ">"];
+    let protected_markers = [
+        "```",
+        "$$",
+        "---",
+        "###",
+        "|",
+        ">",
+        "{\\displaystyle",
+        "\\textstyle",
+        "\\begin{aligned}",
+        "\\end{aligned}",
+        "<pre",
+        "<code",
+    ];
     if protected_markers.iter().any(|&m| line.contains(m)) {
         return false;
     }
