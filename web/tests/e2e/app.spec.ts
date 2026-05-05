@@ -402,7 +402,7 @@ test.describe("Network Interception", () => {
     await page.getByRole("button", { name: "Fetch" }).click();
 
     // Click Raw button to see textarea (default is Cards view)
-    await page.getByRole("button", { name: "Raw" }).click();
+    await page.getByRole("button", { name: "Raw", exact: true }).click();
     await expect(page.locator("textarea")).toContainText(
       "This is the resolved content."
     );
