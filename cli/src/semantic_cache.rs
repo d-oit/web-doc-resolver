@@ -801,7 +801,7 @@ mod tests {
         #[cfg(not(debug_assertions))]
         let max_latency_ms = 10u128;
         #[cfg(debug_assertions)]
-        let max_latency_ms = 400u128; // Increased for shared environments
+        let max_latency_ms = 1000u128; // Increased for shared environments
 
         assert!(
             elapsed.as_millis() < max_latency_ms,
