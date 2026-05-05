@@ -152,7 +152,7 @@ test.describe("History Entry Creation", () => {
     await page.getByRole("button", { name: "Fetch" }).click();
 
     // Wait for result - click Raw button to see textarea (default is Cards view)
-    await page.getByRole("button", { name: "Raw" }).click();
+    await page.getByRole("button", { name: "Raw", exact: true }).click();
     await expect(page.locator("textarea")).toContainText("Test Result");
 
     // Open history panel

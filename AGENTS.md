@@ -71,13 +71,6 @@ Run `./scripts/sync_versions.py` to ensure all versions are in sync.
 - Shell: `shellcheck` (severity=error); Markdown: `markdownlint`;
   Diagrams: `mermaid`
 - **Web dependencies**: Use `npm ci --legacy-peer-deps` (ESLint 10 peer conflict)
-- **PR Checklist**:
-  - `scripts/quality_gate.sh` passes
-  - Linting clean (ruff/black, cargo fmt/clippy, npm run lint)
-  - Markdown linting passes (`markdownlint`)
-  - No new secrets committed (Gitleaks)
-  - `AGENTS.md` updated if repository structure changed
-  - Configuration files match upstream template (see `template-drift-check` workflow)
 
 ## Repository Structure
 

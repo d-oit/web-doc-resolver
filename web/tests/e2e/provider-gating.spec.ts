@@ -60,6 +60,10 @@ test.describe("Provider gating", () => {
     await expect(tavilyButton).toContainText("needs key");
     // Button has muted styling (aria-describedby indicates unavailable state)
     await expect(tavilyButton).toHaveAttribute("aria-describedby");
+
+    const firecrawlButton = page.getByRole("button", { name: /Firecrawl/i });
+    await expect(firecrawlButton).toBeEnabled();
+    await expect(firecrawlButton).toContainText("needs key");
   });
 
   test("provider enables after entering local API key", async ({ page }, testInfo) => {
@@ -79,6 +83,7 @@ test.describe("Provider gating", () => {
 
     const tavilyButton = page.getByRole("button", { name: /Tavily/i });
     await expect(tavilyButton).toBeEnabled();
+    await expect(tavilyButton).not.toContainText("needs key");
   });
 
   test("manual provider toggle switches profile to custom", async ({ page }, testInfo) => {

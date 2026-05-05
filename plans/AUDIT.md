@@ -1,4 +1,4 @@
-# Project Audit — 2026-04-26
+# Project Audit — 2026-05-05
 
 > Single source of truth for project health. Supersedes all prior audit/bug/issue files in `plans/`.
 
@@ -20,6 +20,7 @@
 | AGENTS.md Rust edition 2021→2024 | ✅ RESOLVED | Updated |
 | Version sync across runtimes | ✅ RESOLVED | All at 0.3.1 |
 | Quality score in Web UI | ✅ RESOLVED | `qualityScore` state + display |
+| Firecrawl missing in Web UI | ✅ RESOLVED | Restored to `constants.ts` + E2E test added |
 | `CLAUDE.md` still exists | ⚪ KEPT | Contains only `@AGENTS.md` redirect — harmless |
 
 ---
@@ -162,4 +163,4 @@
 
 ---
 
-*Last updated: 2026-04-26. Next audit: when version bumps to 1.0 or after P0 items are resolved.*
+*Last updated: 2026-05-05. Next audit: when version bumps to 1.0 or after P0 items are resolved.*
