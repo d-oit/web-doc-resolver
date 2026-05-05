@@ -610,7 +610,7 @@ export PERPLEXITY_API_KEY="your-api-key"
 3. llms.txt (FREE)
 4. Jina Reader (FREE)
 5. Tavily Extract (PAID) ← NEW
-6. Firecrawl (PAID)
+6. Firecrawl (PAID) - RESTORED TO UI 2026-05-05
 7. ScrapingAnt (FREE) ← NEW
 8. ScrapingBee (PAID) ← NEW
 9. ScrapeGraph AI (PAID) ← NEW
