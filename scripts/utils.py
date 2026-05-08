@@ -294,10 +294,7 @@ def compact_content(content: str, max_chars: int) -> str:
         if current_len >= max_chars:
             break
 
-    if not compacted:
-        return ""
-    res = "\n".join(compacted)
-    return res[:max_chars] if len(res) > max_chars else res
+    return "\n".join(compacted)[:max_chars]
 
 
 def extract_text_from_html(html: str, base_url: str = "") -> str:
