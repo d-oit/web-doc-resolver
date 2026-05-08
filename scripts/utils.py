@@ -273,18 +273,31 @@ def score_result(url: str | None, content: str) -> float:
 
 
 def compact_content(content: str, max_chars: int) -> str:
-    lines = content.splitlines()
+    """Compact content by deduplicating lines and stopping at max_chars."""
+    if not content:
+        return ""
     unique_lines = set()
     compacted = []
-    for line in lines:
+    current_len = 0
+    for line in content.splitlines():
         trimmed = line.strip()
         if not trimmed:
             compacted.append("")
-            continue
-        if trimmed not in unique_lines:
+            current_len += 1  # \n
+        elif trimmed not in unique_lines:
             compacted.append(trimmed)
             unique_lines.add(trimmed)
-    return "\n".join(compacted)[:max_chars]
+            current_len += len(trimmed) + 1  # +1 for \n
+        else:
+            continue
+
+        if current_len >= max_chars:
+            break
+
+    if not compacted:
+        return ""
+    res = "\n".join(compacted)
+    return res[:max_chars] if len(res) > max_chars else res
 
 
 def extract_text_from_html(html: str, base_url: str = "") -> str:
