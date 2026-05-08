@@ -70,7 +70,7 @@ export default function MainContent({
   const charCount = result.length;
 
   return (
-    <div id="main-content" className="flex-1 flex flex-col min-h-0">
+    <div id="main-content" className="flex-1 flex flex-col min-h-0" tabIndex={-1}>
       {/* Header */}
       <div className="border-b-2 border-border-muted p-2 flex items-center justify-between min-h-[44px]">
         <div className="flex items-center gap-2">
@@ -94,13 +94,19 @@ export default function MainContent({
       {/* Input */}
       <div className="border-b-2 border-border-muted p-4">
         <div className="flex items-center gap-4">
+          <label htmlFor="search-input" className="sr-only">
+            URL or search query
+          </label>
           <input
+            id="search-input"
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
             placeholder="URL or search query..."
+            aria-invalid={!!error}
+            aria-errormessage={error ? "search-error" : undefined}
             className="flex-1 bg-transparent text-[20px] sm:text-[24px] text-foreground placeholder:text-text-dim tracking-tight"
           />
           {query.trim() && (
@@ -147,7 +153,7 @@ export default function MainContent({
 
       {/* Error */}
       {error && (
-        <div className="p-4 border-b-2 border-border-muted text-error text-[13px]">
+        <div id="search-error" role="alert" className="p-4 border-b-2 border-border-muted text-error text-[13px]">
           {error}
         </div>
       )}

@@ -33,6 +33,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${geistMono.variable} font-mono antialiased`}>
+        <a href="#main-content" className="skip-link">
+          Skip to content
+        </a>
         {children}
         <SpeedInsights />
         <Analytics />
