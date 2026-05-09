@@ -4,6 +4,50 @@
 
 Full documentation → **[docs/index.md](docs/index.md)**
 
+## Persona Matrix
+
+| I want to... | Use Case | Link |
+|---|---|---|
+| **Integrate as a Python skill** | AI Agents, backend services | [Python Quickstart](#python-agent-skill) |
+| **Use from the terminal** | CLI users, local research | [CLI Quickstart](#rust-cli-wdr) |
+| **Use in a browser** | Visual research, manual testing | [Web UI Quickstart](#web-ui) |
+
+## Scope & Intent
+
+- ✅ **Documentation Focused**: Optimized for technical docs, blogs, and structured information.
+- ✅ **LLM-Ready Output**: Produces high-density, clean Markdown designed for agent consumption.
+- ✅ **Intelligent Routing**: Multi-provider cascade with semantic caching and routing memory.
+- ✅ **Cost-Efficient**: Prioritizes free sources (Exa MCP, llms.txt) before using paid APIs.
+- ❌ **Not a General Crawler**: Not designed for bulk web scraping or SEO indexing.
+
+## Quickstart
+
+### Python Agent Skill
+
+```python
+from scripts.resolve import resolve
+
+# Resolves URL to clean Markdown using the free cascade
+result = resolve("https://docs.python.org/3/library/os.html")
+print(result["content"][:500]) # First 500 chars of documentation
+```
+
+### Rust CLI (wdr)
+
+```bash
+# Build and run (requires Rust/Cargo)
+cd cli && cargo build --release
+./target/release/do-wdr resolve "https://example.com" --max-chars 2000
+```
+
+### Web UI
+
+```bash
+# Start local development server
+cd web && npm install && npm run dev
+# Open http://localhost:3000 to resolve URLs in the browser
+```
+
 ## Overview
 
 This project implements a v4 cascade resolver with Python core, Rust CLI, and web UI that prioritizes free and low-cost data sources:
