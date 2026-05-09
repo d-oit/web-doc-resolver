@@ -1,5 +1,9 @@
 # AGENTS.md
 
+> **Primary Integration Guide** — This file is the main entry point for AI
+> agents and developers integrating the resolver as a skill. For deep
+> technical reference, see **[agents-docs/](agents-docs/README.md)**.
+
 > **do-web-doc-resolver** — resolves queries or URLs into clean Markdown via a
 > provider cascade.
 > Supported by: Claude Code, Windsurf, Gemini CLI, Codex, Copilot, OpenCode,
@@ -125,10 +129,11 @@ Run `./scripts/sync_versions.py` to ensure all versions are in sync.
 
 ## Project Documentation
 
-Detailed domain knowledge is located in `agents-docs/`.
+Detailed technical reference material is located in `agents-docs/`.
 
 | Topic | File |
 | --- | --- |
+| Reference Index | [agents-docs/README.md](agents-docs/README.md) |
 | Development | [agents-docs/DEVELOPMENT.md](agents-docs/DEVELOPMENT.md) |
 | Configuration | [agents-docs/CONFIG.md](agents-docs/CONFIG.md) |
 | Deployment | [agents-docs/DEPLOYMENT.md](agents-docs/DEPLOYMENT.md) |
