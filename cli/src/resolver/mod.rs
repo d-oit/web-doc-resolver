@@ -292,6 +292,16 @@ impl Resolver {
 
         Err(ResolverError::Provider("No provider succeeded".to_string()))
     }
+
+    /// Access to routing memory
+    pub fn routing_memory(&self) -> Arc<Mutex<RoutingMemory>> {
+        self.routing_memory.clone()
+    }
+
+    /// Access to semantic cache
+    pub fn cache(&self) -> Option<&SemanticCache> {
+        self.cache.as_ref()
+    }
 }
 
 // Note: Default trait removed because Resolver::new() is now async

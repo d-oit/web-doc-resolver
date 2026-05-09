@@ -19,6 +19,7 @@ pub mod resolver;
 pub mod routing;
 pub mod routing_memory;
 pub mod semantic_cache;
+pub mod startup;
 pub mod synthesis;
 pub mod types;
 
