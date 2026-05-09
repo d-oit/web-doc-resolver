@@ -40,6 +40,29 @@ TIERED_TTL = {
     "default": 3600,
 }
 
+_CONFIG_DATA: dict[str, Any] | None = None
+
+
+def get_config_data() -> dict[str, Any]:
+    """Load configuration from config.toml if available."""
+    global _CONFIG_DATA
+    if _CONFIG_DATA is not None:
+        return _CONFIG_DATA
+
+    _CONFIG_DATA = {}
+    config_path = os.getenv("DO_WDR_CONFIG", "config.toml")
+    if os.path.exists(config_path):
+        try:
+            import tomllib
+
+            with open(config_path, "rb") as f:
+                _CONFIG_DATA = tomllib.load(f)
+        except Exception as e:
+            logger.debug(f"Failed to load config.toml: {e}")
+
+    return _CONFIG_DATA
+
+
 # Semantic cache configuration
 ENABLE_SEMANTIC_CACHE = os.environ.get("DO_WDR_SEMANTIC_CACHE", "1") == "1"
 SEMANTIC_CACHE_THRESHOLD = float(os.environ.get("DO_WDR_CACHE_THRESHOLD", "0.85"))
@@ -555,23 +578,26 @@ def get_ttl(provider: str, config: dict | None = None) -> int:
     if provider in ("exa_mcp", "exa"):
         provider_key = "exa"
 
-    if config:
-        # Try to get from nested config.toml style
-        ttl_cfg = config.get("cache", {}).get("ttl", {})
-        if provider_key in ttl_cfg:
-            return int(ttl_cfg[provider_key])
-        if "default" in ttl_cfg:
-            return int(ttl_cfg["default"])
+    # Use provided config or load from file
+    cfg = config if config is not None else get_config_data()
 
-    # Fallback to environment variables or hardcoded tiered defaults
-    env_key = f"DO_WDR_CACHE_TTL_{provider.upper()}"
+    # Environment variable override takes precedence over file-based config
+    env_key = f"DO_WDR_CACHE_TTL_{provider_key.upper()}"
     if env_key in os.environ:
         try:
             return int(os.environ[env_key])
         except ValueError:
             pass
 
-    return TIERED_TTL.get(provider, TIERED_TTL.get("default", 3600))
+    if cfg:
+        # Try to get from nested config.toml style
+        ttl_cfg = cfg.get("cache", {}).get("ttl", {})
+        if provider_key in ttl_cfg:
+            return int(ttl_cfg[provider_key])
+        if "default" in ttl_cfg:
+            return int(ttl_cfg["default"])
+
+    return TIERED_TTL.get(provider_key, TIERED_TTL.get("default", 3600))
 
 
 def _get_from_cache(input_str: str, source: str) -> dict[str, Any] | None:
