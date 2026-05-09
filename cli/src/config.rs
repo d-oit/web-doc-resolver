@@ -79,6 +79,55 @@ pub struct Config {
     /// Max links to extract (default: 10)
     #[serde(default = "default_max_links")]
     pub max_links: usize,
+    /// Cache configuration
+    #[serde(default)]
+    pub cache: CacheConfig,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct CacheConfig {
+    #[serde(default)]
+    pub ttl: CacheTtlConfig,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct CacheTtlConfig {
+    #[serde(default = "default_ttl_firecrawl")]
+    pub firecrawl: u64,
+    #[serde(default = "default_ttl_exa")]
+    pub exa: u64,
+    #[serde(default = "default_ttl_jina")]
+    pub jina: u64,
+    #[serde(default = "default_ttl_duckduckgo")]
+    pub duckduckgo: u64,
+    #[serde(default = "default_ttl_llms_txt")]
+    pub llms_txt: u64,
+    #[serde(default = "default_ttl_synthesis")]
+    pub synthesis: u64,
+    #[serde(default = "default_ttl_default")]
+    pub default: u64,
+}
+
+impl Default for CacheConfig {
+    fn default() -> Self {
+        Self {
+            ttl: CacheTtlConfig::default(),
+        }
+    }
+}
+
+impl Default for CacheTtlConfig {
+    fn default() -> Self {
+        Self {
+            firecrawl: default_ttl_firecrawl(),
+            exa: default_ttl_exa(),
+            jina: default_ttl_jina(),
+            duckduckgo: default_ttl_duckduckgo(),
+            llms_txt: default_ttl_llms_txt(),
+            synthesis: default_ttl_synthesis(),
+            default: default_ttl_default(),
+        }
+    }
 }
 
 pub struct RoutingProfileConfig {
@@ -162,6 +211,34 @@ fn default_max_links() -> usize {
     10
 }
 
+fn default_ttl_firecrawl() -> u64 {
+    21600
+}
+
+fn default_ttl_exa() -> u64 {
+    14400
+}
+
+fn default_ttl_jina() -> u64 {
+    7200
+}
+
+fn default_ttl_duckduckgo() -> u64 {
+    3600
+}
+
+fn default_ttl_llms_txt() -> u64 {
+    28800
+}
+
+fn default_ttl_synthesis() -> u64 {
+    43200
+}
+
+fn default_ttl_default() -> u64 {
+    3600
+}
+
 impl Default for Config {
     fn default() -> Self {
         Self {
@@ -185,6 +262,7 @@ impl Default for Config {
             circuit_breaker_threshold: default_circuit_breaker_threshold(),
             circuit_breaker_cooldown_secs: default_circuit_breaker_cooldown(),
             max_links: default_max_links(),
+            cache: CacheConfig::default(),
         }
     }
 }
@@ -242,6 +320,29 @@ impl Config {
         if other.max_links != default_max_links() {
             self.max_links = other.max_links;
         }
+        // Merge cache TTLs
+        if other.cache.ttl.firecrawl != default_ttl_firecrawl() {
+            self.cache.ttl.firecrawl = other.cache.ttl.firecrawl;
+        }
+        if other.cache.ttl.exa != default_ttl_exa() {
+            self.cache.ttl.exa = other.cache.ttl.exa;
+        }
+        if other.cache.ttl.jina != default_ttl_jina() {
+            self.cache.ttl.jina = other.cache.ttl.jina;
+        }
+        if other.cache.ttl.duckduckgo != default_ttl_duckduckgo() {
+            self.cache.ttl.duckduckgo = other.cache.ttl.duckduckgo;
+        }
+        if other.cache.ttl.llms_txt != default_ttl_llms_txt() {
+            self.cache.ttl.llms_txt = other.cache.ttl.llms_txt;
+        }
+        if other.cache.ttl.synthesis != default_ttl_synthesis() {
+            self.cache.ttl.synthesis = other.cache.ttl.synthesis;
+        }
+        if other.cache.ttl.default != default_ttl_default() {
+            self.cache.ttl.default = other.cache.ttl.default;
+        }
+
         if other.profile != Profile::Balanced {
             self.profile = other.profile;
         }
@@ -348,6 +449,43 @@ impl Config {
             }
         }
 
+        // Cache TTL overrides from environment variables
+        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_FIRECRAWL") {
+            if let Ok(v) = val.parse() {
+                config.cache.ttl.firecrawl = v;
+            }
+        }
+        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_EXA") {
+            if let Ok(v) = val.parse() {
+                config.cache.ttl.exa = v;
+            }
+        }
+        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_JINA") {
+            if let Ok(v) = val.parse() {
+                config.cache.ttl.jina = v;
+            }
+        }
+        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_DUCKDUCKGO") {
+            if let Ok(v) = val.parse() {
+                config.cache.ttl.duckduckgo = v;
+            }
+        }
+        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_LLMS_TXT") {
+            if let Ok(v) = val.parse() {
+                config.cache.ttl.llms_txt = v;
+            }
+        }
+        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_SYNTHESIS") {
+            if let Ok(v) = val.parse() {
+                config.cache.ttl.synthesis = v;
+            }
+        }
+        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_DEFAULT") {
+            if let Ok(v) = val.parse() {
+                config.cache.ttl.default = v;
+            }
+        }
+
         // Semantic cache config from env vars
         if let Ok(val) = env::var("DO_WDR_SEMANTIC_CACHE__ENABLED") {
             config.semantic_cache.enabled = val.parse().unwrap_or(false);
@@ -383,6 +521,19 @@ impl Config {
     pub fn is_skipped(&self, provider: &str) -> bool {
         self.skip_providers.iter().any(|p| p == provider)
     }
+
+    /// Get the TTL for a given provider
+    pub fn get_ttl(&self, provider: &str) -> u64 {
+        match provider {
+            "firecrawl" => self.cache.ttl.firecrawl,
+            "exa" | "exa_mcp" => self.cache.ttl.exa,
+            "jina" => self.cache.ttl.jina,
+            "duckduckgo" => self.cache.ttl.duckduckgo,
+            "llms_txt" => self.cache.ttl.llms_txt,
+            "synthesis" => self.cache.ttl.synthesis,
+            _ => self.cache.ttl.default,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -416,5 +567,18 @@ mod tests {
         assert!(config.is_skipped("exa"));
         assert!(config.is_skipped("tavily"));
         assert!(!config.is_skipped("firecrawl"));
+    }
+
+    #[test]
+    fn test_get_ttl() {
+        let config = Config::default();
+        assert_eq!(config.get_ttl("firecrawl"), 21600);
+        assert_eq!(config.get_ttl("exa"), 14400);
+        assert_eq!(config.get_ttl("exa_mcp"), 14400);
+        assert_eq!(config.get_ttl("jina"), 7200);
+        assert_eq!(config.get_ttl("duckduckgo"), 3600);
+        assert_eq!(config.get_ttl("llms_txt"), 28800);
+        assert_eq!(config.get_ttl("synthesis"), 43200);
+        assert_eq!(config.get_ttl("unknown"), 3600);
     }
 }

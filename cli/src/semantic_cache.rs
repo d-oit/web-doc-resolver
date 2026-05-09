@@ -83,6 +83,32 @@ pub struct SemanticCacheConfig {
     pub threshold: f32,
     /// Maximum entries
     pub max_entries: usize,
+    /// Tiered TTL configuration (injected from Config)
+    #[serde(skip)]
+    pub ttls: Option<std::collections::HashMap<String, u64>>,
+}
+
+impl SemanticCacheConfig {
+    pub fn get_ttl(&self, provider: &str) -> u64 {
+        if let Some(ttls) = &self.ttls {
+            if let Some(ttl) = ttls.get(provider) {
+                return *ttl;
+            }
+            if let Some(ttl) = ttls.get("default") {
+                return *ttl;
+            }
+        }
+        // Fallback defaults if not injected
+        match provider {
+            "firecrawl" => 21600,
+            "exa" | "exa_mcp" => 14400,
+            "jina" => 7200,
+            "duckduckgo" => 3600,
+            "llms_txt" => 28800,
+            "synthesis" => 43200,
+            _ => 3600,
+        }
+    }
 }
 
 impl Default for SemanticCacheConfig {
@@ -92,6 +118,7 @@ impl Default for SemanticCacheConfig {
             path: ".do-wdr_cache".to_string(),
             threshold: 0.85,
             max_entries: 10000,
+            ttls: None,
         }
     }
 }
@@ -106,6 +133,18 @@ impl SemanticCache {
         }
 
         let cache_config = config.semantic_cache.clone();
+
+        // Inject TTLs from main config
+        let mut ttls = std::collections::HashMap::new();
+        ttls.insert("firecrawl".into(), config.cache.ttl.firecrawl);
+        ttls.insert("exa".into(), config.cache.ttl.exa);
+        ttls.insert("exa_mcp".into(), config.cache.ttl.exa);
+        ttls.insert("jina".into(), config.cache.ttl.jina);
+        ttls.insert("duckduckgo".into(), config.cache.ttl.duckduckgo);
+        ttls.insert("llms_txt".into(), config.cache.ttl.llms_txt);
+        ttls.insert("synthesis".into(), config.cache.ttl.synthesis);
+        ttls.insert("default".into(), config.cache.ttl.default);
+        cache_config.ttls = Some(ttls);
 
         tracing::info!(
             "Initializing semantic cache at '{}' with threshold {}",
@@ -158,6 +197,25 @@ impl SemanticCache {
         // First attempt exact match lookup via concept ID
         if let Ok(Some(concept)) = self.framework.get_concept(&normalized).await {
             tracing::info!("Semantic cache EXACT HIT for query='{}'", query);
+
+            // Check expiration if possible
+            if let (Some(provider_val), Some(ts_val)) = (
+                concept.metadata.get("provider"),
+                concept.metadata.get("timestamp"),
+            ) {
+                if let (Some(provider), Some(ts_str)) = (provider_val.as_str(), ts_val.as_str()) {
+                    if let Ok(ts) = chrono::DateTime::parse_from_rfc3339(ts_str) {
+                        let ttl_secs = self.config.get_ttl(provider);
+                        let age = chrono::Utc::now().signed_duration_since(ts);
+                        if age.num_seconds() as u64 > ttl_secs {
+                            tracing::info!("Semantic cache entry expired for query='{}'", query);
+                            let _ = self.remove(query).await;
+                            return Ok(None);
+                        }
+                    }
+                }
+            }
+
             if let Some(results_value) = concept.metadata.get("results") {
                 if let Ok(results) =
                     serde_json::from_value::<Vec<ResolvedResult>>(results_value.clone())
@@ -200,6 +258,28 @@ impl SemanticCache {
                 .await
                 .map_err(|e| ResolverError::Cache(format!("get_concept failed: {}", e)))?
             {
+                // Check expiration
+                if let (Some(provider_val), Some(ts_val)) = (
+                    concept.metadata.get("provider"),
+                    concept.metadata.get("timestamp"),
+                ) {
+                    if let (Some(provider), Some(ts_str)) = (provider_val.as_str(), ts_val.as_str()) {
+                        if let Ok(ts) = chrono::DateTime::parse_from_rfc3339(ts_str) {
+                            let ttl_secs = self.config.get_ttl(provider);
+                            let age = chrono::Utc::now().signed_duration_since(ts);
+                            if age.num_seconds() as u64 > ttl_secs {
+                                tracing::info!(
+                                    "Semantic cache entry expired (semantic) for id: {}",
+                                    best_id
+                                );
+                                // We use best_id which is the concept ID (normalized query)
+                                let _ = self.remove(best_id).await;
+                                return Ok(None);
+                            }
+                        }
+                    }
+                }
+
                 if let Some(results_value) = concept.metadata.get("results") {
                     if let Ok(results) =
                         serde_json::from_value::<Vec<ResolvedResult>>(results_value.clone())
@@ -447,6 +527,7 @@ mod tests {
                 path: path.to_string(),
                 threshold: 0.85,
                 max_entries: 10000,
+                ttls: None,
             },
             ..Default::default()
         }

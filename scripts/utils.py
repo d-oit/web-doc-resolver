@@ -28,6 +28,18 @@ DEFAULT_TIMEOUT = int(os.getenv("WEB_RESOLVER_TIMEOUT", "30"))
 CACHE_DIR = os.path.expanduser(os.getenv("WEB_RESOLVER_CACHE_DIR", "~/.cache/do-web-doc-resolver"))
 CACHE_TTL = int(os.getenv("WEB_RESOLVER_CACHE_TTL", str(3600 * 24)))
 
+# Tiered TTL defaults
+TIERED_TTL = {
+    "firecrawl": 21600,
+    "exa": 14400,
+    "exa_mcp": 14400,
+    "jina": 7200,
+    "duckduckgo": 3600,
+    "llms_txt": 28800,
+    "synthesis": 43200,
+    "default": 3600,
+}
+
 # Semantic cache configuration
 ENABLE_SEMANTIC_CACHE = os.environ.get("DO_WDR_SEMANTIC_CACHE", "1") == "1"
 SEMANTIC_CACHE_THRESHOLD = float(os.environ.get("DO_WDR_CACHE_THRESHOLD", "0.85"))
@@ -536,6 +548,32 @@ def _get_cache():
     return _cache
 
 
+def get_ttl(provider: str, config: dict | None = None) -> int:
+    """Get the TTL for a given provider from config or defaults."""
+    # Normalize provider name for alias support
+    provider_key = provider
+    if provider in ("exa_mcp", "exa"):
+        provider_key = "exa"
+
+    if config:
+        # Try to get from nested config.toml style
+        ttl_cfg = config.get("cache", {}).get("ttl", {})
+        if provider_key in ttl_cfg:
+            return int(ttl_cfg[provider_key])
+        if "default" in ttl_cfg:
+            return int(ttl_cfg["default"])
+
+    # Fallback to environment variables or hardcoded tiered defaults
+    env_key = f"DO_WDR_CACHE_TTL_{provider.upper()}"
+    if env_key in os.environ:
+        try:
+            return int(os.environ[env_key])
+        except ValueError:
+            pass
+
+    return TIERED_TTL.get(provider, TIERED_TTL.get("default", 3600))
+
+
 def _get_from_cache(input_str: str, source: str) -> dict[str, Any] | None:
     cache = _get_cache()
     if not cache:
@@ -550,7 +588,12 @@ def _save_to_cache(input_str: str, source: str, result: dict[str, Any], ttl: int
     cache = _get_cache()
     if not cache:
         return
-    cache.set(_cache_key(input_str, source), result, expire=ttl or CACHE_TTL)
+
+    if ttl is None:
+        # Use tiered TTL based on source (provider)
+        ttl = get_ttl(source)
+
+    cache.set(_cache_key(input_str, source), result, expire=ttl)
 
 
 def _detect_error_type(error: Exception) -> ErrorType:
