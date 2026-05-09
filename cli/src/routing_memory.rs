@@ -86,10 +86,7 @@ impl RoutingMemory {
             .domain_stats
             .iter()
             .map(|(domain, stats)| {
-                let total_attempts: usize = stats
-                    .values()
-                    .map(|s| s.success + s.failure)
-                    .sum();
+                let total_attempts: usize = stats.values().map(|s| s.success + s.failure).sum();
                 (domain.clone(), total_attempts)
             })
             .collect();
