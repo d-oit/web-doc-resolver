@@ -5,6 +5,7 @@
 
 use anyhow::Result;
 use std::process::ExitCode;
+use std::sync::Arc;
 use tracing_subscriber::{EnvFilter, fmt};
 
 use do_wdr_lib::{

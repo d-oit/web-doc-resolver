@@ -58,10 +58,10 @@ pub async fn prewarm_cache(resolver: Arc<Resolver>, config: Config) {
                 tracing::debug!("Pre-warming: {} with profile {:?}", url, config_clone.cache.prewarm.profile);
                 // Use a temporary config with the pre-warm profile
                 let mut prewarm_config = config_clone.clone();
-                prewarm_config.profile = config_clone.cache.prewarm.profile.clone();
+                prewarm_config.profile = config_clone.cache.prewarm.profile;
 
-                // We use resolve_url which exists on Resolver
-                let _ = resolver_clone.resolve_url(&url).await;
+                // We use resolve_url_with_config which exists on Resolver
+                let _ = resolver_clone.resolve_url_with_config(&url, &prewarm_config).await;
             } else {
                 tracing::debug!("Skip pre-warm (already cached): {}", url);
             }
