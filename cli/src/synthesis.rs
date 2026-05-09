@@ -98,10 +98,7 @@ pub async fn synthesize_results(
         combined.push_str("\n---\n");
     }
 
-    let synthesis_key = format!(
-        "synthesis:{}",
-        blake3::hash(combined.as_bytes()).to_hex()
-    );
+    let synthesis_key = format!("synthesis:{}", blake3::hash(combined.as_bytes()).to_hex());
 
     // Check synthesis cache
     if config.cache.synthesis.enabled {
