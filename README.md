@@ -2,6 +2,8 @@
 
 **Resolve queries or URLs into compact, LLM-ready markdown using an intelligent, low-cost cascade**
 
+Full documentation → **[docs/index.md](docs/index.md)**
+
 ## Overview
 
 This project implements a v4 cascade resolver with Python core, Rust CLI, and web UI that prioritizes free and low-cost data sources:
