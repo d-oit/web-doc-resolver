@@ -50,6 +50,9 @@ pub struct Config {
     /// Semantic cache configuration
     #[serde(default)]
     pub semantic_cache: SemanticCacheConfig,
+    /// Cache configuration
+    #[serde(default)]
+    pub cache: CacheConfig,
     /// Execution profile (default: balanced)
     #[serde(default)]
     pub profile: Profile,
@@ -79,6 +82,42 @@ pub struct Config {
     /// Max links to extract (default: 10)
     #[serde(default = "default_max_links")]
     pub max_links: usize,
+}
+
+/// Aggregated cache configuration
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct CacheConfig {
+    /// Synthesis cache configuration
+    #[serde(default)]
+    pub synthesis: SynthesisCacheConfig,
+}
+
+/// Synthesis cache configuration
+#[derive(Debug, Clone, Deserialize)]
+pub struct SynthesisCacheConfig {
+    /// Enable synthesis cache
+    #[serde(default = "default_synthesis_cache_enabled")]
+    pub enabled: bool,
+    /// TTL for synthesis results in seconds (default: 43200 = 12h)
+    #[serde(default = "default_synthesis_cache_ttl")]
+    pub ttl: u64,
+}
+
+fn default_synthesis_cache_enabled() -> bool {
+    true
+}
+
+fn default_synthesis_cache_ttl() -> u64 {
+    43200
+}
+
+impl Default for SynthesisCacheConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_synthesis_cache_enabled(),
+            ttl: default_synthesis_cache_ttl(),
+        }
+    }
 }
 
 pub struct RoutingProfileConfig {
@@ -174,6 +213,7 @@ impl Default for Config {
             skip_providers: Vec::new(),
             providers_order: Vec::new(),
             semantic_cache: SemanticCacheConfig::default(),
+            cache: CacheConfig::default(),
             profile: Profile::Balanced,
             quality_threshold: None,
             max_provider_attempts: None,
@@ -241,6 +281,12 @@ impl Config {
         }
         if other.max_links != default_max_links() {
             self.max_links = other.max_links;
+        }
+        if other.cache.synthesis.enabled != default_synthesis_cache_enabled() {
+            self.cache.synthesis.enabled = other.cache.synthesis.enabled;
+        }
+        if other.cache.synthesis.ttl != default_synthesis_cache_ttl() {
+            self.cache.synthesis.ttl = other.cache.synthesis.ttl;
         }
         if other.profile != Profile::Balanced {
             self.profile = other.profile;
@@ -360,6 +406,14 @@ impl Config {
         }
         if let Ok(val) = env::var("DO_WDR_SEMANTIC_CACHE__MAX_ENTRIES") {
             config.semantic_cache.max_entries = val.parse().unwrap_or(10000);
+        }
+
+        // Synthesis cache config from env vars
+        if let Ok(val) = env::var("DO_WDR_SYNTHESIS_CACHE__ENABLED") {
+            config.cache.synthesis.enabled = val.parse().unwrap_or(true);
+        }
+        if let Ok(val) = env::var("DO_WDR_SYNTHESIS_CACHE__TTL") {
+            config.cache.synthesis.ttl = val.parse().unwrap_or(43200);
         }
 
         config
