@@ -348,6 +348,80 @@ impl SemanticCache {
         Ok(None)
     }
 
+    /// Get a cached synthesis result by key
+    #[cfg(feature = "semantic-cache")]
+    pub async fn get_synthesis(&self, key: &str) -> StdResult<Option<String>, ResolverError> {
+        if let Ok(Some(concept)) = self.framework.get_concept(key).await {
+            if let Some(expires_at_val) = concept.metadata.get("expires_at") {
+                if let Some(expires_at) = expires_at_val.as_i64() {
+                    let now = chrono::Utc::now().timestamp();
+                    if now < expires_at {
+                        if let Some(content_val) = concept.metadata.get("content") {
+                            if let Some(content) = content_val.as_str() {
+                                return Ok(Some(content.to_string()));
+                            }
+                        }
+                    } else {
+                        // Expired
+                        let _ = self.framework.delete_concept(key).await;
+                    }
+                }
+            }
+        }
+        Ok(None)
+    }
+
+    /// Get a cached synthesis result (no-op without feature)
+    #[cfg(not(feature = "semantic-cache"))]
+    pub async fn get_synthesis(&self, _key: &str) -> StdResult<Option<String>, ResolverError> {
+        Ok(None)
+    }
+
+    /// Store a synthesis result in the cache
+    #[cfg(feature = "semantic-cache")]
+    pub async fn set_synthesis(
+        &self,
+        key: &str,
+        content: &str,
+        ttl_secs: u64,
+    ) -> StdResult<(), ResolverError> {
+        let mut metadata = HashMap::new();
+        metadata.insert(
+            "content".to_string(),
+            serde_json::Value::String(content.to_string()),
+        );
+        let expires_at = chrono::Utc::now().timestamp() + ttl_secs as i64;
+        metadata.insert(
+            "expires_at".to_string(),
+            serde_json::Value::Number(expires_at.into()),
+        );
+        metadata.insert(
+            "type".to_string(),
+            serde_json::Value::String("synthesis".to_string()),
+        );
+
+        // Use a dummy vector or encode key - encode_query handles normalization
+        let vector = self.encode_query(key);
+
+        self.framework
+            .inject_concept_with_metadata(key.to_string(), vector, metadata)
+            .await
+            .map_err(|e| ResolverError::Cache(format!("inject synthesis failed: {}", e)))?;
+
+        Ok(())
+    }
+
+    /// Store a synthesis result (no-op without feature)
+    #[cfg(not(feature = "semantic-cache"))]
+    pub async fn set_synthesis(
+        &self,
+        _key: &str,
+        _content: &str,
+        _ttl_secs: u64,
+    ) -> StdResult<(), ResolverError> {
+        Ok(())
+    }
+
     /// Get cache statistics
     #[cfg(feature = "semantic-cache")]
     pub async fn stats(&self) -> StdResult<CacheStats, ResolverError> {
@@ -565,6 +639,56 @@ mod tests {
         assert!(no_match.is_none(), "Should not find unrelated query");
 
         // Cleanup
+        drop(cache);
+        drop(temp_dir);
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "semantic-cache")]
+    async fn test_synthesis_caching() {
+        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let config = test_config(temp_dir.path().to_str().unwrap());
+
+        let cache = SemanticCache::new(&config)
+            .await
+            .expect("Failed to create cache")
+            .expect("Cache should be enabled");
+
+        let key = "synthesis:test_hash";
+        let content = "Synthesized markdown content";
+        let ttl = 3600;
+
+        // Store synthesis
+        cache
+            .set_synthesis(key, content, ttl)
+            .await
+            .expect("Failed to set synthesis");
+
+        // Retrieve synthesis
+        let retrieved = cache
+            .get_synthesis(key)
+            .await
+            .expect("Failed to get synthesis");
+
+        assert_eq!(retrieved, Some(content.to_string()));
+
+        // Test expiry (using a very short TTL and sleeping if necessary, or just checking logic)
+        cache
+            .set_synthesis("synthesis:expired", "expired content", 0)
+            .await
+            .expect("Failed to set expired synthesis");
+
+        // Wait a bit to ensure it's expired if the resolution is 1s,
+        // but our implementation uses timestamp which is granular to seconds.
+        // If we set ttl=0, it might be expired immediately or in 1s.
+        // Let's use a negative-ish approach or just trust the logic if we can't easily mock time.
+
+        let expired = cache.get_synthesis("synthesis:expired").await.unwrap();
+        // Since we did now + 0, it might be equal to now.
+        // Let's check our implementation: now < expires_at.
+        // If now is 100, expires_at is 100. 100 < 100 is false. Expired.
+        assert_eq!(expired, None);
+
         drop(cache);
         drop(temp_dir);
     }
