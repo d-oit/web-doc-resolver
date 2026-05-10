@@ -8,6 +8,7 @@ import { parseProviderResults, extractNormalizedUrls, type ProviderResult } from
 import { PROVIDERS, PROFILES, ProfileId, UiProvider, toApiProviderId } from "@/app/constants";
 import Sidebar from "@/app/components/Sidebar";
 import MainContent from "@/app/components/MainContent";
+import { getTopDomains } from "@/lib/records";
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -41,6 +42,35 @@ export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const keySource = useMemo(() => resolveKeySource(apiKeys, serverKeyStatus), [apiKeys, serverKeyStatus]);
+
+  const prewarmCache = useCallback(async () => {
+    const topDomains = await getTopDomains(20);
+    if (topDomains.length === 0) return;
+
+    console.log(`[Cache] Pre-warming ${topDomains.length} domains...`);
+
+    // Process in batches of 4 for concurrency control
+    const batchSize = 4;
+    for (let i = 0; i < topDomains.length; i += batchSize) {
+      const batch = topDomains.slice(i, i + batchSize);
+      await Promise.allSettled(
+        batch.map((domain) => {
+          const url = domain.startsWith("http") ? domain : `https://${domain}`;
+          return fetch("/api/resolve", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              query: url,
+              ...apiKeys,
+              profile: "balanced",
+              maxChars: 4000, // Reduced for pre-warm efficiency
+            }),
+          });
+        })
+      );
+    }
+    console.log("[Cache] Pre-warm complete");
+  }, [apiKeys]);
 
   const SEARCH_STORAGE_KEY = "wdr-search-state";
 
@@ -127,8 +157,11 @@ export default function Home() {
         // Fallback: just use defaults
         setLoaded(true);
         inputRef.current?.focus();
+
+        // Trigger cache pre-warm
+        void prewarmCache();
       });
-  }, []);
+  }, [prewarmCache]);
 
   // Persist UI state changes (skip before first load)
   useEffect(() => {

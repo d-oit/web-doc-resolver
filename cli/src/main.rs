@@ -5,6 +5,7 @@
 
 use anyhow::Result;
 use std::process::ExitCode;
+use std::sync::Arc;
 use tracing_subscriber::{EnvFilter, fmt};
 
 use do_wdr_lib::{
@@ -122,7 +123,14 @@ async fn handle_resolve(
     if skip_cache {
         config.semantic_cache.enabled = false;
     }
-    let resolver = Resolver::with_config(config).await;
+    let resolver = Arc::new(Resolver::with_config(config.clone()).await);
+
+    // Run cache pre-warm
+    let prewarm_resolver = resolver.clone();
+    let prewarm_config = config.clone();
+    tokio::spawn(async move {
+        do_wdr_lib::startup::prewarm_cache(prewarm_resolver, prewarm_config).await;
+    });
 
     let result = if synthesize {
         resolver.resolve_aggregated(input).await
