@@ -184,6 +184,7 @@ def resolve_url_stream(
                     attempt_index=i,
                     skip_reason=skip_reason,
                     stop_reason=budget.stop_reason,
+                    accepted=False,
                 )
                 continue
 

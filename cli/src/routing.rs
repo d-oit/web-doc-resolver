@@ -70,9 +70,12 @@ pub fn should_skip_provider(
     // Exa MCP budget guard
     if provider_name == "exa_mcp" {
         let usage = routing_memory.exa_monthly_usage();
-        let exa_fraction = usage as f32 / config.routing.exa.monthly_free_quota as f32;
-        if exa_fraction > config.routing.exa.budget_warn_threshold {
-            return Some("quota_budget_guard".into());
+        let quota = config.routing.exa.monthly_free_quota;
+        if quota > 0 {
+            let exa_fraction = usage as f32 / quota as f32;
+            if exa_fraction > config.routing.exa.budget_warn_threshold {
+                return Some("quota_budget_guard".into());
+            }
         }
     }
 

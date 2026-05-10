@@ -18,10 +18,13 @@ class RoutingMemory:
                 }
             )
         )
+        self.exa_usage = 0
 
     def record(
         self, domain: str, provider: str, success: bool, latency_ms: int, quality_score: float
     ) -> None:
+        if provider == "exa_mcp":
+            self.exa_usage += 1
         stats = self.domain_stats[domain][provider]
         total = stats["success"] + stats["failure"]
         stats["avg_latency_ms"] = ((stats["avg_latency_ms"] * total) + latency_ms) / (total + 1)
@@ -31,10 +34,9 @@ class RoutingMemory:
         else:
             stats["failure"] += 1
 
-    @staticmethod
-    def get_exa_monthly_usage() -> int:
-        """Get monthly usage for Exa (placeholder for Issue #7)."""
-        return 0
+    def get_exa_monthly_usage(self) -> int:
+        """Get monthly usage for Exa."""
+        return self.exa_usage
 
     def get_win_rate(self, provider: str, domain: str) -> float:
         """Get win rate for a provider on a specific domain."""
