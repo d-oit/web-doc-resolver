@@ -3,12 +3,13 @@ Per-domain routing memory for the Web Doc Resolver.
 """
 
 from collections import defaultdict
+from typing import Any
 
 
 class RoutingMemory:
-    def __init__(self):
+    def __init__(self) -> None:
         # domain -> provider -> stats
-        self.domain_stats = defaultdict(
+        self.domain_stats: dict[str, dict[str, dict[str, Any]]] = defaultdict(
             lambda: defaultdict(
                 lambda: {
                     "success": 0,
@@ -18,7 +19,7 @@ class RoutingMemory:
                 }
             )
         )
-        self.exa_usage = 0
+        self.exa_usage: int = 0
 
     def record(
         self, domain: str, provider: str, success: bool, latency_ms: int, quality_score: float
