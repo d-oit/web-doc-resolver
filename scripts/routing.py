@@ -2,10 +2,13 @@
 Budget-aware routing logic for the Web Doc Resolver.
 """
 
+import os
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
 from scripts.routing_memory import RoutingMemory
+
+DEFAULT_MIN_FREE_QUALITY = float(os.getenv("DO_WDR_MIN_FREE_QUALITY_TO_SKIP_PAID", "0.70"))
 
 
 @dataclass
@@ -13,7 +16,7 @@ class ResolutionBudget:
     max_provider_attempts: int
     max_paid_attempts: int
     max_total_latency_ms: int
-    min_free_quality_to_skip_paid: float = 0.70
+    min_free_quality_to_skip_paid: float = DEFAULT_MIN_FREE_QUALITY
     allow_paid: bool = True
     attempts: int = 0
     paid_attempts: int = 0
