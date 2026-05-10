@@ -209,7 +209,7 @@ impl SemanticCache {
                         let age = chrono::Utc::now().signed_duration_since(ts);
                         if age.num_seconds() as u64 > ttl_secs {
                             tracing::info!("Semantic cache entry expired for query='{}'", query);
-                            let _ = self.remove(query).await;
+                            let _ = self.remove(&normalized).await;
                             return Ok(None);
                         }
                     }
