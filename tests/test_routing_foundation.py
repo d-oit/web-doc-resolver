@@ -15,7 +15,7 @@ from scripts.cache_negative import (
     should_skip_from_negative_cache,
     write_negative_cache,
 )
-from scripts.circuit_breaker import CircuitBreakerRegistry, CircuitBreakerState
+from scripts.circuit_breaker import CircuitBreakerRegistry
 from scripts.models import Profile, ResolvedResult
 from scripts.quality import QualityScore
 from scripts.routing import (
@@ -23,7 +23,6 @@ from scripts.routing import (
     ResolutionBudget,
     detect_doc_platform,
     extract_domain,
-    plan_provider_order,
 )
 from scripts.routing_memory import RoutingMemory
 
@@ -472,5 +471,5 @@ class TestQualityGate:
             # Verify gate passed
             final_result = next(r for r in results if r.get("source") != "partial")
             assert final_result["source"] == "exa_mcp"
-            assert final_result["metrics"].quality_gate["passed"] is True
-            assert final_result["metrics"].quality_gate["score"] == 0.8
+            assert final_result["metrics"]["quality_gate"]["passed"] is True
+            assert final_result["metrics"]["quality_gate"]["score"] == 0.8
