@@ -87,7 +87,7 @@ pub struct Config {
     pub routing: RoutingConfig,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct RoutingConfig {
     /// Minimum quality of free result to skip paid providers (default: 0.70)
     pub min_free_quality_to_skip_paid: Option<f32>,
@@ -107,16 +107,6 @@ impl RoutingConfig {
     pub fn provider_skip_win_rate_threshold(&self) -> f32 {
         self.provider_skip_win_rate_threshold
             .unwrap_or_else(default_provider_skip_win_rate_threshold)
-    }
-}
-
-impl Default for RoutingConfig {
-    fn default() -> Self {
-        Self {
-            min_free_quality_to_skip_paid: None,
-            provider_skip_win_rate_threshold: None,
-            exa: ExaRoutingConfig::default(),
-        }
     }
 }
 
