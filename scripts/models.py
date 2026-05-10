@@ -114,14 +114,26 @@ class ProviderMetric:
 
 
 @dataclass
+class SkippedProvider:
+    """A skipped provider entry."""
+
+    provider: str
+    reason: str
+
+
+@dataclass
 class ResolveMetrics:
     """Aggregated metrics for a resolution request."""
 
     total_latency_ms: int = 0
     provider_metrics: list[ProviderMetric] = field(default_factory=list)
+    skipped: list[SkippedProvider] = field(default_factory=list)
     cascade_depth: int = 0
     paid_usage: bool = False
     cache_hit: bool = False
+
+    def record_skip(self, provider: str, reason: str):
+        self.skipped.append(SkippedProvider(provider=provider, reason=reason))
 
     def record_provider(self, provider: "ProviderType", latency_ms: int, success: bool):
         paid = provider.is_paid()

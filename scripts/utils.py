@@ -28,6 +28,30 @@ DEFAULT_TIMEOUT = int(os.getenv("WEB_RESOLVER_TIMEOUT", "30"))
 CACHE_DIR = os.path.expanduser(os.getenv("WEB_RESOLVER_CACHE_DIR", "~/.cache/do-web-doc-resolver"))
 CACHE_TTL = int(os.getenv("WEB_RESOLVER_CACHE_TTL", str(3600 * 24)))
 
+# Routing configuration
+MIN_FREE_QUALITY_TO_SKIP_PAID = float(os.getenv("DO_WDR_ROUTING__MIN_FREE_QUALITY_TO_SKIP_PAID", "0.70"))
+PROVIDER_SKIP_WIN_RATE_THRESHOLD = float(os.getenv("DO_WDR_ROUTING__PROVIDER_SKIP_WIN_RATE_THRESHOLD", "0.20"))
+EXA_MONTHLY_FREE_QUOTA = int(os.getenv("DO_WDR_ROUTING__EXA__MONTHLY_FREE_QUOTA", "1000"))
+EXA_BUDGET_WARN_THRESHOLD = float(os.getenv("DO_WDR_ROUTING__EXA__BUDGET_WARN_THRESHOLD", "0.80"))
+EXA_RESET_DAY = int(os.getenv("DO_WDR_ROUTING__EXA__RESET_DAY", "1"))
+
+# Load from config.toml if it exists
+try:
+    import toml
+    if os.path.exists("config.toml"):
+        with open("config.toml", "r") as f:
+            _toml_config = toml.load(f)
+            _routing = _toml_config.get("routing", {})
+            MIN_FREE_QUALITY_TO_SKIP_PAID = _routing.get("min_free_quality_to_skip_paid", MIN_FREE_QUALITY_TO_SKIP_PAID)
+            PROVIDER_SKIP_WIN_RATE_THRESHOLD = _routing.get("provider_skip_win_rate_threshold", PROVIDER_SKIP_WIN_RATE_THRESHOLD)
+
+            _exa_routing = _routing.get("exa", {})
+            EXA_MONTHLY_FREE_QUOTA = _exa_routing.get("monthly_free_quota", EXA_MONTHLY_FREE_QUOTA)
+            EXA_BUDGET_WARN_THRESHOLD = _exa_routing.get("budget_warn_threshold", EXA_BUDGET_WARN_THRESHOLD)
+            EXA_RESET_DAY = _exa_routing.get("reset_day", EXA_RESET_DAY)
+except (ImportError, Exception) as e:
+    logger.debug(f"Could not load config.toml: {e}")
+
 # Semantic cache configuration
 ENABLE_SEMANTIC_CACHE = os.environ.get("DO_WDR_SEMANTIC_CACHE", "1") == "1"
 SEMANTIC_CACHE_THRESHOLD = float(os.environ.get("DO_WDR_CACHE_THRESHOLD", "0.85"))

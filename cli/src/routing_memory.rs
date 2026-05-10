@@ -38,6 +38,26 @@ impl RoutingMemory {
         }
     }
 
+    /// Get monthly usage for Exa (placeholder for Issue #7)
+    pub fn exa_monthly_usage(&self) -> usize {
+        0
+    }
+
+    /// Get win rate for a provider on a specific domain
+    pub fn domain_win_rate(&self, domain: &str, provider: &str) -> f32 {
+        let Some(providers) = self.domain_stats.get(domain) else {
+            return 1.0; // Assume 100% win rate if no data
+        };
+        let Some(stats) = providers.get(provider) else {
+            return 1.0;
+        };
+        let total = stats.success + stats.failure;
+        if total == 0 {
+            return 1.0;
+        }
+        stats.success as f32 / total as f32
+    }
+
     pub fn rank_for_target(&self, target: &str, providers: &[String]) -> Vec<String> {
         let domain = extract_domain(target).unwrap_or_default();
         let Some(stats) = self.domain_stats.get(&domain) else {

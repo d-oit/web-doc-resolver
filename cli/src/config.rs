@@ -82,6 +82,75 @@ pub struct Config {
     /// Max links to extract (default: 10)
     #[serde(default = "default_max_links")]
     pub max_links: usize,
+    /// Routing configuration
+    #[serde(default)]
+    pub routing: RoutingConfig,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct RoutingConfig {
+    /// Minimum quality of free result to skip paid providers (default: 0.70)
+    #[serde(default = "default_min_free_quality_to_skip_paid")]
+    pub min_free_quality_to_skip_paid: f32,
+    /// Threshold for skipping providers with low win rate (default: 0.20)
+    #[serde(default = "default_provider_skip_win_rate_threshold")]
+    pub provider_skip_win_rate_threshold: f32,
+    /// Exa-specific routing configuration
+    #[serde(default)]
+    pub exa: ExaRoutingConfig,
+}
+
+impl Default for RoutingConfig {
+    fn default() -> Self {
+        Self {
+            min_free_quality_to_skip_paid: default_min_free_quality_to_skip_paid(),
+            provider_skip_win_rate_threshold: default_provider_skip_win_rate_threshold(),
+            exa: ExaRoutingConfig::default(),
+        }
+    }
+}
+
+fn default_min_free_quality_to_skip_paid() -> f32 {
+    0.70
+}
+
+fn default_provider_skip_win_rate_threshold() -> f32 {
+    0.20
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ExaRoutingConfig {
+    /// Monthly free quota for Exa MCP (default: 1000)
+    #[serde(default = "default_exa_monthly_free_quota")]
+    pub monthly_free_quota: usize,
+    /// Threshold to warn or guard budget (default: 0.80)
+    #[serde(default = "default_exa_budget_warn_threshold")]
+    pub budget_warn_threshold: f32,
+    /// Day of month when quota resets (default: 1)
+    #[serde(default = "default_exa_reset_day")]
+    pub reset_day: u8,
+}
+
+impl Default for ExaRoutingConfig {
+    fn default() -> Self {
+        Self {
+            monthly_free_quota: default_exa_monthly_free_quota(),
+            budget_warn_threshold: default_exa_budget_warn_threshold(),
+            reset_day: default_exa_reset_day(),
+        }
+    }
+}
+
+fn default_exa_monthly_free_quota() -> usize {
+    1000
+}
+
+fn default_exa_budget_warn_threshold() -> f32 {
+    0.80
+}
+
+fn default_exa_reset_day() -> u8 {
+    1
 }
 
 /// Aggregated cache configuration
@@ -225,6 +294,7 @@ impl Default for Config {
             circuit_breaker_threshold: default_circuit_breaker_threshold(),
             circuit_breaker_cooldown_secs: default_circuit_breaker_cooldown(),
             max_links: default_max_links(),
+            routing: RoutingConfig::default(),
         }
     }
 }
@@ -281,6 +351,24 @@ impl Config {
         }
         if other.max_links != default_max_links() {
             self.max_links = other.max_links;
+        }
+        if other.routing.min_free_quality_to_skip_paid != default_min_free_quality_to_skip_paid() {
+            self.routing.min_free_quality_to_skip_paid = other.routing.min_free_quality_to_skip_paid;
+        }
+        if other.routing.provider_skip_win_rate_threshold
+            != default_provider_skip_win_rate_threshold()
+        {
+            self.routing.provider_skip_win_rate_threshold =
+                other.routing.provider_skip_win_rate_threshold;
+        }
+        if other.routing.exa.monthly_free_quota != default_exa_monthly_free_quota() {
+            self.routing.exa.monthly_free_quota = other.routing.exa.monthly_free_quota;
+        }
+        if other.routing.exa.budget_warn_threshold != default_exa_budget_warn_threshold() {
+            self.routing.exa.budget_warn_threshold = other.routing.exa.budget_warn_threshold;
+        }
+        if other.routing.exa.reset_day != default_exa_reset_day() {
+            self.routing.exa.reset_day = other.routing.exa.reset_day;
         }
         if other.cache.synthesis.enabled != default_synthesis_cache_enabled() {
             self.cache.synthesis.enabled = other.cache.synthesis.enabled;
@@ -391,6 +479,33 @@ impl Config {
         if let Ok(val) = env::var("DO_WDR_DISABLE_ROUTING_MEMORY") {
             if let Ok(v) = val.parse() {
                 config.disable_routing_memory = v;
+            }
+        }
+
+        // Routing config from env vars
+        if let Ok(val) = env::var("DO_WDR_ROUTING__MIN_FREE_QUALITY_TO_SKIP_PAID") {
+            if let Ok(v) = val.parse() {
+                config.routing.min_free_quality_to_skip_paid = v;
+            }
+        }
+        if let Ok(val) = env::var("DO_WDR_ROUTING__PROVIDER_SKIP_WIN_RATE_THRESHOLD") {
+            if let Ok(v) = val.parse() {
+                config.routing.provider_skip_win_rate_threshold = v;
+            }
+        }
+        if let Ok(val) = env::var("DO_WDR_ROUTING__EXA__MONTHLY_FREE_QUOTA") {
+            if let Ok(v) = val.parse() {
+                config.routing.exa.monthly_free_quota = v;
+            }
+        }
+        if let Ok(val) = env::var("DO_WDR_ROUTING__EXA__BUDGET_WARN_THRESHOLD") {
+            if let Ok(v) = val.parse() {
+                config.routing.exa.budget_warn_threshold = v;
+            }
+        }
+        if let Ok(val) = env::var("DO_WDR_ROUTING__EXA__RESET_DAY") {
+            if let Ok(v) = val.parse() {
+                config.routing.exa.reset_day = v;
             }
         }
 

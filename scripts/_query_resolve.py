@@ -112,6 +112,7 @@ def resolve_query_stream(
         return
 
     metrics = ResolveMetrics()
+    best_quality = 0.0
     budget_data = scripts.routing.PROFILE_BUDGETS.get(
         profile.value, scripts.routing.PROFILE_BUDGETS["balanced"]
     )
@@ -142,6 +143,32 @@ def resolve_query_stream(
     try:
         for i, p_name in enumerate(eligible):
             pt, func = cascade_map[p_name]
+
+            # Quality gate: skip paid providers
+            if (
+                pt.is_paid()
+                and best_quality >= scripts.utils.MIN_FREE_QUALITY_TO_SKIP_PAID
+            ):
+                metrics.record_skip(p_name, "quality_gate")
+                continue
+
+            # Exa MCP budget guard
+            if p_name == "exa_mcp" and best_quality >= scripts.utils.MIN_FREE_QUALITY_TO_SKIP_PAID:
+                exa_usage = _routing_memory.get_exa_monthly_usage()
+                exa_quota = scripts.utils.EXA_MONTHLY_FREE_QUOTA
+                if (exa_usage / exa_quota) > scripts.utils.EXA_BUDGET_WARN_THRESHOLD:
+                    metrics.record_skip(p_name, "quota_budget_guard")
+                    continue
+
+            # Low win-rate skip
+            win_rate = _routing_memory.get_win_rate(p_name, "query")
+            if (
+                win_rate < scripts.utils.PROVIDER_SKIP_WIN_RATE_THRESHOLD
+                and best_quality >= scripts.utils.MIN_FREE_QUALITY_TO_SKIP_PAID
+            ):
+                metrics.record_skip(p_name, "low_win_rate")
+                continue
+
             if not budget.can_try(is_paid=pt.is_paid()):
                 if budget.stop_reason in ("paid_disabled", "max_paid_attempts"):
                     continue
@@ -182,6 +209,8 @@ def resolve_query_stream(
                         continue
                     if res:
                         q_score = scripts.quality.score_content(res.content)
+                        if q_score.score > best_quality:
+                            best_quality = q_score.score
                         if q_score.acceptable:
                             _circuit_breakers.record_success(p_name_done)
                             metrics.record_provider(pt_done, latency, True)

@@ -171,6 +171,8 @@ impl UrlCascade {
         let profile_defaults = routing_profile_defaults(&profile_name);
         let mut budget = build_budget(config, &profile_defaults);
         let mut routing_decisions = Vec::new();
+        let mut best_quality: f32 = 0.0;
+        let domain = extract_domain_or_default(url);
 
         let planned = {
             let routing_memory = routing_memory.lock().unwrap();
@@ -206,6 +208,29 @@ impl UrlCascade {
                 .name
                 .parse()
                 .map_err(|e| ResolverError::Provider(format!("Invalid provider name: {}", e)))?;
+
+            // Quality gate: Skip paid providers if we already have a good enough free result
+            if provider.is_paid
+                && best_quality >= config.routing.min_free_quality_to_skip_paid
+                && !config.routing.min_free_quality_to_skip_paid.is_nan()
+            {
+                metrics.record_skip(&provider.name, "quality_gate");
+                continue;
+            }
+
+            // Low win-rate skip
+            {
+                let win_rate = {
+                    let rm = routing_memory.lock().unwrap();
+                    rm.domain_win_rate(&domain, &provider.name)
+                };
+                if win_rate < config.routing.provider_skip_win_rate_threshold
+                    && best_quality >= config.routing.min_free_quality_to_skip_paid
+                {
+                    metrics.record_skip(&provider.name, "low_win_rate");
+                    continue;
+                }
+            }
 
             // Check negative cache
             {
@@ -284,6 +309,9 @@ impl UrlCascade {
                         .quality_threshold
                         .unwrap_or(profile_defaults.quality_threshold);
                     let quality = score_content(content_str, &links, threshold);
+                    if quality.score > best_quality {
+                        best_quality = quality.score;
+                    }
 
                     let acceptable = quality.acceptable && res.is_valid(min_chars);
 

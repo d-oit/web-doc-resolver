@@ -31,6 +31,22 @@ class RoutingMemory:
         else:
             stats["failure"] += 1
 
+    def get_exa_monthly_usage(self) -> int:
+        """Get monthly usage for Exa (placeholder for Issue #7)."""
+        return 0
+
+    def get_win_rate(self, provider: str, domain: str) -> float:
+        """Get win rate for a provider on a specific domain."""
+        if domain not in self.domain_stats:
+            return 1.0
+        stats = self.domain_stats[domain].get(provider)
+        if not stats:
+            return 1.0
+        total = stats["success"] + stats["failure"]
+        if total == 0:
+            return 1.0
+        return stats["success"] / total
+
     def rank(self, domain: str, providers: list[str]) -> list[str]:
         if domain not in self.domain_stats:
             return providers

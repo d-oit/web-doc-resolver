@@ -1,0 +1,8 @@
+[routing]
+min_free_quality_to_skip_paid    = 0.70
+provider_skip_win_rate_threshold = 0.20
+
+[routing.exa]
+monthly_free_quota    = 1000
+budget_warn_threshold = 0.80
+reset_day             = 1
