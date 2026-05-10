@@ -197,7 +197,12 @@ impl UrlCascade {
                 if let Some(ref result) = best_free_result {
                     let score = result.score as f32;
 
-                    if score >= config.routing.min_free_quality_to_skip_paid {
+                    let threshold = config
+                        .routing
+                        .min_free_quality_to_skip_paid
+                        .unwrap_or(profile_defaults.min_free_quality_to_skip_paid);
+
+                    if score >= threshold {
                         metrics.record_gate(score);
                         let mut final_res = result.clone();
                         final_res.metrics = Some(metrics);
@@ -362,7 +367,12 @@ impl UrlCascade {
                                 best_free_result.as_mut().unwrap().score = quality.score as f64;
                             }
 
-                            if quality.score >= config.routing.min_free_quality_to_skip_paid {
+                            let threshold = config
+                                .routing
+                                .min_free_quality_to_skip_paid
+                                .unwrap_or(profile_defaults.min_free_quality_to_skip_paid);
+
+                            if quality.score >= threshold {
                                 metrics.record_gate(quality.score);
                                 res.metrics = Some(metrics);
                                 res.score = quality.score as f64;

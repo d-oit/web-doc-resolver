@@ -5,7 +5,7 @@ use do_wdr_lib::types::ResolvedResult;
 #[tokio::test]
 async fn test_quality_gate_logic() {
     let mut config = Config::default();
-    config.routing.min_free_quality_to_skip_paid = 0.70;
+    config.routing.min_free_quality_to_skip_paid = Some(0.70);
 
     let mut metrics = ResolveMetrics::new();
 
@@ -37,7 +37,7 @@ async fn test_quality_gate_logic() {
     if let Some(ref result) = best_free_result {
         let score = result.score as f32;
 
-        if score >= config.routing.min_free_quality_to_skip_paid {
+        if score >= config.routing.min_free_quality_to_skip_paid.unwrap_or(0.70) {
             metrics.record_gate(score);
         }
     }

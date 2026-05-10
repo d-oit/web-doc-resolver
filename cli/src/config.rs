@@ -88,19 +88,10 @@ pub struct Config {
 }
 
 /// Routing configuration
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct RoutingConfig {
     /// Quality threshold for free results to skip paid providers (default: 0.70)
-    #[serde(default = "default_min_free_quality_to_skip_paid")]
-    pub min_free_quality_to_skip_paid: f32,
-}
-
-impl Default for RoutingConfig {
-    fn default() -> Self {
-        Self {
-            min_free_quality_to_skip_paid: default_min_free_quality_to_skip_paid(),
-        }
-    }
+    pub min_free_quality_to_skip_paid: Option<f32>,
 }
 
 /// Aggregated cache configuration
@@ -232,9 +223,6 @@ pub fn routing_profile_defaults(name: &str) -> RoutingProfileConfig {
     }
 }
 
-fn default_min_free_quality_to_skip_paid() -> f32 {
-    0.70
-}
 
 fn default_max_chars() -> usize {
     8000
@@ -382,9 +370,8 @@ impl Config {
         if other.quality_threshold.is_some() {
             self.quality_threshold = other.quality_threshold;
         }
-        if other.routing.min_free_quality_to_skip_paid != default_min_free_quality_to_skip_paid() {
-            self.routing.min_free_quality_to_skip_paid =
-                other.routing.min_free_quality_to_skip_paid;
+        if other.routing.min_free_quality_to_skip_paid.is_some() {
+            self.routing.min_free_quality_to_skip_paid = other.routing.min_free_quality_to_skip_paid;
         }
         if other.max_provider_attempts.is_some() {
             self.max_provider_attempts = other.max_provider_attempts;
@@ -467,7 +454,7 @@ impl Config {
         }
         if let Ok(val) = env::var("DO_WDR_MIN_FREE_QUALITY_TO_SKIP_PAID") {
             if let Ok(v) = val.parse() {
-                config.routing.min_free_quality_to_skip_paid = v;
+                config.routing.min_free_quality_to_skip_paid = Some(v);
             }
         }
         if let Ok(val) = env::var("DO_WDR_MAX_PROVIDER_ATTEMPTS") {

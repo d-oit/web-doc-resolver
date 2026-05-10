@@ -115,10 +115,10 @@ def resolve_url_stream(
         profile.value, scripts.routing.PROFILE_BUDGETS["balanced"]
     )
     budget = scripts.routing.ResolutionBudget(
-        max_provider_attempts=budget_data["max_provider_attempts"],
-        max_paid_attempts=budget_data["max_paid_attempts"],
-        max_total_latency_ms=budget_data["max_total_latency_ms"],
-        min_free_quality_to_skip_paid=budget_data.get("min_free_quality_to_skip_paid", 0.70),
+        max_provider_attempts=int(budget_data["max_provider_attempts"]),
+        max_paid_attempts=int(budget_data["max_paid_attempts"]),
+        max_total_latency_ms=int(budget_data["max_total_latency_ms"]),
+        min_free_quality_to_skip_paid=float(budget_data.get("min_free_quality_to_skip_paid", 0.70)),
         allow_paid=bool(budget_data["allow_paid"]),
     )
 
