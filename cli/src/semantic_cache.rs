@@ -207,9 +207,9 @@ impl SemanticCache {
                     if let Ok(ts) = chrono::DateTime::parse_from_rfc3339(ts_str) {
                         let ttl_secs = self.config.get_ttl(provider);
                         let age = chrono::Utc::now().signed_duration_since(ts);
-                        if age.num_seconds() as u64 > ttl_secs {
+                        if age.num_seconds() > ttl_secs as i64 {
                             tracing::info!("Semantic cache entry expired for query='{}'", query);
-                            let _ = self.remove(&normalized).await;
+                            let _ = self.remove(query).await;
                             return Ok(None);
                         }
                     }
@@ -267,7 +267,7 @@ impl SemanticCache {
                         if let Ok(ts) = chrono::DateTime::parse_from_rfc3339(ts_str) {
                             let ttl_secs = self.config.get_ttl(provider);
                             let age = chrono::Utc::now().signed_duration_since(ts);
-                            if age.num_seconds() as u64 > ttl_secs {
+                            if age.num_seconds() > ttl_secs as i64 {
                                 tracing::info!(
                                     "Semantic cache entry expired (semantic) for id: {}",
                                     best_id
