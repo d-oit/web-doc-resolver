@@ -79,27 +79,6 @@ impl RoutingMemory {
 
         ranked
     }
-
-    /// Get the top N most frequently accessed domains
-    pub fn top_domains(&self, n: usize) -> Vec<String> {
-        let mut domain_counts: Vec<(String, usize)> = self
-            .domain_stats
-            .iter()
-            .map(|(domain, stats)| {
-                let total_attempts: usize = stats.values().map(|s| s.success + s.failure).sum();
-                (domain.clone(), total_attempts)
-            })
-            .collect();
-
-        // Sort by attempt count descending
-        domain_counts.sort_by(|a, b| b.1.cmp(&a.1));
-
-        domain_counts
-            .into_iter()
-            .take(n)
-            .map(|(domain, _)| domain)
-            .collect()
-    }
 }
 
 fn extract_domain(target: &str) -> Option<String> {

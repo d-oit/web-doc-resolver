@@ -183,28 +183,3 @@ export function getAnalytics(): {
     ttlDays: config.ttlMs / (24 * 60 * 60 * 1000),
   };
 }
-
-/**
- * Get top N domains based on record frequency
- */
-export async function getTopDomains(n: number): Promise<string[]> {
-  cleanupExpired();
-  const domains = new Map<string, number>();
-
-  for (const record of store.values()) {
-    if (record.url) {
-      try {
-        const url = new URL(record.url);
-        const domain = url.hostname.toLowerCase();
-        domains.set(domain, (domains.get(domain) || 0) + 1);
-      } catch {
-        // Ignore invalid URLs
-      }
-    }
-  }
-
-  return Array.from(domains.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, n)
-    .map(([domain]) => domain);
-}
