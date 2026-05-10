@@ -132,7 +132,7 @@ impl SemanticCache {
             return Ok(None);
         }
 
-        let cache_config = config.semantic_cache.clone();
+        let mut cache_config = config.semantic_cache.clone();
 
         // Inject TTLs from main config
         let mut ttls = std::collections::HashMap::new();
@@ -263,7 +263,8 @@ impl SemanticCache {
                     concept.metadata.get("provider"),
                     concept.metadata.get("timestamp"),
                 ) {
-                    if let (Some(provider), Some(ts_str)) = (provider_val.as_str(), ts_val.as_str()) {
+                    if let (Some(provider), Some(ts_str)) = (provider_val.as_str(), ts_val.as_str())
+                    {
                         if let Ok(ts) = chrono::DateTime::parse_from_rfc3339(ts_str) {
                             let ttl_secs = self.config.get_ttl(provider);
                             let age = chrono::Utc::now().signed_duration_since(ts);
@@ -520,6 +521,7 @@ mod tests {
     use crate::types::ResolvedResult;
 
     /// Create a test configuration with semantic cache enabled
+    #[allow(dead_code)]
     fn test_config(path: &str) -> Config {
         Config {
             semantic_cache: SemanticCacheConfig {
@@ -735,6 +737,7 @@ mod tests {
                 path: "/nonexistent/path/that/cannot/be/created".to_string(),
                 threshold: 0.85,
                 max_entries: 10000,
+                ttls: None,
             },
             ..Default::default()
         };

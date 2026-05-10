@@ -84,7 +84,7 @@ pub struct Config {
     pub cache: CacheConfig,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct CacheConfig {
     #[serde(default)]
     pub ttl: CacheTtlConfig,
@@ -106,14 +106,6 @@ pub struct CacheTtlConfig {
     pub synthesis: u64,
     #[serde(default = "default_ttl_default")]
     pub default: u64,
-}
-
-impl Default for CacheConfig {
-    fn default() -> Self {
-        Self {
-            ttl: CacheTtlConfig::default(),
-        }
-    }
 }
 
 impl Default for CacheTtlConfig {

@@ -1,7 +1,9 @@
 import os
 import unittest
 from unittest.mock import patch
-from scripts.utils import get_ttl, TIERED_TTL
+
+from scripts.utils import get_ttl
+
 
 class TestGetTTL(unittest.TestCase):
     def test_default_ttls(self):
@@ -20,13 +22,7 @@ class TestGetTTL(unittest.TestCase):
 
     def test_config_dict_override(self):
         config = {
-            "cache": {
-                "ttl": {
-                    "firecrawl": 456,
-                    "exa": 789,
-                    "default": 10
-                }
-            }
+            "cache": {"ttl": {"firecrawl": 456, "exa": 789, "default": 10}},
         }
         self.assertEqual(get_ttl("firecrawl", config), 456)
         self.assertEqual(get_ttl("exa", config), 789)
@@ -37,6 +33,7 @@ class TestGetTTL(unittest.TestCase):
         # We already verified this manually, but lets add a test-friendly way if possible
         # Since get_ttl uses get_config_data which is cached, we might need to be careful
         pass
+
 
 if __name__ == "__main__":
     unittest.main()

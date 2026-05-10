@@ -3,7 +3,6 @@
 //! Shared functions used by both URL and query resolution.
 
 use crate::error::ResolverError;
-use std::time::Duration;
 
 /// Check if input is a URL
 pub fn is_url(input: &str) -> bool {
@@ -84,7 +83,6 @@ pub fn classify_error(err: &ResolverError) -> String {
         "provider_error".into()
     }
 }
-
 
 #[cfg(test)]
 mod tests {
