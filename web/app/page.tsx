@@ -159,7 +159,7 @@ export default function Home() {
         inputRef.current?.focus();
 
         // Trigger cache pre-warm
-        prewarmCache();
+        void prewarmCache();
       });
   }, [prewarmCache]);
 
