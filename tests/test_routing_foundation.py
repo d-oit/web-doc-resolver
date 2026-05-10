@@ -624,6 +624,7 @@ class TestSynthesisGate:
 class TestQualityGate:
     def test_gate_passed_logic(self):
         from scripts.routing import ResolutionBudget
+
         budget = ResolutionBudget(3, 1, 10000, min_free_quality_to_skip_paid=0.7)
 
         # Free result with high score
@@ -632,8 +633,43 @@ class TestQualityGate:
 
     def test_gate_failed_logic(self):
         from scripts.routing import ResolutionBudget
+
         budget = ResolutionBudget(3, 1, 10000, min_free_quality_to_skip_paid=0.7)
 
         # Free result with low score
         best_free_score = 0.5
         assert best_free_score < budget.min_free_quality_to_skip_paid
+
+    def test_gate_integration_mock(self):
+        from unittest.mock import MagicMock, patch
+        from scripts._query_resolve import resolve_query_stream
+        from scripts.models import Profile, ResolvedResult
+
+        with patch("scripts._query_resolve.get_semantic_cache", return_value=None), \
+             patch("scripts._query_resolve._routing_memory") as mock_rm, \
+             patch("scripts._query_resolve._get_cache", return_value=None), \
+             patch("scripts._query_resolve.scripts.quality.score_content") as mock_score, \
+             patch("scripts._query_resolve._circuit_breakers") as mock_cb, \
+             patch("scripts.routing.plan_provider_order", return_value=["exa_mcp", "exa"]), \
+             patch("scripts.resolve._get_executor") as mock_executor:
+
+            mock_cb.is_open.return_value = False
+            mock_rm.get_p75_latency.return_value = 100
+
+            # exa_mcp (free) returns high quality result
+            res_free = ResolvedResult(source="exa_mcp", content="High quality content", url="http://free.com")
+
+            mock_fut = MagicMock()
+            mock_fut.result.return_value = res_free
+            mock_executor.return_value.submit.return_value = mock_fut
+
+            # Quality score 0.8 (above default 0.7)
+            mock_score.return_value = MagicMock(acceptable=True, score=0.8)
+
+            results = list(resolve_query_stream("test query", profile=Profile.BALANCED))
+
+            # Verify gate passed
+            final_result = next(r for r in results if r.get("source") != "partial")
+            assert final_result["source"] == "exa_mcp"
+            assert final_result["metrics"].quality_gate["passed"] is True
+            assert final_result["metrics"].quality_gate["score"] == 0.8

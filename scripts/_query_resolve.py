@@ -219,7 +219,7 @@ def resolve_query_stream(
                                     result_dict["metrics"] = metrics
                                     _store_in_semantic_cache(query, result_dict)
                                     yield result_dict
-                                    break
+                                    return
                         else:
                             scripts.cache_negative.write_negative_cache(
                                 cache, query, p_name_done, "thin_content", 1800

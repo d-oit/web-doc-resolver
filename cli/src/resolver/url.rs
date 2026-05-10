@@ -355,7 +355,9 @@ impl UrlCascade {
                         if provider.is_paid {
                             return Ok(res);
                         } else {
-                            if best_free_result.is_none() || (quality.score as f64) > best_free_result.as_ref().unwrap().score {
+                            if best_free_result.is_none()
+                                || (quality.score as f64) > best_free_result.as_ref().unwrap().score
+                            {
                                 best_free_result = Some(res.clone());
                                 best_free_result.as_mut().unwrap().score = quality.score as f64;
                             }

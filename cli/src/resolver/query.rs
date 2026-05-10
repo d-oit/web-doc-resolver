@@ -373,7 +373,9 @@ impl QueryCascade {
                         if provider.is_paid {
                             return Ok(first);
                         } else {
-                            if best_free_result.is_none() || (quality.score as f64) > best_free_result.as_ref().unwrap().score {
+                            if best_free_result.is_none()
+                                || (quality.score as f64) > best_free_result.as_ref().unwrap().score
+                            {
                                 best_free_result = Some(first.clone());
                                 best_free_result.as_mut().unwrap().score = quality.score as f64;
                             }
