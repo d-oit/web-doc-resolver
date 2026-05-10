@@ -1,30 +1,30 @@
 ---
-relevance_score: 0.98
+relevance_score: 0.99
 intent_category: Technical
-token_estimate: 420
-last_updated: 2026-05-03
+token_estimate: 450
+last_updated: 2026-05-10
 ---
 
-# LLM-Ready Synthesis: Web Doc Resolver Standards
+# LLM-Ready Synthesis: Web Doc Resolver Evolution
 
 [ANCHOR: SUMMARY]
-The Web Doc Resolver implements a 2026-standard synthesis engine designed to produce highly efficient, RAG-optimized documentation. By utilizing Token-Efficiency Headers and Structural Anchors, the system ensures that downstream LLMs can rapidly assess relevance and retrieve specific technical details without processing excessive tokens [1].
+The Web Doc Resolver's synthesis engine, updated for May 2026, implements enhanced Token-Efficiency Headers and Mandatory Structural Anchors. These refinements ensure that documentation is optimized for high-performance RAG (Retrieval-Augmented Generation) systems and minimize token consumption in large-scale context windows [1][2].
 
 [ANCHOR: TECHNICAL_DETAILS]
-The synthesis process involves two primary stages:
-1. **Gating Logic**: Determines whether to perform a deterministic merge or an LLM-powered synthesis based on content quality, conflicts, and fragmentation [2].
-2. **Standardized Formatting**: Enforces a strict YAML frontmatter for metadata (relevance score, intent category, token estimate) and partitions content using predefined anchors such as `[ANCHOR: SUMMARY]` and `[ANCHOR: CITATIONS]` [1].
-
-The system prompt explicitly requires aggressive deduplication and precise citation mapping to ensure technical accuracy and auditability [2].
+The synthesis logic now utilizes a unified prompt architecture across Python and Rust implementations:
+- **Token-Efficiency Headers**: Mandatory YAML frontmatter including `relevance_score`, `intent_category`, and `token_estimate` for rapid assessment [1].
+- **Structural Anchors**: Content is partitioned into `SUMMARY`, `TECHNICAL_DETAILS`, `COMPARISON`, and `CITATIONS` blocks, enabling targeted retrieval [2].
+- **Security Parity**: Both implementations now include strict security disclaimers to mitigate prompt injection risks from untrusted source content [3].
 
 [ANCHOR: COMPARISON]
-| Feature | Legacy Synthesis (2024) | 2026 LLM-Ready Standard |
-|---------|-------------------------|--------------------------|
-| Metadata | Optional/None | Mandatory YAML Frontmatter |
-| Structure | Freeform Markdown | Required Structural Anchors |
-| RAG Utility | Low (Sequential) | High (Anchor-based) |
-| Token Usage | Non-optimized | Efficiency-first |
+| Feature | 2024 Legacy | Early 2026 Standard | May 2026 Evolution |
+|---------|-------------|---------------------|--------------------|
+| Headers | Optional | YAML Frontmatter | YAML with Token Estimates |
+| Anchors | None | Recommended | Mandatory & Described |
+| Security | Minimal | Basic Sanitization | Unified Security Disclaimer |
+| RAG Optimization | Low | Medium | High (Anchor-based) |
 
 [ANCHOR: CITATIONS]
-[1] https://github.com/d-oit/do-web-doc-resolver/docs/standards.md
-[2] https://github.com/d-oit/do-web-doc-resolver/scripts/synthesis.py
+[1] docs/standards.md - LLM-Readable-Doc Standards
+[2] scripts/synthesis.py - Python Synthesis Implementation
+[3] cli/src/synthesis.rs - Rust Synthesis Implementation
