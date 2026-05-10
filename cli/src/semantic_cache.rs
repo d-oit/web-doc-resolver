@@ -348,40 +348,6 @@ impl SemanticCache {
         Ok(None)
     }
 
-    /// Check if a valid entry exists for the given query
-    #[cfg(feature = "semantic-cache")]
-    pub async fn has_valid_entry(&self, query: &str) -> bool {
-        // Normalize query for consistent lookup
-        let normalized: String = query
-            .to_lowercase()
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ");
-
-        // First attempt exact match lookup via concept ID
-        if let Ok(Some(_)) = self.framework.get_concept(&normalized).await {
-            return true;
-        }
-
-        // Generate query vector
-        let query_vector = self.encode_query(query);
-
-        // Probe semantic memory
-        if let Ok(hits) = self.framework.probe(query_vector, 1).await {
-            if let Some((_, score)) = hits.first() {
-                return *score >= self.config.threshold;
-            }
-        }
-
-        false
-    }
-
-    /// Check if a valid entry exists (no-op without feature)
-    #[cfg(not(feature = "semantic-cache"))]
-    pub async fn has_valid_entry(&self, _query: &str) -> bool {
-        false
-    }
-
     /// Get a cached synthesis result by key
     #[cfg(feature = "semantic-cache")]
     pub async fn get_synthesis(&self, key: &str) -> StdResult<Option<String>, ResolverError> {

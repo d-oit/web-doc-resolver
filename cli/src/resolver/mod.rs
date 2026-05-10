@@ -86,25 +86,16 @@ impl Resolver {
 
     /// Resolve a URL using the URL cascade
     pub async fn resolve_url(&self, url: &str) -> Result<ResolvedResult, ResolverError> {
-        self.resolve_url_with_config(url, &self.config).await
-    }
-
-    /// Resolve a URL using the URL cascade with custom config
-    pub async fn resolve_url_with_config(
-        &self,
-        url: &str,
-        config: &Config,
-    ) -> Result<ResolvedResult, ResolverError> {
         self.url_cascade
             .resolve(
                 url,
                 self.cache.as_ref(),
-                config,
+                &self.config,
                 self.negative_cache.clone(),
                 self.circuit_breakers.clone(),
                 self.routing_memory.clone(),
-                config.max_chars,
-                config.min_chars,
+                self.config.max_chars,
+                self.config.min_chars,
             )
             .await
     }
@@ -300,16 +291,6 @@ impl Resolver {
         }
 
         Err(ResolverError::Provider("No provider succeeded".to_string()))
-    }
-
-    /// Access to routing memory
-    pub fn routing_memory(&self) -> Arc<Mutex<RoutingMemory>> {
-        self.routing_memory.clone()
-    }
-
-    /// Access to semantic cache
-    pub fn cache(&self) -> Option<&SemanticCache> {
-        self.cache.as_ref()
     }
 }
 
