@@ -165,10 +165,7 @@ def resolve_url_stream(
             pt, func = cascade_map[p_name]
 
             # Quality gate: skip paid providers
-            if (
-                pt.is_paid()
-                and best_quality >= scripts.utils.MIN_FREE_QUALITY_TO_SKIP_PAID
-            ):
+            if pt.is_paid() and best_quality >= scripts.utils.MIN_FREE_QUALITY_TO_SKIP_PAID:
                 metrics.record_skip(p_name, "quality_gate")
                 continue
 

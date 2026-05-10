@@ -1,14 +1,8 @@
-import pytest
-from unittest.mock import MagicMock, patch
-from scripts.models import Profile, ProviderType, ResolvedResult, ResolveMetrics
-from scripts._query_resolve import resolve_query_stream
-import scripts.utils
-import scripts.quality
+from scripts.models import ResolveMetrics
+
 
 def test_skip_logic_unit():
     # Direct unit test of the skip logic since integration test of generator is tricky
-    from scripts.models import ResolveMetrics, ProviderType
-    import scripts.utils
 
     metrics = ResolveMetrics()
     best_quality = 0.8
@@ -22,9 +16,8 @@ def test_skip_logic_unit():
     assert metrics.skipped[0].provider == "low_win_provider"
     assert metrics.skipped[0].reason == "low_win_rate"
 
+
 def test_exa_quota_guard_logic():
-    from scripts.models import ResolveMetrics
-    import scripts.utils
 
     metrics = ResolveMetrics()
     best_quality = 0.8

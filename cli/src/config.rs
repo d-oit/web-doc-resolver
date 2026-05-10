@@ -352,11 +352,17 @@ impl Config {
         if other.max_links != default_max_links() {
             self.max_links = other.max_links;
         }
-        if other.routing.min_free_quality_to_skip_paid != default_min_free_quality_to_skip_paid() {
-            self.routing.min_free_quality_to_skip_paid = other.routing.min_free_quality_to_skip_paid;
+        if (other.routing.min_free_quality_to_skip_paid - default_min_free_quality_to_skip_paid())
+            .abs()
+            > f32::EPSILON
+        {
+            self.routing.min_free_quality_to_skip_paid =
+                other.routing.min_free_quality_to_skip_paid;
         }
-        if other.routing.provider_skip_win_rate_threshold
-            != default_provider_skip_win_rate_threshold()
+        if (other.routing.provider_skip_win_rate_threshold
+            - default_provider_skip_win_rate_threshold())
+        .abs()
+            > f32::EPSILON
         {
             self.routing.provider_skip_win_rate_threshold =
                 other.routing.provider_skip_win_rate_threshold;
@@ -364,7 +370,9 @@ impl Config {
         if other.routing.exa.monthly_free_quota != default_exa_monthly_free_quota() {
             self.routing.exa.monthly_free_quota = other.routing.exa.monthly_free_quota;
         }
-        if other.routing.exa.budget_warn_threshold != default_exa_budget_warn_threshold() {
+        if (other.routing.exa.budget_warn_threshold - default_exa_budget_warn_threshold()).abs()
+            > f32::EPSILON
+        {
             self.routing.exa.budget_warn_threshold = other.routing.exa.budget_warn_threshold;
         }
         if other.routing.exa.reset_day != default_exa_reset_day() {

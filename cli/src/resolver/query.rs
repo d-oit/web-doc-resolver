@@ -537,9 +537,9 @@ mod tests {
         config.routing.provider_skip_win_rate_threshold = 0.5;
         config.routing.min_free_quality_to_skip_paid = 0.6;
 
-        let cascade = QueryCascade::new();
-        let negative_cache = Arc::new(Mutex::new(NegativeCache::default()));
-        let circuit_breakers = Arc::new(Mutex::new(CircuitBreakerRegistry::default()));
+        let _cascade = QueryCascade::new();
+        let _negative_cache = Arc::new(Mutex::new(NegativeCache::default()));
+        let _circuit_breakers = Arc::new(Mutex::new(CircuitBreakerRegistry::default()));
         let routing_memory = Arc::new(Mutex::new(RoutingMemory::default()));
 
         // Record a failure for exa_mcp to lower its win rate
@@ -548,8 +548,11 @@ mod tests {
             rm.record("query", "exa_mcp", false, 100, 0.1);
         }
 
-        // We want to verify that if we have a good result, and the next provider has low win rate, it's skipped.
-        // This is hard to test with the real resolve() because it's async and calls real providers.
-        // But we've verified the logic in the code.
+        // Verify win rate calculation
+        let win_rate = {
+            let rm = routing_memory.lock().unwrap();
+            rm.domain_win_rate("query", "exa_mcp")
+        };
+        assert!(win_rate < 0.2);
     }
 }
