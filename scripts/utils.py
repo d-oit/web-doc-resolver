@@ -60,8 +60,8 @@ try:
                 "budget_warn_threshold", EXA_BUDGET_WARN_THRESHOLD
             )
             EXA_RESET_DAY = _exa_routing.get("reset_day", EXA_RESET_DAY)
-except (ImportError, Exception) as e:
-    logger.debug(f"Could not load config.toml: {e}")
+except Exception as e:
+    logger.debug("Could not load config.toml: %s", e)
 
 # Semantic cache configuration
 ENABLE_SEMANTIC_CACHE = os.environ.get("DO_WDR_SEMANTIC_CACHE", "1") == "1"

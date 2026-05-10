@@ -111,14 +111,13 @@ class ProviderMetric:
     latency_ms: int
     success: bool
     paid: bool
-
-
-@dataclass
-class SkippedProvider:
-    """A skipped provider entry."""
-
-    provider: str
-    reason: str
+    attempt_index: int = 0
+    quality_score: float | None = None
+    accepted: bool = False
+    skip_reason: str | None = None
+    stop_reason: str | None = None
+    negative_cache_hit: bool = False
+    circuit_open: bool = False
 
 
 @dataclass
@@ -127,15 +126,23 @@ class ResolveMetrics:
 
     total_latency_ms: int = 0
     provider_metrics: list[ProviderMetric] = field(default_factory=list)
-    skipped: list[SkippedProvider] = field(default_factory=list)
     cascade_depth: int = 0
     paid_usage: bool = False
     cache_hit: bool = False
 
-    def record_skip(self, provider: str, reason: str):
-        self.skipped.append(SkippedProvider(provider=provider, reason=reason))
-
-    def record_provider(self, provider: "ProviderType", latency_ms: int, success: bool):
+    def record_provider(
+        self,
+        provider: "ProviderType",
+        latency_ms: int,
+        success: bool,
+        attempt_index: int = 0,
+        quality_score: float | None = None,
+        accepted: bool = False,
+        skip_reason: str | None = None,
+        stop_reason: str | None = None,
+        negative_cache_hit: bool = False,
+        circuit_open: bool = False,
+    ):
         paid = provider.is_paid()
         if paid and success:
             self.paid_usage = True
@@ -145,6 +152,13 @@ class ResolveMetrics:
                 latency_ms=latency_ms,
                 success=success,
                 paid=paid,
+                attempt_index=attempt_index,
+                quality_score=quality_score,
+                accepted=accepted,
+                skip_reason=skip_reason,
+                stop_reason=stop_reason,
+                negative_cache_hit=negative_cache_hit,
+                circuit_open=circuit_open,
             )
         )
         self.total_latency_ms += latency_ms

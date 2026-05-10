@@ -90,21 +90,31 @@ pub struct Config {
 #[derive(Debug, Clone, Deserialize)]
 pub struct RoutingConfig {
     /// Minimum quality of free result to skip paid providers (default: 0.70)
-    #[serde(default = "default_min_free_quality_to_skip_paid")]
-    pub min_free_quality_to_skip_paid: f32,
+    pub min_free_quality_to_skip_paid: Option<f32>,
     /// Threshold for skipping providers with low win rate (default: 0.20)
-    #[serde(default = "default_provider_skip_win_rate_threshold")]
-    pub provider_skip_win_rate_threshold: f32,
+    pub provider_skip_win_rate_threshold: Option<f32>,
     /// Exa-specific routing configuration
     #[serde(default)]
     pub exa: ExaRoutingConfig,
 }
 
+impl RoutingConfig {
+    pub fn min_free_quality_to_skip_paid(&self) -> f32 {
+        self.min_free_quality_to_skip_paid
+            .unwrap_or_else(default_min_free_quality_to_skip_paid)
+    }
+
+    pub fn provider_skip_win_rate_threshold(&self) -> f32 {
+        self.provider_skip_win_rate_threshold
+            .unwrap_or_else(default_provider_skip_win_rate_threshold)
+    }
+}
+
 impl Default for RoutingConfig {
     fn default() -> Self {
         Self {
-            min_free_quality_to_skip_paid: default_min_free_quality_to_skip_paid(),
-            provider_skip_win_rate_threshold: default_provider_skip_win_rate_threshold(),
+            min_free_quality_to_skip_paid: None,
+            provider_skip_win_rate_threshold: None,
             exa: ExaRoutingConfig::default(),
         }
     }
@@ -352,18 +362,11 @@ impl Config {
         if other.max_links != default_max_links() {
             self.max_links = other.max_links;
         }
-        if (other.routing.min_free_quality_to_skip_paid - default_min_free_quality_to_skip_paid())
-            .abs()
-            > f32::EPSILON
-        {
+        if other.routing.min_free_quality_to_skip_paid.is_some() {
             self.routing.min_free_quality_to_skip_paid =
                 other.routing.min_free_quality_to_skip_paid;
         }
-        if (other.routing.provider_skip_win_rate_threshold
-            - default_provider_skip_win_rate_threshold())
-        .abs()
-            > f32::EPSILON
-        {
+        if other.routing.provider_skip_win_rate_threshold.is_some() {
             self.routing.provider_skip_win_rate_threshold =
                 other.routing.provider_skip_win_rate_threshold;
         }
@@ -491,34 +494,40 @@ impl Config {
         }
 
         // Routing config from env vars
-        if let Ok(val) = env::var("DO_WDR_ROUTING__MIN_FREE_QUALITY_TO_SKIP_PAID") {
+        const ENV_MIN_FREE_QUALITY: &str = "DO_WDR_ROUTING__MIN_FREE_QUALITY_TO_SKIP_PAID";
+        if let Ok(val) = env::var(ENV_MIN_FREE_QUALITY) {
             if let Ok(v) = val.parse() {
-                config.routing.min_free_quality_to_skip_paid = v;
+                config.routing.min_free_quality_to_skip_paid = Some(v);
             }
         }
-        if let Ok(val) = env::var("DO_WDR_ROUTING__PROVIDER_SKIP_WIN_RATE_THRESHOLD") {
+        const ENV_SKIP_WIN_RATE: &str = "DO_WDR_ROUTING__PROVIDER_SKIP_WIN_RATE_THRESHOLD";
+        if let Ok(val) = env::var(ENV_SKIP_WIN_RATE) {
             if let Ok(v) = val.parse() {
-                config.routing.provider_skip_win_rate_threshold = v;
+                config.routing.provider_skip_win_rate_threshold = Some(v);
             }
         }
-        if let Ok(val) = env::var("DO_WDR_ROUTING__EXA__MONTHLY_FREE_QUOTA") {
+        const ENV_EXA_QUOTA: &str = "DO_WDR_ROUTING__EXA__MONTHLY_FREE_QUOTA";
+        if let Ok(val) = env::var(ENV_EXA_QUOTA) {
             if let Ok(v) = val.parse() {
                 config.routing.exa.monthly_free_quota = v;
             }
         }
-        if let Ok(val) = env::var("DO_WDR_ROUTING__EXA__BUDGET_WARN_THRESHOLD") {
+        const ENV_EXA_BUDGET_WARN: &str = "DO_WDR_ROUTING__EXA__BUDGET_WARN_THRESHOLD";
+        if let Ok(val) = env::var(ENV_EXA_BUDGET_WARN) {
             if let Ok(v) = val.parse() {
                 config.routing.exa.budget_warn_threshold = v;
             }
         }
-        if let Ok(val) = env::var("DO_WDR_ROUTING__EXA__RESET_DAY") {
+        const ENV_EXA_RESET_DAY: &str = "DO_WDR_ROUTING__EXA__RESET_DAY";
+        if let Ok(val) = env::var(ENV_EXA_RESET_DAY) {
             if let Ok(v) = val.parse() {
                 config.routing.exa.reset_day = v;
             }
         }
 
         // Semantic cache config from env vars
-        if let Ok(val) = env::var("DO_WDR_SEMANTIC_CACHE__ENABLED") {
+        const ENV_SEMANTIC_CACHE_ENABLED: &str = "DO_WDR_SEMANTIC_CACHE__ENABLED";
+        if let Ok(val) = env::var(ENV_SEMANTIC_CACHE_ENABLED) {
             config.semantic_cache.enabled = val.parse().unwrap_or(false);
         }
         if let Ok(val) = env::var("DO_WDR_SEMANTIC_CACHE__PATH") {

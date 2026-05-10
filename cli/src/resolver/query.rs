@@ -198,42 +198,43 @@ impl QueryCascade {
                 .parse()
                 .map_err(|e| ResolverError::Provider(format!("Invalid provider name: {}", e)))?;
 
-            // Quality gate: Skip paid providers if we already have a good enough free result
-            if provider.is_paid
-                && best_quality >= config.routing.min_free_quality_to_skip_paid
-                && !config.routing.min_free_quality_to_skip_paid.is_nan()
-            {
-                metrics.record_skip(&provider.name, "quality_gate");
+            // Routing skip logic
+            let skip_reason = {
+                let rm = routing_memory.lock().unwrap();
+                crate::routing::should_skip_provider(
+                    &provider.name,
+                    provider.is_paid,
+                    best_quality,
+                    config,
+                    &rm,
+                )
+            };
+
+            if let Some(reason) = skip_reason {
+                metrics.record_provider_detailed(
+                    provider_type,
+                    0,
+                    false,
+                    idx,
+                    None,
+                    false,
+                    Some(reason.clone()),
+                    budget.stop_reason.clone(),
+                    false,
+                    false,
+                );
+                routing_decisions.push(RoutingDecision {
+                    provider: provider.name.clone(),
+                    attempt_index: idx,
+                    quality_score: None,
+                    accepted: false,
+                    skip_reason: Some(reason),
+                    stop_reason: budget.stop_reason.clone(),
+                    negative_cache_hit: false,
+                    circuit_open: false,
+                    paid_provider: provider.is_paid,
+                });
                 continue;
-            }
-
-            // Exa MCP budget guard
-            if provider.name == "exa_mcp"
-                && best_quality >= config.routing.min_free_quality_to_skip_paid
-            {
-                let usage = {
-                    let rm = routing_memory.lock().unwrap();
-                    rm.exa_monthly_usage()
-                };
-                let exa_fraction = usage as f32 / config.routing.exa.monthly_free_quota as f32;
-                if exa_fraction > config.routing.exa.budget_warn_threshold {
-                    metrics.record_skip(&provider.name, "quota_budget_guard");
-                    continue;
-                }
-            }
-
-            // Low win-rate skip
-            {
-                let win_rate = {
-                    let rm = routing_memory.lock().unwrap();
-                    rm.domain_win_rate("query", &provider.name)
-                };
-                if win_rate < config.routing.provider_skip_win_rate_threshold
-                    && best_quality >= config.routing.min_free_quality_to_skip_paid
-                {
-                    metrics.record_skip(&provider.name, "low_win_rate");
-                    continue;
-                }
             }
 
             // Check negative cache
@@ -534,8 +535,8 @@ mod tests {
     async fn test_skip_low_win_rate() {
         let mut config = Config::default();
         config.profile = Profile::Balanced;
-        config.routing.provider_skip_win_rate_threshold = 0.5;
-        config.routing.min_free_quality_to_skip_paid = 0.6;
+        config.routing.provider_skip_win_rate_threshold = Some(0.5);
+        config.routing.min_free_quality_to_skip_paid = Some(0.6);
 
         let _cascade = QueryCascade::new();
         let _negative_cache = Arc::new(Mutex::new(NegativeCache::default()));

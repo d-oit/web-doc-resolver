@@ -1,4 +1,4 @@
-from scripts.models import ResolveMetrics
+from scripts.models import ProviderType, ResolveMetrics
 
 
 def test_skip_logic_unit():
@@ -10,11 +10,13 @@ def test_skip_logic_unit():
     # Low win rate skip
     win_rate = 0.1
     if win_rate < 0.2 and best_quality >= 0.7:
-        metrics.record_skip("low_win_provider", "low_win_rate")
+        metrics.record_provider(
+            ProviderType.EXA, 0, False, skip_reason="low_win_rate"
+        )
 
-    assert len(metrics.skipped) == 1
-    assert metrics.skipped[0].provider == "low_win_provider"
-    assert metrics.skipped[0].reason == "low_win_rate"
+    assert len(metrics.provider_metrics) == 1
+    assert metrics.provider_metrics[0].provider == "exa"
+    assert metrics.provider_metrics[0].skip_reason == "low_win_rate"
 
 
 def test_exa_quota_guard_logic():
@@ -26,8 +28,10 @@ def test_exa_quota_guard_logic():
     budget_warn_threshold = 0.8
 
     if (exa_usage / exa_quota) > budget_warn_threshold and best_quality >= 0.7:
-        metrics.record_skip("exa_mcp", "quota_budget_guard")
+        metrics.record_provider(
+            ProviderType.EXA_MCP, 0, False, skip_reason="quota_budget_guard"
+        )
 
-    assert len(metrics.skipped) == 1
-    assert metrics.skipped[0].provider == "exa_mcp"
-    assert metrics.skipped[0].reason == "quota_budget_guard"
+    assert len(metrics.provider_metrics) == 1
+    assert metrics.provider_metrics[0].provider == "exa_mcp"
+    assert metrics.provider_metrics[0].skip_reason == "quota_budget_guard"

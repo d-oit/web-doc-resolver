@@ -31,7 +31,8 @@ class RoutingMemory:
         else:
             stats["failure"] += 1
 
-    def get_exa_monthly_usage(self) -> int:
+    @staticmethod
+    def get_exa_monthly_usage() -> int:
         """Get monthly usage for Exa (placeholder for Issue #7)."""
         return 0
 

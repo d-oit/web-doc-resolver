@@ -144,26 +144,36 @@ def resolve_query_stream(
         for i, p_name in enumerate(eligible):
             pt, func = cascade_map[p_name]
 
-            # Quality gate: skip paid providers
-            if pt.is_paid() and best_quality >= scripts.utils.MIN_FREE_QUALITY_TO_SKIP_PAID:
-                metrics.record_skip(p_name, "quality_gate")
-                continue
+            # Routing skip logic
+            skip_reason = None
+            if best_quality >= scripts.utils.MIN_FREE_QUALITY_TO_SKIP_PAID:
+                # Quality gate: skip paid providers
+                if pt.is_paid():
+                    skip_reason = "quality_gate"
+                # Exa MCP budget guard
+                elif p_name == "exa_mcp":
+                    exa_usage = _routing_memory.get_exa_monthly_usage()
+                    exa_quota = scripts.utils.EXA_MONTHLY_FREE_QUOTA
+                    if (
+                        exa_quota > 0
+                        and (exa_usage / exa_quota) > scripts.utils.EXA_BUDGET_WARN_THRESHOLD
+                    ):
+                        skip_reason = "quota_budget_guard"
+                # Low win-rate skip
+                else:
+                    win_rate = _routing_memory.get_win_rate(p_name, "query")
+                    if win_rate < scripts.utils.PROVIDER_SKIP_WIN_RATE_THRESHOLD:
+                        skip_reason = "low_win_rate"
 
-            # Exa MCP budget guard
-            if p_name == "exa_mcp" and best_quality >= scripts.utils.MIN_FREE_QUALITY_TO_SKIP_PAID:
-                exa_usage = _routing_memory.get_exa_monthly_usage()
-                exa_quota = scripts.utils.EXA_MONTHLY_FREE_QUOTA
-                if (exa_usage / exa_quota) > scripts.utils.EXA_BUDGET_WARN_THRESHOLD:
-                    metrics.record_skip(p_name, "quota_budget_guard")
-                    continue
-
-            # Low win-rate skip
-            win_rate = _routing_memory.get_win_rate(p_name, "query")
-            if (
-                win_rate < scripts.utils.PROVIDER_SKIP_WIN_RATE_THRESHOLD
-                and best_quality >= scripts.utils.MIN_FREE_QUALITY_TO_SKIP_PAID
-            ):
-                metrics.record_skip(p_name, "low_win_rate")
+            if skip_reason:
+                metrics.record_provider(
+                    pt,
+                    0,
+                    False,
+                    attempt_index=i,
+                    skip_reason=skip_reason,
+                    stop_reason=budget.stop_reason,
+                )
                 continue
 
             if not budget.can_try(is_paid=pt.is_paid()):

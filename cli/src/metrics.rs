@@ -3,13 +3,6 @@
 use crate::types::ProviderType;
 use serde::{Deserialize, Serialize};
 
-/// A skipped provider entry
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SkippedProvider {
-    pub provider: String,
-    pub reason: String,
-}
-
 /// Metrics for a single provider call
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProviderMetric {
@@ -31,7 +24,6 @@ pub struct ProviderMetric {
 pub struct ResolveMetrics {
     pub total_latency_ms: u64,
     pub provider_metrics: Vec<ProviderMetric>,
-    pub skipped: Vec<SkippedProvider>,
     pub cascade_depth: usize,
     pub paid_usage: bool,
     pub cache_hit: bool,
@@ -49,13 +41,6 @@ impl ResolveMetrics {
             self.synthesis_cache_hit = true;
         }
         self.cache_hit = true;
-    }
-
-    pub fn record_skip(&mut self, provider: &str, reason: &str) {
-        self.skipped.push(SkippedProvider {
-            provider: provider.to_string(),
-            reason: reason.to_string(),
-        });
     }
 
     pub fn record_provider(&mut self, provider: ProviderType, latency_ms: u64, success: bool) {

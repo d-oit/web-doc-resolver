@@ -172,7 +172,6 @@ impl UrlCascade {
         let mut budget = build_budget(config, &profile_defaults);
         let mut routing_decisions = Vec::new();
         let mut best_quality: f32 = 0.0;
-        let domain = extract_domain_or_default(url);
 
         let planned = {
             let routing_memory = routing_memory.lock().unwrap();
@@ -209,27 +208,43 @@ impl UrlCascade {
                 .parse()
                 .map_err(|e| ResolverError::Provider(format!("Invalid provider name: {}", e)))?;
 
-            // Quality gate: Skip paid providers if we already have a good enough free result
-            if provider.is_paid
-                && best_quality >= config.routing.min_free_quality_to_skip_paid
-                && !config.routing.min_free_quality_to_skip_paid.is_nan()
-            {
-                metrics.record_skip(&provider.name, "quality_gate");
-                continue;
-            }
+            // Routing skip logic
+            let skip_reason = {
+                let rm = routing_memory.lock().unwrap();
+                crate::routing::should_skip_provider(
+                    &provider.name,
+                    provider.is_paid,
+                    best_quality,
+                    config,
+                    &rm,
+                )
+            };
 
-            // Low win-rate skip
-            {
-                let win_rate = {
-                    let rm = routing_memory.lock().unwrap();
-                    rm.domain_win_rate(&domain, &provider.name)
-                };
-                if win_rate < config.routing.provider_skip_win_rate_threshold
-                    && best_quality >= config.routing.min_free_quality_to_skip_paid
-                {
-                    metrics.record_skip(&provider.name, "low_win_rate");
-                    continue;
-                }
+            if let Some(reason) = skip_reason {
+                metrics.record_provider_detailed(
+                    provider_type,
+                    0,
+                    false,
+                    idx,
+                    None,
+                    false,
+                    Some(reason.clone()),
+                    budget.stop_reason.clone(),
+                    false,
+                    false,
+                );
+                routing_decisions.push(RoutingDecision {
+                    provider: provider.name.clone(),
+                    attempt_index: idx,
+                    quality_score: None,
+                    accepted: false,
+                    skip_reason: Some(reason),
+                    stop_reason: budget.stop_reason.clone(),
+                    negative_cache_hit: false,
+                    circuit_open: false,
+                    paid_provider: provider.is_paid,
+                });
+                continue;
             }
 
             // Check negative cache
