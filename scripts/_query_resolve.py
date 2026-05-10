@@ -4,6 +4,7 @@ import concurrent.futures
 import logging
 import time
 from collections.abc import Generator
+from dataclasses import asdict
 from typing import Any
 
 import scripts.cache_negative
@@ -149,7 +150,8 @@ def resolve_query_stream(
                 score = best_free_result.get("score", 0.0)
                 if score >= budget.min_free_quality_to_skip_paid:
                     metrics.quality_gate = {"passed": True, "score": score}
-                    best_free_result["metrics"] = metrics
+                    best_free_result["metrics"] = asdict(metrics)
+                    _store_in_semantic_cache(query, best_free_result)
                     yield best_free_result
                     return
 
@@ -176,7 +178,7 @@ def resolve_query_stream(
                     timeout=0.01,
                     return_when=concurrent.futures.FIRST_COMPLETED,
                 )
-                found_acceptable = False
+                found_final = False
                 for f in list(done):
                     if f not in active_futures:
                         continue
@@ -200,13 +202,13 @@ def resolve_query_stream(
                                 "query", p_name_done, True, latency, q_score.score
                             )
 
-                            found_acceptable = True
                             res.metrics, res.score = metrics, q_score.score
                             result_dict = res.to_dict()
 
                             if pt_done.is_paid():
                                 _store_in_semantic_cache(query, result_dict)
                                 yield result_dict
+                                found_final = True
                                 break
                             else:
                                 if not best_free_result or q_score.score > best_free_result.get(
@@ -216,10 +218,11 @@ def resolve_query_stream(
 
                                 if q_score.score >= budget.min_free_quality_to_skip_paid:
                                     metrics.quality_gate = {"passed": True, "score": q_score.score}
-                                    result_dict["metrics"] = metrics
+                                    result_dict["metrics"] = asdict(metrics)
                                     _store_in_semantic_cache(query, result_dict)
                                     yield result_dict
-                                    return
+                                    found_final = True
+                                    break
                         else:
                             scripts.cache_negative.write_negative_cache(
                                 cache, query, p_name_done, "thin_content", 1800
@@ -231,7 +234,7 @@ def resolve_query_stream(
                         _circuit_breakers.record_failure(p_name_done)
                         metrics.record_provider(pt_done, latency, False)
 
-                if found_acceptable:
+                if found_final:
                     return
                 if done:
                     break
@@ -243,7 +246,7 @@ def resolve_query_stream(
             f.cancel()
 
     if best_free_result:
-        best_free_result["metrics"] = metrics
+        best_free_result["metrics"] = asdict(metrics)
         _store_in_semantic_cache(query, best_free_result)
         yield best_free_result
     else:
