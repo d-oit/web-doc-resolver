@@ -90,9 +90,6 @@ pub struct CacheConfig {
     /// Synthesis cache configuration
     #[serde(default)]
     pub synthesis: SynthesisCacheConfig,
-    /// Cache pre-warming configuration
-    #[serde(default)]
-    pub prewarm: PrewarmConfig,
 }
 
 /// Synthesis cache configuration
@@ -119,50 +116,6 @@ impl Default for SynthesisCacheConfig {
         Self {
             enabled: default_synthesis_cache_enabled(),
             ttl: default_synthesis_cache_ttl(),
-        }
-    }
-}
-
-/// Cache pre-warming configuration
-#[derive(Debug, Clone, Deserialize)]
-pub struct PrewarmConfig {
-    /// Enable cache pre-warming
-    #[serde(default = "default_prewarm_enabled")]
-    pub enabled: bool,
-    /// Number of top domains to pre-warm
-    #[serde(default = "default_prewarm_top_n")]
-    pub top_n_domains: usize,
-    /// Profile to use for pre-warming
-    #[serde(default = "default_prewarm_profile")]
-    pub profile: Profile,
-    /// Maximum concurrency for pre-warming
-    #[serde(default = "default_prewarm_max_concurrency")]
-    pub max_concurrency: usize,
-}
-
-fn default_prewarm_enabled() -> bool {
-    true
-}
-
-fn default_prewarm_top_n() -> usize {
-    20
-}
-
-fn default_prewarm_profile() -> Profile {
-    Profile::Balanced
-}
-
-fn default_prewarm_max_concurrency() -> usize {
-    4
-}
-
-impl Default for PrewarmConfig {
-    fn default() -> Self {
-        Self {
-            enabled: default_prewarm_enabled(),
-            top_n_domains: default_prewarm_top_n(),
-            profile: default_prewarm_profile(),
-            max_concurrency: default_prewarm_max_concurrency(),
         }
     }
 }
@@ -335,18 +288,6 @@ impl Config {
         if other.cache.synthesis.ttl != default_synthesis_cache_ttl() {
             self.cache.synthesis.ttl = other.cache.synthesis.ttl;
         }
-        if other.cache.prewarm.enabled != default_prewarm_enabled() {
-            self.cache.prewarm.enabled = other.cache.prewarm.enabled;
-        }
-        if other.cache.prewarm.top_n_domains != default_prewarm_top_n() {
-            self.cache.prewarm.top_n_domains = other.cache.prewarm.top_n_domains;
-        }
-        if other.cache.prewarm.profile != default_prewarm_profile() {
-            self.cache.prewarm.profile = other.cache.prewarm.profile;
-        }
-        if other.cache.prewarm.max_concurrency != default_prewarm_max_concurrency() {
-            self.cache.prewarm.max_concurrency = other.cache.prewarm.max_concurrency;
-        }
         if other.profile != Profile::Balanced {
             self.profile = other.profile;
         }
@@ -473,22 +414,6 @@ impl Config {
         }
         if let Ok(val) = env::var("DO_WDR_SYNTHESIS_CACHE__TTL") {
             config.cache.synthesis.ttl = val.parse().unwrap_or(43200);
-        }
-
-        // Pre-warm config from env vars
-        if let Ok(val) = env::var("DO_WDR_CACHE_PREWARM__ENABLED") {
-            config.cache.prewarm.enabled = val.parse().unwrap_or(true);
-        }
-        if let Ok(val) = env::var("DO_WDR_CACHE_PREWARM__TOP_N") {
-            config.cache.prewarm.top_n_domains = val.parse().unwrap_or(20);
-        }
-        if let Ok(val) = env::var("DO_WDR_CACHE_PREWARM__PROFILE") {
-            if let Ok(p) = val.parse() {
-                config.cache.prewarm.profile = p;
-            }
-        }
-        if let Ok(val) = env::var("DO_WDR_CACHE_PREWARM__MAX_CONCURRENCY") {
-            config.cache.prewarm.max_concurrency = val.parse().unwrap_or(4);
         }
 
         config
