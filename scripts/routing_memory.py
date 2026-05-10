@@ -2,7 +2,12 @@
 Per-domain routing memory for the Web Doc Resolver.
 """
 
+import logging
+import math
+import time
 from collections import defaultdict
+
+logger = logging.getLogger(__name__)
 
 
 class RoutingMemory:
@@ -15,6 +20,7 @@ class RoutingMemory:
                     "failure": 0,
                     "avg_latency_ms": 0.0,
                     "avg_quality": 0.0,
+                    "last_attempted": None,
                 }
             )
         )
@@ -26,23 +32,60 @@ class RoutingMemory:
         total = stats["success"] + stats["failure"]
         stats["avg_latency_ms"] = ((stats["avg_latency_ms"] * total) + latency_ms) / (total + 1)
         stats["avg_quality"] = ((stats["avg_quality"] * total) + quality_score) / (total + 1)
+        stats["last_attempted"] = time.time()
         if success:
             stats["success"] += 1
         else:
             stats["failure"] += 1
 
+    def get_domain_stats(self, provider: str, domain: str) -> dict | None:
+        if domain not in self.domain_stats or provider not in self.domain_stats[domain]:
+            return None
+
+        stats = self.domain_stats[domain][provider]
+        attempts = stats["success"] + stats["failure"]
+        if attempts == 0:
+            return None
+
+        success_rate = stats["success"] / attempts
+        days_since_last = 0.0
+        if stats["last_attempted"]:
+            days_since_last = (time.time() - stats["last_attempted"]) / 86400.0
+
+        return {
+            "attempts": attempts,
+            "success_rate": success_rate,
+            "avg_latency_ms": stats["avg_latency_ms"],
+            "days_since_last": days_since_last,
+        }
+
+    def rank_providers(self, domain: str, providers: list[str]) -> list[str]:
+        scores = {}
+        for p in providers:
+            stats = self.get_domain_stats(p, domain)
+            if not stats or stats["attempts"] == 0:
+                scores[p] = 0.5
+                continue
+
+            recency = math.exp(-stats["days_since_last"] / 7.0)
+            score = (stats["success_rate"] * recency) * 1000.0 / max(stats["avg_latency_ms"], 1.0)
+            scores[p] = score
+
+            logger.debug(
+                "Provider score: domain=%s, provider=%s, score=%.4f, success_rate=%.2f, recency=%.2f, latency=%.1fms",
+                domain,
+                p,
+                score,
+                stats["success_rate"],
+                recency,
+                stats["avg_latency_ms"],
+            )
+
+        return sorted(providers, key=lambda p: scores[p], reverse=True)
+
     def rank(self, domain: str, providers: list[str]) -> list[str]:
-        if domain not in self.domain_stats:
-            return providers
-
-        def provider_score(provider: str) -> tuple[float, float, float]:
-            s = self.domain_stats[domain][provider]
-            total = s["success"] + s["failure"]
-            success_rate = (s["success"] / total) if total else 0.5
-            # Rank by success rate, then quality, then (negative) latency
-            return (success_rate, s["avg_quality"], -s["avg_latency_ms"])
-
-        return sorted(providers, key=provider_score, reverse=True)
+        """Backward compatibility for rank method."""
+        return self.rank_providers(domain, providers)
 
     def get_p75_latency(self, domain: str, provider: str, default: int = 2500) -> int:
         stats = self.domain_stats.get(domain, {}).get(provider)
