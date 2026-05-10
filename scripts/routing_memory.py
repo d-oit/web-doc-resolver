@@ -42,10 +42,12 @@ class RoutingMemory:
         stats = self.domain_stats[domain].get(provider)
         if not stats:
             return 1.0
-        total = stats["success"] + stats["failure"]
+        success = int(stats.get("success", 0))
+        failure = int(stats.get("failure", 0))
+        total = success + failure
         if total == 0:
             return 1.0
-        return stats["success"] / total
+        return float(success) / float(total)
 
     def rank(self, domain: str, providers: list[str]) -> list[str]:
         if domain not in self.domain_stats:
