@@ -22,12 +22,9 @@ use crate::types::{ProviderType, ResolvedResult, RoutingDecision};
 use std::collections::HashMap;
 use std::result::Result;
 use std::sync::{Arc, Mutex};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
-use super::cascade::{
-    CIRCUIT_BREAKER_FAILURE_THRESHOLD, CIRCUIT_BREAKER_RECOVERY_TTL, NEGATIVE_CACHE_FAILURE_TTL,
-    NEGATIVE_CACHE_THIN_TTL, classify_error,
-};
+use super::cascade::classify_error;
 
 /// Query cascade resolver
 pub struct QueryCascade {
@@ -363,7 +360,7 @@ impl QueryCascade {
                                 query,
                                 &provider.name,
                                 "thin_content",
-                                NEGATIVE_CACHE_THIN_TTL,
+                                Duration::from_secs(config.negative_cache_ttl_secs),
                                 HashMap::new(),
                             );
                         }
@@ -428,8 +425,8 @@ impl QueryCascade {
                         let mut cb = circuit_breakers.lock().unwrap();
                         cb.record_failure(
                             &provider.name,
-                            CIRCUIT_BREAKER_FAILURE_THRESHOLD,
-                            CIRCUIT_BREAKER_RECOVERY_TTL,
+                            config.circuit_breaker_threshold as usize,
+                            Duration::from_secs(config.circuit_breaker_cooldown_secs),
                         );
                     }
 
@@ -439,7 +436,7 @@ impl QueryCascade {
                             query,
                             &provider.name,
                             reason,
-                            NEGATIVE_CACHE_FAILURE_TTL,
+                            Duration::from_secs(config.error_cache_ttl_secs),
                             HashMap::new(),
                         );
                     }

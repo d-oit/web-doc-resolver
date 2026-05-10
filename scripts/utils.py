@@ -433,10 +433,13 @@ def fetch_llms_txt(url: str) -> str | None:
             content_type = response.headers.get("Content-Type", "")
             if "text" in content_type or "markdown" in content_type:
                 _save_to_cache(
-                    base_url, "llms_txt", {"found": True, "content": response.text}, ttl=3600
+                    base_url,
+                    "llms_txt",
+                    {"found": True, "content": response.text},
+                    ttl=get_ttl("llms_txt"),
                 )
                 return response.text
-        _save_to_cache(base_url, "llms_txt", {"found": False}, ttl=3600)
+        _save_to_cache(base_url, "llms_txt", {"found": False}, ttl=get_ttl("llms_txt"))
     except Exception:
         pass
     return None
