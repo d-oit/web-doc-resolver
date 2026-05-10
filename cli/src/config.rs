@@ -96,8 +96,14 @@ pub struct CacheTtlConfig {
     pub firecrawl: u64,
     #[serde(default = "default_ttl_exa")]
     pub exa: u64,
+    #[serde(default = "default_ttl_tavily")]
+    pub tavily: u64,
+    #[serde(default = "default_ttl_serper")]
+    pub serper: u64,
     #[serde(default = "default_ttl_jina")]
     pub jina: u64,
+    #[serde(default = "default_ttl_mistral")]
+    pub mistral: u64,
     #[serde(default = "default_ttl_duckduckgo")]
     pub duckduckgo: u64,
     #[serde(default = "default_ttl_llms_txt")]
@@ -113,7 +119,10 @@ impl Default for CacheTtlConfig {
         Self {
             firecrawl: default_ttl_firecrawl(),
             exa: default_ttl_exa(),
+            tavily: default_ttl_tavily(),
+            serper: default_ttl_serper(),
             jina: default_ttl_jina(),
+            mistral: default_ttl_mistral(),
             duckduckgo: default_ttl_duckduckgo(),
             llms_txt: default_ttl_llms_txt(),
             synthesis: default_ttl_synthesis(),
@@ -211,8 +220,20 @@ fn default_ttl_exa() -> u64 {
     14400
 }
 
+fn default_ttl_tavily() -> u64 {
+    14400
+}
+
+fn default_ttl_serper() -> u64 {
+    7200
+}
+
 fn default_ttl_jina() -> u64 {
     7200
+}
+
+fn default_ttl_mistral() -> u64 {
+    28800
 }
 
 fn default_ttl_duckduckgo() -> u64 {
@@ -319,8 +340,17 @@ impl Config {
         if other.cache.ttl.exa != default_ttl_exa() {
             self.cache.ttl.exa = other.cache.ttl.exa;
         }
+        if other.cache.ttl.tavily != default_ttl_tavily() {
+            self.cache.ttl.tavily = other.cache.ttl.tavily;
+        }
+        if other.cache.ttl.serper != default_ttl_serper() {
+            self.cache.ttl.serper = other.cache.ttl.serper;
+        }
         if other.cache.ttl.jina != default_ttl_jina() {
             self.cache.ttl.jina = other.cache.ttl.jina;
+        }
+        if other.cache.ttl.mistral != default_ttl_mistral() {
+            self.cache.ttl.mistral = other.cache.ttl.mistral;
         }
         if other.cache.ttl.duckduckgo != default_ttl_duckduckgo() {
             self.cache.ttl.duckduckgo = other.cache.ttl.duckduckgo;
@@ -452,9 +482,24 @@ impl Config {
                 config.cache.ttl.exa = v;
             }
         }
+        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_TAVILY") {
+            if let Ok(v) = val.parse() {
+                config.cache.ttl.tavily = v;
+            }
+        }
+        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_SERPER") {
+            if let Ok(v) = val.parse() {
+                config.cache.ttl.serper = v;
+            }
+        }
         if let Ok(val) = env::var("DO_WDR_CACHE_TTL_JINA") {
             if let Ok(v) = val.parse() {
                 config.cache.ttl.jina = v;
+            }
+        }
+        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_MISTRAL") {
+            if let Ok(v) = val.parse() {
+                config.cache.ttl.mistral = v;
             }
         }
         if let Ok(val) = env::var("DO_WDR_CACHE_TTL_DUCKDUCKGO") {
@@ -519,7 +564,10 @@ impl Config {
         match provider {
             "firecrawl" => self.cache.ttl.firecrawl,
             "exa" | "exa_mcp" => self.cache.ttl.exa,
+            "tavily" => self.cache.ttl.tavily,
+            "serper" => self.cache.ttl.serper,
             "jina" => self.cache.ttl.jina,
+            "mistral" | "mistral_browser" | "mistral_websearch" => self.cache.ttl.mistral,
             "duckduckgo" => self.cache.ttl.duckduckgo,
             "llms_txt" => self.cache.ttl.llms_txt,
             "synthesis" => self.cache.ttl.synthesis,
@@ -567,7 +615,12 @@ mod tests {
         assert_eq!(config.get_ttl("firecrawl"), 21600);
         assert_eq!(config.get_ttl("exa"), 14400);
         assert_eq!(config.get_ttl("exa_mcp"), 14400);
+        assert_eq!(config.get_ttl("tavily"), 14400);
+        assert_eq!(config.get_ttl("serper"), 7200);
         assert_eq!(config.get_ttl("jina"), 7200);
+        assert_eq!(config.get_ttl("mistral"), 28800);
+        assert_eq!(config.get_ttl("mistral_browser"), 28800);
+        assert_eq!(config.get_ttl("mistral_websearch"), 28800);
         assert_eq!(config.get_ttl("duckduckgo"), 3600);
         assert_eq!(config.get_ttl("llms_txt"), 28800);
         assert_eq!(config.get_ttl("synthesis"), 43200);

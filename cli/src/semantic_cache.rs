@@ -102,7 +102,10 @@ impl SemanticCacheConfig {
         match provider {
             "firecrawl" => 21600,
             "exa" | "exa_mcp" => 14400,
+            "tavily" => 14400,
+            "serper" => 7200,
             "jina" => 7200,
+            "mistral" | "mistral_browser" | "mistral_websearch" => 28800,
             "duckduckgo" => 3600,
             "llms_txt" => 28800,
             "synthesis" => 43200,
@@ -139,7 +142,12 @@ impl SemanticCache {
         ttls.insert("firecrawl".into(), config.cache.ttl.firecrawl);
         ttls.insert("exa".into(), config.cache.ttl.exa);
         ttls.insert("exa_mcp".into(), config.cache.ttl.exa);
+        ttls.insert("tavily".into(), config.cache.ttl.tavily);
+        ttls.insert("serper".into(), config.cache.ttl.serper);
         ttls.insert("jina".into(), config.cache.ttl.jina);
+        ttls.insert("mistral".into(), config.cache.ttl.mistral);
+        ttls.insert("mistral_browser".into(), config.cache.ttl.mistral);
+        ttls.insert("mistral_websearch".into(), config.cache.ttl.mistral);
         ttls.insert("duckduckgo".into(), config.cache.ttl.duckduckgo);
         ttls.insert("llms_txt".into(), config.cache.ttl.llms_txt);
         ttls.insert("synthesis".into(), config.cache.ttl.synthesis);

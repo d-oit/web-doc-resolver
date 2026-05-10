@@ -94,12 +94,15 @@ def test_live_exa_sdk_with_real_api_key():
     assert len(result.content.strip()) > 0
 
 
-def test_live_tavily_with_real_api_key():
+def test_live_tavily_with_real_api_key(caplog):
     _require_env("TAVILY_API_KEY")
     pytest.importorskip("tavily")
     query = f"Rust agent frameworks {uuid.uuid4().hex[:8]}"
     _clear_cached_result(query, "tavily")
-    result = resolve_with_tavily(query)
+    with caplog.at_level(logging.DEBUG):
+        result = resolve_with_tavily(query)
+    if result is None:
+        print(f"\nLOGS:\n{caplog.text}")
     assert result is not None, "Tavily returned None - check TAVILY_API_KEY and quota"
     assert result.source == "tavily"
     assert isinstance(result.content, str)

@@ -7,8 +7,11 @@ log_level = "info"
 
 [cache.ttl]
 firecrawl = 21600   # 6 hours
-exa = 14400        # 4 hours
+exa = 14400         # 4 hours
+tavily = 14400      # 4 hours
+serper = 7200       # 2 hours
 jina = 7200         # 2 hours
+mistral = 28800     # 8 hours
 duckduckgo = 3600   # 1 hour
 llms_txt = 28800    # 8 hours
 synthesis = 43200   # 12 hours
