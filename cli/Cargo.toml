@@ -23,6 +23,7 @@ urlencoding = "2"
 url = "2"
 chrono = { version = "0.4", features = ["serde"] }
 sha2 = "0.11"
+blake3 = "1.5"
 regex = "1"
 futures = "0.3"
 
