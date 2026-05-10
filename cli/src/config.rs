@@ -53,6 +53,9 @@ pub struct Config {
     /// Cache configuration
     #[serde(default)]
     pub cache: CacheConfig,
+    /// Routing configuration
+    #[serde(default)]
+    pub routing: RoutingConfig,
     /// Execution profile (default: balanced)
     #[serde(default)]
     pub profile: Profile,
@@ -82,6 +85,22 @@ pub struct Config {
     /// Max links to extract (default: 10)
     #[serde(default = "default_max_links")]
     pub max_links: usize,
+}
+
+/// Routing configuration
+#[derive(Debug, Clone, Deserialize)]
+pub struct RoutingConfig {
+    /// Quality threshold for free results to skip paid providers (default: 0.70)
+    #[serde(default = "default_min_free_quality_to_skip_paid")]
+    pub min_free_quality_to_skip_paid: f32,
+}
+
+impl Default for RoutingConfig {
+    fn default() -> Self {
+        Self {
+            min_free_quality_to_skip_paid: default_min_free_quality_to_skip_paid(),
+        }
+    }
 }
 
 /// Aggregated cache configuration
@@ -172,6 +191,7 @@ pub struct RoutingProfileConfig {
     pub max_paid_attempts: usize,
     pub max_total_latency_ms: u64,
     pub quality_threshold: f32,
+    pub min_free_quality_to_skip_paid: f32,
     pub allow_paid: bool,
 }
 
@@ -182,6 +202,7 @@ pub fn routing_profile_defaults(name: &str) -> RoutingProfileConfig {
             max_paid_attempts: 0,
             max_total_latency_ms: 6_000,
             quality_threshold: 0.70,
+            min_free_quality_to_skip_paid: 0.70,
             allow_paid: false,
         },
         "fast" => RoutingProfileConfig {
@@ -189,6 +210,7 @@ pub fn routing_profile_defaults(name: &str) -> RoutingProfileConfig {
             max_paid_attempts: 1,
             max_total_latency_ms: 4_000,
             quality_threshold: 0.60,
+            min_free_quality_to_skip_paid: 0.70,
             allow_paid: true,
         },
         "quality" => RoutingProfileConfig {
@@ -196,6 +218,7 @@ pub fn routing_profile_defaults(name: &str) -> RoutingProfileConfig {
             max_paid_attempts: 3,
             max_total_latency_ms: 15_000,
             quality_threshold: 0.55,
+            min_free_quality_to_skip_paid: 0.75, // Higher threshold for quality profile
             allow_paid: true,
         },
         _ => RoutingProfileConfig {
@@ -203,9 +226,14 @@ pub fn routing_profile_defaults(name: &str) -> RoutingProfileConfig {
             max_paid_attempts: 1,
             max_total_latency_ms: 9_000,
             quality_threshold: 0.65,
+            min_free_quality_to_skip_paid: 0.70,
             allow_paid: true,
         },
     }
+}
+
+fn default_min_free_quality_to_skip_paid() -> f32 {
+    0.70
 }
 
 fn default_max_chars() -> usize {
@@ -261,6 +289,7 @@ impl Default for Config {
             providers_order: Vec::new(),
             semantic_cache: SemanticCacheConfig::default(),
             cache: CacheConfig::default(),
+            routing: RoutingConfig::default(),
             profile: Profile::Balanced,
             quality_threshold: None,
             max_provider_attempts: None,
@@ -353,6 +382,9 @@ impl Config {
         if other.quality_threshold.is_some() {
             self.quality_threshold = other.quality_threshold;
         }
+        if other.routing.min_free_quality_to_skip_paid != default_min_free_quality_to_skip_paid() {
+            self.routing.min_free_quality_to_skip_paid = other.routing.min_free_quality_to_skip_paid;
+        }
         if other.max_provider_attempts.is_some() {
             self.max_provider_attempts = other.max_provider_attempts;
         }
@@ -430,6 +462,11 @@ impl Config {
         if let Ok(val) = env::var("DO_WDR_QUALITY_THRESHOLD") {
             if let Ok(v) = val.parse() {
                 config.quality_threshold = Some(v);
+            }
+        }
+        if let Ok(val) = env::var("DO_WDR_MIN_FREE_QUALITY_TO_SKIP_PAID") {
+            if let Ok(v) = val.parse() {
+                config.routing.min_free_quality_to_skip_paid = v;
             }
         }
         if let Ok(val) = env::var("DO_WDR_MAX_PROVIDER_ATTEMPTS") {

@@ -29,6 +29,8 @@ pub struct ResolveMetrics {
     pub cache_hit: bool,
     pub synthesis_cache_hit: bool,
     pub budget_elapsed_ms: u64,
+    pub quality_gate_passed: bool,
+    pub quality_gate_score: Option<f32>,
 }
 
 impl ResolveMetrics {
@@ -41,6 +43,11 @@ impl ResolveMetrics {
             self.synthesis_cache_hit = true;
         }
         self.cache_hit = true;
+    }
+
+    pub fn record_gate(&mut self, score: f32) {
+        self.quality_gate_passed = true;
+        self.quality_gate_score = Some(score);
     }
 
     pub fn record_provider(&mut self, provider: ProviderType, latency_ms: u64, success: bool) {

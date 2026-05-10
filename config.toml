@@ -1,0 +1,2 @@
+[routing]
+min_free_quality_to_skip_paid = 0.70

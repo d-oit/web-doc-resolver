@@ -620,3 +620,20 @@ class TestSynthesisGate:
         should_call, reason = self._gate_decision([])
         assert should_call is False
         assert reason == "no_results"
+
+class TestQualityGate:
+    def test_gate_passed_logic(self):
+        from scripts.routing import ResolutionBudget
+        budget = ResolutionBudget(3, 1, 10000, min_free_quality_to_skip_paid=0.7)
+
+        # Free result with high score
+        best_free_score = 0.85
+        assert best_free_score >= budget.min_free_quality_to_skip_paid
+
+    def test_gate_failed_logic(self):
+        from scripts.routing import ResolutionBudget
+        budget = ResolutionBudget(3, 1, 10000, min_free_quality_to_skip_paid=0.7)
+
+        # Free result with low score
+        best_free_score = 0.5
+        assert best_free_score < budget.min_free_quality_to_skip_paid

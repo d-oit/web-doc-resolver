@@ -119,6 +119,7 @@ def resolve_query_stream(
         max_provider_attempts=budget_data["max_provider_attempts"],
         max_paid_attempts=budget_data["max_paid_attempts"],
         max_total_latency_ms=budget_data["max_total_latency_ms"],
+        min_free_quality_to_skip_paid=budget_data.get("min_free_quality_to_skip_paid", 0.70),
         allow_paid=bool(budget_data["allow_paid"]),
     )
     provider_names = scripts.routing.plan_provider_order(
@@ -135,6 +136,7 @@ def resolve_query_stream(
     cache = _get_cache()
     eligible = [p for p in provider_names if p in cascade_map]
     active_futures = {}
+    best_free_result: dict[str, Any] | None = None
 
     from scripts import resolve as resolve_module
 
@@ -142,6 +144,15 @@ def resolve_query_stream(
     try:
         for i, p_name in enumerate(eligible):
             pt, func = cascade_map[p_name]
+
+            if pt.is_paid() and best_free_result:
+                score = best_free_result.get("score", 0.0)
+                if score >= budget.min_free_quality_to_skip_paid:
+                    metrics.quality_gate = {"passed": True, "score": score}
+                    best_free_result["metrics"] = metrics
+                    yield best_free_result
+                    return
+
             if not budget.can_try(is_paid=pt.is_paid()):
                 if budget.stop_reason in ("paid_disabled", "max_paid_attempts"):
                     continue
@@ -192,9 +203,23 @@ def resolve_query_stream(
                             found_acceptable = True
                             res.metrics, res.score = metrics, q_score.score
                             result_dict = res.to_dict()
-                            _store_in_semantic_cache(query, result_dict)
-                            yield result_dict
-                            break
+
+                            if pt_done.is_paid():
+                                _store_in_semantic_cache(query, result_dict)
+                                yield result_dict
+                                break
+                            else:
+                                if not best_free_result or q_score.score > best_free_result.get(
+                                    "score", 0.0
+                                ):
+                                    best_free_result = result_dict
+
+                                if q_score.score >= budget.min_free_quality_to_skip_paid:
+                                    metrics.quality_gate = {"passed": True, "score": q_score.score}
+                                    result_dict["metrics"] = metrics
+                                    _store_in_semantic_cache(query, result_dict)
+                                    yield result_dict
+                                    break
                         else:
                             scripts.cache_negative.write_negative_cache(
                                 cache, query, p_name_done, "thin_content", 1800
@@ -217,9 +242,14 @@ def resolve_query_stream(
         for f in active_futures:
             f.cancel()
 
-    yield {
-        "source": "none",
-        "query": query,
-        "content": "Failed",
-        "error": f"No resolution method available. Stop reason: {budget.stop_reason}",
-    }
+    if best_free_result:
+        best_free_result["metrics"] = metrics
+        _store_in_semantic_cache(query, best_free_result)
+        yield best_free_result
+    else:
+        yield {
+            "source": "none",
+            "query": query,
+            "content": "Failed",
+            "error": f"No resolution method available. Stop reason: {budget.stop_reason}",
+        }

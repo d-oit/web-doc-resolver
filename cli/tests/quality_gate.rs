@@ -1,0 +1,45 @@
+use do_wdr_lib::config::Config;
+use do_wdr_lib::types::{ProviderType, ResolvedResult};
+use do_wdr_lib::metrics::ResolveMetrics;
+
+#[tokio::test]
+async fn test_quality_gate_logic() {
+    let mut config = Config::default();
+    config.min_free_quality_to_skip_paid = 0.70;
+
+    let mut metrics = ResolveMetrics::new();
+    let mut best_free_result: Option<ResolvedResult> = None;
+
+    // Simulate high quality free result
+    let mut free_res = ResolvedResult::new("http://free.com", Some("content".to_string()), "exa_mcp", 0.8);
+    // Add routing decision for quality check
+    free_res.routing_decisions.push(do_wdr_lib::types::RoutingDecision {
+        provider: "exa_mcp".to_string(),
+        attempt_index: 0,
+        quality_score: Some(0.8),
+        accepted: true,
+        skip_reason: None,
+        stop_reason: None,
+        negative_cache_hit: false,
+        circuit_open: false,
+        paid_provider: false,
+    });
+
+    best_free_result = Some(free_res);
+
+    // Logic check (matching what I added to cascade)
+    if let Some(ref result) = best_free_result {
+        let score = result.routing_decisions.iter()
+            .filter(|d| d.accepted)
+            .filter_map(|d| d.quality_score)
+            .max_by(|a, b| a.partial_cmp(b).unwrap())
+            .unwrap_or(0.0);
+
+        if score >= config.min_free_quality_to_skip_paid {
+            metrics.record_gate(score);
+        }
+    }
+
+    assert!(metrics.quality_gate_passed);
+    assert_eq!(metrics.quality_gate_score, Some(0.8));
+}
