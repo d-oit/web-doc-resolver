@@ -18,7 +18,7 @@ pysqlite3-binary>=0.5.0  # Ensure enable_load_extension is available
 pytest>=7.4.0
 pytest-cov>=4.1.0
 black>=23.0.0
-flake8>=7.3.0
+flake8>=7.1.1
 mypy>=1.5.0
 
 # Type hints
