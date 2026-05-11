@@ -10,7 +10,7 @@ duckduckgo-search>=8.1.1  # DuckDuckGo search - FREE, no API key required
 httpx>=0.28.1  # optional faster async client (used by Jina if available)
 
 # Semantic cache dependencies (optional - local embeddings, no API key required)
-sentence-transformers>=5.4.1  # Local embeddings for semantic cache - downloads ~80MB model on first use
+sentence-transformers>=3.4.1
 sqlite-vec>=0.1.0  # Vector search extension for SQLite - loaded dynamically
 pysqlite3-binary>=0.5.0  # Ensure enable_load_extension is available
 
