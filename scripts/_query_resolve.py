@@ -112,6 +112,7 @@ def resolve_query_stream(
         return
 
     metrics = ResolveMetrics()
+    best_quality = 0.0
     budget_data = scripts.routing.PROFILE_BUDGETS.get(
         profile.value, scripts.routing.PROFILE_BUDGETS["balanced"]
     )
@@ -142,6 +143,40 @@ def resolve_query_stream(
     try:
         for i, p_name in enumerate(eligible):
             pt, func = cascade_map[p_name]
+
+            # Routing skip logic
+            skip_reason = None
+            if best_quality >= scripts.utils.MIN_FREE_QUALITY_TO_SKIP_PAID:
+                # Quality gate: skip paid providers
+                if pt.is_paid():
+                    skip_reason = "quality_gate"
+                # Exa MCP budget guard
+                elif p_name == "exa_mcp":
+                    exa_usage = _routing_memory.get_exa_monthly_usage()
+                    exa_quota = scripts.utils.EXA_MONTHLY_FREE_QUOTA
+                    if (
+                        exa_quota > 0
+                        and (exa_usage / exa_quota) > scripts.utils.EXA_BUDGET_WARN_THRESHOLD
+                    ):
+                        skip_reason = "quota_budget_guard"
+                # Low win-rate skip
+                else:
+                    win_rate = _routing_memory.get_win_rate(p_name, "query")
+                    if win_rate < scripts.utils.PROVIDER_SKIP_WIN_RATE_THRESHOLD:
+                        skip_reason = "low_win_rate"
+
+            if skip_reason:
+                metrics.record_provider(
+                    pt,
+                    0,
+                    False,
+                    attempt_index=i,
+                    skip_reason=skip_reason,
+                    stop_reason=budget.stop_reason,
+                    accepted=False,
+                )
+                continue
+
             if not budget.can_try(is_paid=pt.is_paid()):
                 if budget.stop_reason in ("paid_disabled", "max_paid_attempts"):
                     continue
@@ -182,6 +217,8 @@ def resolve_query_stream(
                         continue
                     if res:
                         q_score = scripts.quality.score_content(res.content)
+                        if q_score.score > best_quality:
+                            best_quality = q_score.score
                         if q_score.acceptable:
                             _circuit_breakers.record_success(p_name_done)
                             metrics.record_provider(pt_done, latency, True)

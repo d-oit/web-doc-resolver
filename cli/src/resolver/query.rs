@@ -148,6 +148,7 @@ impl QueryCascade {
         let profile_defaults = routing_profile_defaults(&profile_name);
         let mut budget = build_budget(config, &profile_defaults);
         let mut routing_decisions = Vec::new();
+        let mut best_quality: f32 = 0.0;
 
         let planned = {
             let routing_memory = routing_memory.lock().unwrap();
@@ -196,6 +197,45 @@ impl QueryCascade {
                 .name
                 .parse()
                 .map_err(|e| ResolverError::Provider(format!("Invalid provider name: {}", e)))?;
+
+            // Routing skip logic
+            let skip_reason = {
+                let rm = routing_memory.lock().unwrap();
+                crate::routing::should_skip_provider(
+                    &provider.name,
+                    provider.is_paid,
+                    best_quality,
+                    config,
+                    &rm,
+                )
+            };
+
+            if let Some(reason) = skip_reason {
+                metrics.record_provider_detailed(
+                    provider_type,
+                    0,
+                    false,
+                    idx,
+                    None,
+                    false,
+                    Some(reason.clone()),
+                    budget.stop_reason.clone(),
+                    false,
+                    false,
+                );
+                routing_decisions.push(RoutingDecision {
+                    provider: provider.name.clone(),
+                    attempt_index: idx,
+                    quality_score: None,
+                    accepted: false,
+                    skip_reason: Some(reason),
+                    stop_reason: budget.stop_reason.clone(),
+                    negative_cache_hit: false,
+                    circuit_open: false,
+                    paid_provider: provider.is_paid,
+                });
+                continue;
+            }
 
             // Check negative cache
             {
@@ -300,6 +340,9 @@ impl QueryCascade {
                         .quality_threshold
                         .unwrap_or(profile_defaults.quality_threshold);
                     let quality = score_content(content_str, &links, threshold);
+                    if quality.score > best_quality {
+                        best_quality = quality.score;
+                    }
 
                     let acceptable = quality.acceptable && first.is_valid(min_chars);
 
@@ -479,5 +522,38 @@ fn build_budget(
         paid_attempts: 0,
         elapsed_ms: 0,
         stop_reason: None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::Config;
+    use crate::types::Profile;
+
+    #[tokio::test]
+    async fn test_skip_low_win_rate() {
+        let mut config = Config::default();
+        config.profile = Profile::Balanced;
+        config.routing.provider_skip_win_rate_threshold = Some(0.5);
+        config.routing.min_free_quality_to_skip_paid = Some(0.6);
+
+        let _cascade = QueryCascade::new();
+        let _negative_cache = Arc::new(Mutex::new(NegativeCache::default()));
+        let _circuit_breakers = Arc::new(Mutex::new(CircuitBreakerRegistry::default()));
+        let routing_memory = Arc::new(Mutex::new(RoutingMemory::default()));
+
+        // Record a failure for exa_mcp to lower its win rate
+        {
+            let mut rm = routing_memory.lock().unwrap();
+            rm.record("query", "exa_mcp", false, 100, 0.1);
+        }
+
+        // Verify win rate calculation
+        let win_rate = {
+            let rm = routing_memory.lock().unwrap();
+            rm.domain_win_rate("query", "exa_mcp")
+        };
+        assert!(win_rate < 0.2);
     }
 }
