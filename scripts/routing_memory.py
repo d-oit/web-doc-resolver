@@ -5,12 +5,13 @@ Per-domain routing memory for the Web Doc Resolver.
 import sqlite3
 from collections import defaultdict
 from datetime import datetime
+from typing import Any
 
 
 class RoutingMemory:
     def __init__(self, db_path: str = ".do-wdr_routing.db"):
         # domain -> provider -> stats
-        self.domain_stats = defaultdict(
+        self.domain_stats: dict[str, dict[str, dict[str, Any]]] = defaultdict(
             lambda: defaultdict(
                 lambda: {
                     "success": 0,
@@ -66,7 +67,8 @@ class RoutingMemory:
         return sorted(providers, key=provider_score, reverse=True)
 
     def get_p75_latency(self, domain: str, provider: str, default: int = 2500) -> int:
-        stats = self.domain_stats.get(domain, {}).get(provider)
+        domain_stats = self.domain_stats.get(domain, {})
+        stats = domain_stats.get(provider)
         if not stats or stats["avg_latency_ms"] == 0:
             return default
         # Heuristic: p75 is often ~1.5x average for tail latency
@@ -75,11 +77,11 @@ class RoutingMemory:
     def increment_provider_usage(self, provider: str) -> None:
         try:
             try:
-                from datetime import UTC
+                from datetime import timezone
 
-                ym = datetime.now(UTC).strftime("%Y-%m")
+                ym = datetime.now(timezone.utc).strftime("%Y-%m")
             except ImportError:
-                # Fallback for Python < 3.11
+                # Fallback for older environments
                 ym = datetime.utcnow().strftime("%Y-%m")
             conn = sqlite3.connect(self.db_path)
             conn.execute(
@@ -100,11 +102,11 @@ class RoutingMemory:
     def get_exa_monthly_usage(self) -> int:
         try:
             try:
-                from datetime import UTC
+                from datetime import timezone
 
-                ym = datetime.now(UTC).strftime("%Y-%m")
+                ym = datetime.now(timezone.utc).strftime("%Y-%m")
             except ImportError:
-                # Fallback for Python < 3.11
+                # Fallback for older environments
                 ym = datetime.utcnow().strftime("%Y-%m")
             conn = sqlite3.connect(self.db_path)
             row = conn.execute(
