@@ -5,8 +5,6 @@ description: >
   Actions pass without warnings. Uses plans/ for GOAP + ADR progress.
   Updates/compacts learnings after CI green. Production-ready code only.
 mode: subagent
-model: anthropic/claude-sonnet-4-20250514
-temperature: 0.1
 steps: 40
 color: "#f59e0b"
 permission:
