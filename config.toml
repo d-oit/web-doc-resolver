@@ -1,8 +1,24 @@
-[routing]
-min_free_quality_to_skip_paid    = 0.70
-provider_skip_win_rate_threshold = 0.20
+max_chars = 8000
+min_chars = 200
+exa_results = 5
+tavily_results = 3
+output_limit = 10
+log_level = "info"
 
-[routing.exa]
-monthly_free_quota    = 1000
-budget_warn_threshold = 0.80
-reset_day             = 1
+[cache.ttl]
+firecrawl = 21600   # 6 hours
+exa = 14400         # 4 hours
+tavily = 14400      # 4 hours
+serper = 7200       # 2 hours
+jina = 7200         # 2 hours
+mistral = 28800     # 8 hours
+duckduckgo = 3600   # 1 hour
+llms_txt = 28800    # 8 hours
+synthesis = 43200   # 12 hours
+default = 3600      # fallback for any unlisted provider
+
+[semantic_cache]
+enabled = true
+path = ".do-wdr_cache"
+threshold = 0.85
+max_entries = 10000
