@@ -247,7 +247,11 @@ impl SemanticCache {
 
         // Strip fragment and trailing slash for URL storage
         let query = if crate::resolver::is_url(query) {
-            query.split('#').next().unwrap_or(query).trim_end_matches('/')
+            query
+                .split('#')
+                .next()
+                .unwrap_or(query)
+                .trim_end_matches('/')
         } else {
             query
         };
@@ -443,9 +447,10 @@ impl SemanticCache {
     /// Get cache statistics
     #[cfg(feature = "semantic-cache")]
     pub async fn stats(&self) -> StdResult<CacheStats, ResolverError> {
-        let framework_stats = self.framework.stats().await.map_err(|e| {
-            ResolverError::Cache(format!("Failed to get framework stats: {}", e))
-        })?;
+        let framework_stats =
+            self.framework.stats().await.map_err(|e| {
+                ResolverError::Cache(format!("Failed to get framework stats: {}", e))
+            })?;
         let metrics = self.framework.metrics_snapshot().await;
 
         let total_queries = metrics.cache_hits_total + metrics.cache_misses_total;
