@@ -223,7 +223,6 @@ pub fn routing_profile_defaults(name: &str) -> RoutingProfileConfig {
     }
 }
 
-
 fn default_max_chars() -> usize {
     8000
 }
@@ -371,7 +370,8 @@ impl Config {
             self.quality_threshold = other.quality_threshold;
         }
         if other.routing.min_free_quality_to_skip_paid.is_some() {
-            self.routing.min_free_quality_to_skip_paid = other.routing.min_free_quality_to_skip_paid;
+            self.routing.min_free_quality_to_skip_paid =
+                other.routing.min_free_quality_to_skip_paid;
         }
         if other.max_provider_attempts.is_some() {
             self.max_provider_attempts = other.max_provider_attempts;
