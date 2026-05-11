@@ -16,4 +16,3 @@
 | 06 | [Testing](06-testing-improvements.md) | Security, parity, benchmarks |
 | 07 | [Documentation](07-documentation-improvements.md) | Tutorials, ADRs |
 | 08 | [Deep Research](08-deep-research.md) | Multi-step research framework |
-| 09 | [GitHub Workflows GOAP ADR](09-github-workflows-goap-adr.md) | 2026 Actions hardening |

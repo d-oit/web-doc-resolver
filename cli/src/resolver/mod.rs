@@ -189,16 +189,7 @@ impl Resolver {
         if let Some(api_key) = self.config.api_key("mistral") {
             let model = std::env::var("DO_WDR_SYNTHESIS_MODEL")
                 .unwrap_or_else(|_| "mistral-small-latest".to_string());
-            let synthesized = synthesize_results(
-                query,
-                &results,
-                &api_key,
-                &model,
-                self.cache.as_ref(),
-                &self.config,
-                &mut metrics,
-            )
-            .await?;
+            let synthesized = synthesize_results(query, &results, &api_key, &model).await?;
             let mut res =
                 ResolvedResult::new(results[0].url.clone(), Some(synthesized), "synthesis", 1.0);
             metrics.record_provider(ProviderType::MistralWebSearch, 0, true); // Dummy record for synthesis

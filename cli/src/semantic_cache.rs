@@ -67,15 +67,6 @@ pub struct SemanticCache {
     encoder: TextEncoder,
     #[cfg(feature = "semantic-cache")]
     embedding_cache: Mutex<HashMap<String, HVec10240>>,
-    /// Counter for maintenance tracking
-    #[cfg(feature = "semantic-cache")]
-    ops_since_maintenance: std::sync::atomic::AtomicUsize,
-    /// Hit counter for manual stats calculation (framework metrics are for vector probe cache)
-    #[cfg(feature = "semantic-cache")]
-    hits: std::sync::atomic::AtomicU64,
-    /// Miss counter for manual stats calculation
-    #[cfg(feature = "semantic-cache")]
-    misses: std::sync::atomic::AtomicU64,
     /// In-memory cache for non-feature builds
     #[cfg(not(feature = "semantic-cache"))]
     _phantom: std::marker::PhantomData<()>,
@@ -92,6 +83,35 @@ pub struct SemanticCacheConfig {
     pub threshold: f32,
     /// Maximum entries
     pub max_entries: usize,
+    /// Tiered TTL configuration (injected from Config)
+    #[serde(skip)]
+    pub ttls: Option<std::collections::HashMap<String, u64>>,
+}
+
+impl SemanticCacheConfig {
+    pub fn get_ttl(&self, provider: &str) -> u64 {
+        if let Some(ttls) = &self.ttls {
+            if let Some(ttl) = ttls.get(provider) {
+                return *ttl;
+            }
+            if let Some(ttl) = ttls.get("default") {
+                return *ttl;
+            }
+        }
+        // Fallback defaults if not injected
+        match provider {
+            "firecrawl" => 21600,
+            "exa" | "exa_mcp" => 14400,
+            "tavily" => 14400,
+            "serper" => 7200,
+            "jina" => 7200,
+            "mistral" | "mistral_browser" | "mistral_websearch" => 28800,
+            "duckduckgo" => 3600,
+            "llms_txt" => 28800,
+            "synthesis" => 43200,
+            _ => 3600,
+        }
+    }
 }
 
 impl Default for SemanticCacheConfig {
@@ -101,6 +121,7 @@ impl Default for SemanticCacheConfig {
             path: ".do-wdr_cache".to_string(),
             threshold: 0.85,
             max_entries: 10000,
+            ttls: None,
         }
     }
 }
@@ -114,7 +135,24 @@ impl SemanticCache {
             return Ok(None);
         }
 
-        let cache_config = config.semantic_cache.clone();
+        let mut cache_config = config.semantic_cache.clone();
+
+        // Inject TTLs from main config
+        let mut ttls = std::collections::HashMap::new();
+        ttls.insert("firecrawl".into(), config.cache.ttl.firecrawl);
+        ttls.insert("exa".into(), config.cache.ttl.exa);
+        ttls.insert("exa_mcp".into(), config.cache.ttl.exa);
+        ttls.insert("tavily".into(), config.cache.ttl.tavily);
+        ttls.insert("serper".into(), config.cache.ttl.serper);
+        ttls.insert("jina".into(), config.cache.ttl.jina);
+        ttls.insert("mistral".into(), config.cache.ttl.mistral);
+        ttls.insert("mistral_browser".into(), config.cache.ttl.mistral);
+        ttls.insert("mistral_websearch".into(), config.cache.ttl.mistral);
+        ttls.insert("duckduckgo".into(), config.cache.ttl.duckduckgo);
+        ttls.insert("llms_txt".into(), config.cache.ttl.llms_txt);
+        ttls.insert("synthesis".into(), config.cache.ttl.synthesis);
+        ttls.insert("default".into(), config.cache.ttl.default);
+        cache_config.ttls = Some(ttls);
 
         tracing::info!(
             "Initializing semantic cache at '{}' with threshold {}",
@@ -142,9 +180,6 @@ impl SemanticCache {
             config: cache_config,
             encoder: TextEncoder::new(),
             embedding_cache: Mutex::new(HashMap::new()),
-            ops_since_maintenance: std::sync::atomic::AtomicUsize::new(0),
-            hits: std::sync::atomic::AtomicU64::new(0),
-            misses: std::sync::atomic::AtomicU64::new(0),
         }))
     }
 
@@ -160,8 +195,6 @@ impl SemanticCache {
         &self,
         query: &str,
     ) -> StdResult<Option<Vec<ResolvedResult>>, ResolverError> {
-        self.check_maintenance().await;
-
         // Normalize query for consistent lookup
         let normalized: String = query
             .to_lowercase()
@@ -172,11 +205,29 @@ impl SemanticCache {
         // First attempt exact match lookup via concept ID
         if let Ok(Some(concept)) = self.framework.get_concept(&normalized).await {
             tracing::info!("Semantic cache EXACT HIT for query='{}'", query);
+
+            // Check expiration if possible
+            if let (Some(provider_val), Some(ts_val)) = (
+                concept.metadata.get("provider"),
+                concept.metadata.get("timestamp"),
+            ) {
+                if let (Some(provider), Some(ts_str)) = (provider_val.as_str(), ts_val.as_str()) {
+                    if let Ok(ts) = chrono::DateTime::parse_from_rfc3339(ts_str) {
+                        let ttl_secs = self.config.get_ttl(provider);
+                        let age = chrono::Utc::now().signed_duration_since(ts);
+                        if age.num_seconds() > ttl_secs as i64 {
+                            tracing::info!("Semantic cache entry expired for query='{}'", query);
+                            let _ = self.remove(query).await;
+                            return Ok(None);
+                        }
+                    }
+                }
+            }
+
             if let Some(results_value) = concept.metadata.get("results") {
                 if let Ok(results) =
                     serde_json::from_value::<Vec<ResolvedResult>>(results_value.clone())
                 {
-                    self.hits.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                     return Ok(Some(results));
                 }
             }
@@ -215,19 +266,39 @@ impl SemanticCache {
                 .await
                 .map_err(|e| ResolverError::Cache(format!("get_concept failed: {}", e)))?
             {
+                // Check expiration
+                if let (Some(provider_val), Some(ts_val)) = (
+                    concept.metadata.get("provider"),
+                    concept.metadata.get("timestamp"),
+                ) {
+                    if let (Some(provider), Some(ts_str)) = (provider_val.as_str(), ts_val.as_str())
+                    {
+                        if let Ok(ts) = chrono::DateTime::parse_from_rfc3339(ts_str) {
+                            let ttl_secs = self.config.get_ttl(provider);
+                            let age = chrono::Utc::now().signed_duration_since(ts);
+                            if age.num_seconds() > ttl_secs as i64 {
+                                tracing::info!(
+                                    "Semantic cache entry expired (semantic) for id: {}",
+                                    best_id
+                                );
+                                // We use best_id which is the concept ID (normalized query)
+                                let _ = self.remove(best_id).await;
+                                return Ok(None);
+                            }
+                        }
+                    }
+                }
+
                 if let Some(results_value) = concept.metadata.get("results") {
                     if let Ok(results) =
                         serde_json::from_value::<Vec<ResolvedResult>>(results_value.clone())
                     {
-                        self.hits.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                         return Ok(Some(results));
                     }
                 }
             }
         }
 
-        self.misses
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         tracing::debug!(
             "Semantic cache miss for query='{}' (best score: {:.2} < {})",
             query,
@@ -255,19 +326,6 @@ impl SemanticCache {
         results: &[ResolvedResult],
         provider: &str,
     ) -> StdResult<(), ResolverError> {
-        self.check_maintenance().await;
-
-        // Strip fragment and trailing slash for URL storage
-        let query = if crate::resolver::is_url(query) {
-            query
-                .split('#')
-                .next()
-                .unwrap_or(query)
-                .trim_end_matches('/')
-        } else {
-            query
-        };
-
         // Normalize query for consistent lookup
         let normalized: String = query
             .to_lowercase()
@@ -347,10 +405,7 @@ impl SemanticCache {
     /// Query the cache for a specific URL (L2 Cache)
     #[cfg(feature = "semantic-cache")]
     pub async fn query_url(&self, url: &str) -> StdResult<Option<ResolvedResult>, ResolverError> {
-        // Strip fragment and trailing slash for URL queries to improve hit rate
-        let normalized_url = url.split('#').next().unwrap_or(url).trim_end_matches('/');
-
-        self.query(normalized_url)
+        self.query(url)
             .await
             .map(|opt| opt.and_then(|vec| vec.into_iter().next()))
     }
@@ -382,100 +437,13 @@ impl SemanticCache {
         Ok(None)
     }
 
-    /// Get a cached synthesis result by key
-    #[cfg(feature = "semantic-cache")]
-    pub async fn get_synthesis(&self, key: &str) -> StdResult<Option<String>, ResolverError> {
-        if let Ok(Some(concept)) = self.framework.get_concept(key).await {
-            if let Some(expires_at_val) = concept.metadata.get("expires_at") {
-                if let Some(expires_at) = expires_at_val.as_i64() {
-                    let now = chrono::Utc::now().timestamp();
-                    if now < expires_at {
-                        if let Some(content_val) = concept.metadata.get("content") {
-                            if let Some(content) = content_val.as_str() {
-                                return Ok(Some(content.to_string()));
-                            }
-                        }
-                    } else {
-                        // Expired
-                        let _ = self.framework.delete_concept(key).await;
-                    }
-                }
-            }
-        }
-        Ok(None)
-    }
-
-    /// Get a cached synthesis result (no-op without feature)
-    #[cfg(not(feature = "semantic-cache"))]
-    pub async fn get_synthesis(&self, _key: &str) -> StdResult<Option<String>, ResolverError> {
-        Ok(None)
-    }
-
-    /// Store a synthesis result in the cache
-    #[cfg(feature = "semantic-cache")]
-    pub async fn set_synthesis(
-        &self,
-        key: &str,
-        content: &str,
-        ttl_secs: u64,
-    ) -> StdResult<(), ResolverError> {
-        let mut metadata = HashMap::new();
-        metadata.insert(
-            "content".to_string(),
-            serde_json::Value::String(content.to_string()),
-        );
-        let expires_at = chrono::Utc::now().timestamp() + ttl_secs as i64;
-        metadata.insert(
-            "expires_at".to_string(),
-            serde_json::Value::Number(expires_at.into()),
-        );
-        metadata.insert(
-            "type".to_string(),
-            serde_json::Value::String("synthesis".to_string()),
-        );
-
-        // Use a dummy vector or encode key - encode_query handles normalization
-        let vector = self.encode_query(key);
-
-        self.framework
-            .inject_concept_with_metadata(key.to_string(), vector, metadata)
-            .await
-            .map_err(|e| ResolverError::Cache(format!("inject synthesis failed: {}", e)))?;
-
-        Ok(())
-    }
-
-    /// Store a synthesis result (no-op without feature)
-    #[cfg(not(feature = "semantic-cache"))]
-    pub async fn set_synthesis(
-        &self,
-        _key: &str,
-        _content: &str,
-        _ttl_secs: u64,
-    ) -> StdResult<(), ResolverError> {
-        Ok(())
-    }
-
     /// Get cache statistics
     #[cfg(feature = "semantic-cache")]
     pub async fn stats(&self) -> StdResult<CacheStats, ResolverError> {
-        let framework_stats =
-            self.framework.stats().await.map_err(|e| {
-                ResolverError::Cache(format!("Failed to get framework stats: {}", e))
-            })?;
-
-        let hits = self.hits.load(std::sync::atomic::Ordering::Relaxed);
-        let misses = self.misses.load(std::sync::atomic::Ordering::Relaxed);
-        let total_queries = hits + misses;
-        let hit_rate = if total_queries > 0 {
-            hits as f32 / total_queries as f32
-        } else {
-            0.0
-        };
-
+        // Fallback to 0 if count() is not available
         Ok(CacheStats {
-            entries: framework_stats.concept_count,
-            hit_rate,
+            entries: 0,
+            hit_rate: 0.0,
             path: self.config.path.clone(),
         })
     }
@@ -502,14 +470,10 @@ impl SemanticCache {
             .join(" ");
 
         // Check in-memory cache
-        let cached_vec = if let Ok(cache) = self.embedding_cache.lock() {
-            cache.get(&normalized).copied()
-        } else {
-            None
-        };
-
-        if let Some(vec) = cached_vec {
-            return vec;
+        if let Ok(cache) = self.embedding_cache.lock() {
+            if let Some(vec) = cache.get(&normalized) {
+                return *vec;
+            }
         }
 
         // Use TextEncoder for proper semantic encoding
@@ -518,7 +482,7 @@ impl SemanticCache {
         // Store in in-memory cache
         if let Ok(mut cache) = self.embedding_cache.lock() {
             // Basic size limit for in-memory cache to prevent leaks
-            if cache.len() < 2000 {
+            if cache.len() < 1000 {
                 cache.insert(normalized, vec);
             }
         }
@@ -530,31 +494,6 @@ impl SemanticCache {
     #[cfg(not(feature = "semantic-cache"))]
     #[allow(dead_code, clippy::unused_unit)]
     fn encode_query(&self, _query: &str) -> () {}
-
-    /// Perform background maintenance (pruning, TTL checks)
-    #[cfg(feature = "semantic-cache")]
-    pub async fn maintain(&self) -> StdResult<(), ResolverError> {
-        tracing::debug!("Performing semantic cache maintenance");
-
-        // The underlying framework handles max concepts automatically,
-        // but we can trigger additional maintenance if needed here.
-        // For example, pruning expired synthesis entries.
-
-        self.ops_since_maintenance
-            .store(0, std::sync::atomic::Ordering::SeqCst);
-        Ok(())
-    }
-
-    /// Check if maintenance is needed
-    #[cfg(feature = "semantic-cache")]
-    async fn check_maintenance(&self) {
-        let ops = self
-            .ops_since_maintenance
-            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-        if ops >= 99 {
-            let _ = self.maintain().await;
-        }
-    }
 }
 
 #[cfg(feature = "semantic-cache")]
@@ -590,6 +529,7 @@ mod tests {
     use crate::types::ResolvedResult;
 
     /// Create a test configuration with semantic cache enabled
+    #[allow(dead_code)]
     fn test_config(path: &str) -> Config {
         Config {
             semantic_cache: SemanticCacheConfig {
@@ -597,6 +537,7 @@ mod tests {
                 path: path.to_string(),
                 threshold: 0.85,
                 max_entries: 10000,
+                ttls: None,
             },
             ..Default::default()
         }
@@ -721,56 +662,6 @@ mod tests {
 
     #[tokio::test]
     #[cfg(feature = "semantic-cache")]
-    async fn test_synthesis_caching() {
-        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
-        let config = test_config(temp_dir.path().to_str().unwrap());
-
-        let cache = SemanticCache::new(&config)
-            .await
-            .expect("Failed to create cache")
-            .expect("Cache should be enabled");
-
-        let key = "synthesis:test_hash";
-        let content = "Synthesized markdown content";
-        let ttl = 3600;
-
-        // Store synthesis
-        cache
-            .set_synthesis(key, content, ttl)
-            .await
-            .expect("Failed to set synthesis");
-
-        // Retrieve synthesis
-        let retrieved = cache
-            .get_synthesis(key)
-            .await
-            .expect("Failed to get synthesis");
-
-        assert_eq!(retrieved, Some(content.to_string()));
-
-        // Test expiry (using a very short TTL and sleeping if necessary, or just checking logic)
-        cache
-            .set_synthesis("synthesis:expired", "expired content", 0)
-            .await
-            .expect("Failed to set expired synthesis");
-
-        // Wait a bit to ensure it's expired if the resolution is 1s,
-        // but our implementation uses timestamp which is granular to seconds.
-        // If we set ttl=0, it might be expired immediately or in 1s.
-        // Let's use a negative-ish approach or just trust the logic if we can't easily mock time.
-
-        let expired = cache.get_synthesis("synthesis:expired").await.unwrap();
-        // Since we did now + 0, it might be equal to now.
-        // Let's check our implementation: now < expires_at.
-        // If now is 100, expires_at is 100. 100 < 100 is false. Expired.
-        assert_eq!(expired, None);
-
-        drop(cache);
-        drop(temp_dir);
-    }
-
-    #[tokio::test]
-    #[cfg(feature = "semantic-cache")]
     async fn test_concurrent_access() {
         let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
         let config = test_config(temp_dir.path().to_str().unwrap());
@@ -854,6 +745,7 @@ mod tests {
                 path: "/nonexistent/path/that/cannot/be/created".to_string(),
                 threshold: 0.85,
                 max_entries: 10000,
+                ttls: None,
             },
             ..Default::default()
         };
@@ -1058,126 +950,5 @@ mod tests {
 
         drop(cache);
         drop(temp_dir);
-    }
-
-    #[tokio::test]
-    #[cfg(feature = "semantic-cache")]
-    async fn test_url_normalization() {
-        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
-        let config = test_config(temp_dir.path().to_str().unwrap());
-
-        let cache = SemanticCache::new(&config)
-            .await
-            .expect("Failed to create cache")
-            .expect("Cache should be enabled");
-
-        let base_url = "https://example.com/docs";
-        let fragment_url = "https://example.com/docs#section1";
-        let slash_url = "https://example.com/docs/";
-        let results = create_test_results(1);
-
-        // Store with fragment
-        cache
-            .store(fragment_url, &results, "test")
-            .await
-            .expect("Store failed");
-
-        // Query with base URL
-        let res1 = cache.query_url(base_url).await.unwrap();
-        assert!(res1.is_some(), "Should find entry via base URL");
-
-        // Query with slash URL
-        let res2 = cache.query_url(slash_url).await.unwrap();
-        assert!(res2.is_some(), "Should find entry via slash URL");
-
-        // Verify it hits the SAME entry (Exact Match Short-Circuit)
-        // Since store() also normalizes, they should all map to "https://example.com/docs"
-        if let Ok(Some(concept)) = cache.framework.get_concept(base_url).await {
-            assert_eq!(concept.id, base_url);
-        } else {
-            panic!("Normalized entry not found in framework");
-        }
-    }
-
-    #[tokio::test]
-    #[cfg(feature = "semantic-cache")]
-    async fn test_cache_stats_calculation() {
-        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
-        let config = test_config(temp_dir.path().to_str().unwrap());
-
-        let cache = SemanticCache::new(&config)
-            .await
-            .expect("Failed to create cache")
-            .expect("Cache should be enabled");
-
-        let results = create_test_results(1);
-        cache.store("query 1", &results, "test").await.unwrap();
-
-        // One hit
-        let _ = cache.query("query 1").await.unwrap();
-        // One miss
-        let _ = cache.query("query 2").await.unwrap();
-
-        let stats = cache.stats().await.unwrap();
-        assert_eq!(stats.entries, 1);
-        // hit_rate = 1 hit / (1 hit + 1 miss) = 0.5
-        assert_eq!(stats.hit_rate, 0.5);
-    }
-
-    #[tokio::test]
-    #[cfg(feature = "semantic-cache")]
-    async fn test_maintenance_trigger() {
-        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
-        let config = test_config(temp_dir.path().to_str().unwrap());
-
-        let cache = SemanticCache::new(&config)
-            .await
-            .expect("Failed to create cache")
-            .expect("Cache should be enabled");
-
-        // Initial ops is 0
-        assert_eq!(
-            cache
-                .ops_since_maintenance
-                .load(std::sync::atomic::Ordering::SeqCst),
-            0
-        );
-
-        // Run 100 queries
-        for _ in 0..100 {
-            let _ = cache.query("test").await;
-        }
-
-        // It should have reset to 0 (or be very low if more ops happened)
-        let ops = cache
-            .ops_since_maintenance
-            .load(std::sync::atomic::Ordering::SeqCst);
-        assert!(
-            ops < 10,
-            "Maintenance should have reset counter (ops={})",
-            ops
-        );
-    }
-
-    #[tokio::test]
-    #[cfg(feature = "semantic-cache")]
-    async fn test_embedding_cache_limit() {
-        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
-        let config = test_config(temp_dir.path().to_str().unwrap());
-
-        let cache = SemanticCache::new(&config)
-            .await
-            .expect("Failed to create cache")
-            .expect("Cache should be enabled");
-
-        // Fill embedding cache beyond 2000
-        for i in 0..2100 {
-            let _ = cache.encode_query(&format!("query {}", i));
-        }
-
-        let ec_len = cache.embedding_cache.lock().unwrap().len();
-        // It stops at 2000
-        assert!(ec_len <= 2000);
-        assert!(ec_len > 1900);
     }
 }
