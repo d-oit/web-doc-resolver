@@ -9,6 +9,7 @@ import os
 import re
 import socket
 import time
+import typing
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from html.parser import HTMLParser
@@ -62,8 +63,6 @@ def get_config_data() -> dict[str, Any]:
                 import tomli as tomllib  # type: ignore
 
             with open(config_path, "rb") as f:
-                import typing
-
                 _CONFIG_DATA = typing.cast(dict[str, Any], tomllib.load(f))
         except Exception as e:
             logger.debug(f"Failed to load config.toml: {e}")
@@ -588,6 +587,8 @@ def get_ttl(provider: str, config: dict | None = None) -> int:
     provider_key = provider
     if provider in ("exa_mcp", "exa"):
         provider_key = "exa"
+    elif provider in ("mistral_browser", "mistral_websearch"):
+        provider_key = "mistral"
 
     # Use provided config or load from file
     cfg = config if config is not None else get_config_data()
