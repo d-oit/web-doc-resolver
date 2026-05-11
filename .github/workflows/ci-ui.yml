@@ -28,7 +28,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@c0c44be4b0f6fedac74eff654af003cc07e50374 # v6
+      - uses: pnpm/action-setup@91ab88e2619ed1f46221f0ba42d1492c02baf788 # v6
         with:
           version: ${{ env.PNPM_VERSION }}
 
@@ -51,7 +51,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@c0c44be4b0f6fedac74eff654af003cc07e50374 # v6
+      - uses: pnpm/action-setup@91ab88e2619ed1f46221f0ba42d1492c02baf788 # v6
         with:
           version: ${{ env.PNPM_VERSION }}
 
