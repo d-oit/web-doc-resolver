@@ -70,6 +70,12 @@ pub struct SemanticCache {
     /// Counter for maintenance tracking
     #[cfg(feature = "semantic-cache")]
     ops_since_maintenance: std::sync::atomic::AtomicUsize,
+    /// Hit counter for manual stats calculation (framework metrics are for vector probe cache)
+    #[cfg(feature = "semantic-cache")]
+    hits: std::sync::atomic::AtomicU64,
+    /// Miss counter for manual stats calculation
+    #[cfg(feature = "semantic-cache")]
+    misses: std::sync::atomic::AtomicU64,
     /// In-memory cache for non-feature builds
     #[cfg(not(feature = "semantic-cache"))]
     _phantom: std::marker::PhantomData<()>,
@@ -137,6 +143,8 @@ impl SemanticCache {
             encoder: TextEncoder::new(),
             embedding_cache: Mutex::new(HashMap::new()),
             ops_since_maintenance: std::sync::atomic::AtomicUsize::new(0),
+            hits: std::sync::atomic::AtomicU64::new(0),
+            misses: std::sync::atomic::AtomicU64::new(0),
         }))
     }
 
@@ -168,6 +176,7 @@ impl SemanticCache {
                 if let Ok(results) =
                     serde_json::from_value::<Vec<ResolvedResult>>(results_value.clone())
                 {
+                    self.hits.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                     return Ok(Some(results));
                 }
             }
@@ -210,12 +219,15 @@ impl SemanticCache {
                     if let Ok(results) =
                         serde_json::from_value::<Vec<ResolvedResult>>(results_value.clone())
                     {
+                        self.hits.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                         return Ok(Some(results));
                     }
                 }
             }
         }
 
+        self.misses
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         tracing::debug!(
             "Semantic cache miss for query='{}' (best score: {:.2} < {})",
             query,
@@ -451,11 +463,12 @@ impl SemanticCache {
             self.framework.stats().await.map_err(|e| {
                 ResolverError::Cache(format!("Failed to get framework stats: {}", e))
             })?;
-        let metrics = self.framework.metrics_snapshot().await;
 
-        let total_queries = metrics.cache_hits_total + metrics.cache_misses_total;
+        let hits = self.hits.load(std::sync::atomic::Ordering::Relaxed);
+        let misses = self.misses.load(std::sync::atomic::Ordering::Relaxed);
+        let total_queries = hits + misses;
         let hit_rate = if total_queries > 0 {
-            metrics.cache_hits_total as f32 / total_queries as f32
+            hits as f32 / total_queries as f32
         } else {
             0.0
         };
@@ -538,7 +551,7 @@ impl SemanticCache {
         let ops = self
             .ops_since_maintenance
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-        if ops >= 100 {
+        if ops >= 99 {
             let _ = self.maintain().await;
         }
     }
@@ -1045,5 +1058,126 @@ mod tests {
 
         drop(cache);
         drop(temp_dir);
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "semantic-cache")]
+    async fn test_url_normalization() {
+        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let config = test_config(temp_dir.path().to_str().unwrap());
+
+        let cache = SemanticCache::new(&config)
+            .await
+            .expect("Failed to create cache")
+            .expect("Cache should be enabled");
+
+        let base_url = "https://example.com/docs";
+        let fragment_url = "https://example.com/docs#section1";
+        let slash_url = "https://example.com/docs/";
+        let results = create_test_results(1);
+
+        // Store with fragment
+        cache
+            .store(fragment_url, &results, "test")
+            .await
+            .expect("Store failed");
+
+        // Query with base URL
+        let res1 = cache.query_url(base_url).await.unwrap();
+        assert!(res1.is_some(), "Should find entry via base URL");
+
+        // Query with slash URL
+        let res2 = cache.query_url(slash_url).await.unwrap();
+        assert!(res2.is_some(), "Should find entry via slash URL");
+
+        // Verify it hits the SAME entry (Exact Match Short-Circuit)
+        // Since store() also normalizes, they should all map to "https://example.com/docs"
+        if let Ok(Some(concept)) = cache.framework.get_concept(base_url).await {
+            assert_eq!(concept.id, base_url);
+        } else {
+            panic!("Normalized entry not found in framework");
+        }
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "semantic-cache")]
+    async fn test_cache_stats_calculation() {
+        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let config = test_config(temp_dir.path().to_str().unwrap());
+
+        let cache = SemanticCache::new(&config)
+            .await
+            .expect("Failed to create cache")
+            .expect("Cache should be enabled");
+
+        let results = create_test_results(1);
+        cache.store("query 1", &results, "test").await.unwrap();
+
+        // One hit
+        let _ = cache.query("query 1").await.unwrap();
+        // One miss
+        let _ = cache.query("query 2").await.unwrap();
+
+        let stats = cache.stats().await.unwrap();
+        assert_eq!(stats.entries, 1);
+        // hit_rate = 1 hit / (1 hit + 1 miss) = 0.5
+        assert_eq!(stats.hit_rate, 0.5);
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "semantic-cache")]
+    async fn test_maintenance_trigger() {
+        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let config = test_config(temp_dir.path().to_str().unwrap());
+
+        let cache = SemanticCache::new(&config)
+            .await
+            .expect("Failed to create cache")
+            .expect("Cache should be enabled");
+
+        // Initial ops is 0
+        assert_eq!(
+            cache
+                .ops_since_maintenance
+                .load(std::sync::atomic::Ordering::SeqCst),
+            0
+        );
+
+        // Run 100 queries
+        for _ in 0..100 {
+            let _ = cache.query("test").await;
+        }
+
+        // It should have reset to 0 (or be very low if more ops happened)
+        let ops = cache
+            .ops_since_maintenance
+            .load(std::sync::atomic::Ordering::SeqCst);
+        assert!(
+            ops < 10,
+            "Maintenance should have reset counter (ops={})",
+            ops
+        );
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "semantic-cache")]
+    async fn test_embedding_cache_limit() {
+        let temp_dir = tempfile::tempdir().expect("Failed to create temp dir");
+        let config = test_config(temp_dir.path().to_str().unwrap());
+
+        let cache = SemanticCache::new(&config)
+            .await
+            .expect("Failed to create cache")
+            .expect("Cache should be enabled");
+
+        // Fill embedding cache beyond 2000
+        for i in 0..2100 {
+            let _ = cache.encode_query(&format!("query {}", i));
+        }
+
+        let ec_len = cache.embedding_cache.lock().unwrap().len();
+        // It stops at 2000
+        assert!(ec_len <= 2000);
+        assert!(ec_len > 1900);
     }
 }
