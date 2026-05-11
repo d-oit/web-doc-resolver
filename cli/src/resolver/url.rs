@@ -171,6 +171,7 @@ impl UrlCascade {
         let profile_defaults = routing_profile_defaults(&profile_name);
         let mut budget = build_budget(config, &profile_defaults);
         let mut routing_decisions = Vec::new();
+        let mut best_quality: f32 = 0.0;
 
         let planned = {
             let routing_memory = routing_memory.lock().unwrap();
@@ -206,6 +207,45 @@ impl UrlCascade {
                 .name
                 .parse()
                 .map_err(|e| ResolverError::Provider(format!("Invalid provider name: {}", e)))?;
+
+            // Routing skip logic
+            let skip_reason = {
+                let rm = routing_memory.lock().unwrap();
+                crate::routing::should_skip_provider(
+                    &provider.name,
+                    provider.is_paid,
+                    best_quality,
+                    config,
+                    &rm,
+                )
+            };
+
+            if let Some(reason) = skip_reason {
+                metrics.record_provider_detailed(
+                    provider_type,
+                    0,
+                    false,
+                    idx,
+                    None,
+                    false,
+                    Some(reason.clone()),
+                    budget.stop_reason.clone(),
+                    false,
+                    false,
+                );
+                routing_decisions.push(RoutingDecision {
+                    provider: provider.name.clone(),
+                    attempt_index: idx,
+                    quality_score: None,
+                    accepted: false,
+                    skip_reason: Some(reason),
+                    stop_reason: budget.stop_reason.clone(),
+                    negative_cache_hit: false,
+                    circuit_open: false,
+                    paid_provider: provider.is_paid,
+                });
+                continue;
+            }
 
             // Check negative cache
             {
@@ -284,6 +324,9 @@ impl UrlCascade {
                         .quality_threshold
                         .unwrap_or(profile_defaults.quality_threshold);
                     let quality = score_content(content_str, &links, threshold);
+                    if quality.score > best_quality {
+                        best_quality = quality.score;
+                    }
 
                     let acceptable = quality.acceptable && res.is_valid(min_chars);
 
