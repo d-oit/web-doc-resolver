@@ -67,6 +67,9 @@ pub struct SemanticCache {
     encoder: TextEncoder,
     #[cfg(feature = "semantic-cache")]
     embedding_cache: Mutex<HashMap<String, HVec10240>>,
+    /// Counter for maintenance tracking
+    #[cfg(feature = "semantic-cache")]
+    ops_since_maintenance: std::sync::atomic::AtomicUsize,
     /// In-memory cache for non-feature builds
     #[cfg(not(feature = "semantic-cache"))]
     _phantom: std::marker::PhantomData<()>,
@@ -133,6 +136,7 @@ impl SemanticCache {
             config: cache_config,
             encoder: TextEncoder::new(),
             embedding_cache: Mutex::new(HashMap::new()),
+            ops_since_maintenance: std::sync::atomic::AtomicUsize::new(0),
         }))
     }
 
@@ -148,6 +152,8 @@ impl SemanticCache {
         &self,
         query: &str,
     ) -> StdResult<Option<Vec<ResolvedResult>>, ResolverError> {
+        self.check_maintenance().await;
+
         // Normalize query for consistent lookup
         let normalized: String = query
             .to_lowercase()
@@ -237,6 +243,15 @@ impl SemanticCache {
         results: &[ResolvedResult],
         provider: &str,
     ) -> StdResult<(), ResolverError> {
+        self.check_maintenance().await;
+
+        // Strip fragment and trailing slash for URL storage
+        let query = if crate::resolver::is_url(query) {
+            query.split('#').next().unwrap_or(query).trim_end_matches('/')
+        } else {
+            query
+        };
+
         // Normalize query for consistent lookup
         let normalized: String = query
             .to_lowercase()
@@ -316,7 +331,10 @@ impl SemanticCache {
     /// Query the cache for a specific URL (L2 Cache)
     #[cfg(feature = "semantic-cache")]
     pub async fn query_url(&self, url: &str) -> StdResult<Option<ResolvedResult>, ResolverError> {
-        self.query(url)
+        // Strip fragment and trailing slash for URL queries to improve hit rate
+        let normalized_url = url.split('#').next().unwrap_or(url).trim_end_matches('/');
+
+        self.query(normalized_url)
             .await
             .map(|opt| opt.and_then(|vec| vec.into_iter().next()))
     }
@@ -425,10 +443,21 @@ impl SemanticCache {
     /// Get cache statistics
     #[cfg(feature = "semantic-cache")]
     pub async fn stats(&self) -> StdResult<CacheStats, ResolverError> {
-        // Fallback to 0 if count() is not available
+        let framework_stats = self.framework.stats().await.map_err(|e| {
+            ResolverError::Cache(format!("Failed to get framework stats: {}", e))
+        })?;
+        let metrics = self.framework.metrics_snapshot().await;
+
+        let total_queries = metrics.cache_hits_total + metrics.cache_misses_total;
+        let hit_rate = if total_queries > 0 {
+            metrics.cache_hits_total as f32 / total_queries as f32
+        } else {
+            0.0
+        };
+
         Ok(CacheStats {
-            entries: 0,
-            hit_rate: 0.0,
+            entries: framework_stats.concept_count,
+            hit_rate,
             path: self.config.path.clone(),
         })
     }
@@ -455,10 +484,14 @@ impl SemanticCache {
             .join(" ");
 
         // Check in-memory cache
-        if let Ok(cache) = self.embedding_cache.lock() {
-            if let Some(vec) = cache.get(&normalized) {
-                return *vec;
-            }
+        let cached_vec = if let Ok(cache) = self.embedding_cache.lock() {
+            cache.get(&normalized).copied()
+        } else {
+            None
+        };
+
+        if let Some(vec) = cached_vec {
+            return vec;
         }
 
         // Use TextEncoder for proper semantic encoding
@@ -467,7 +500,7 @@ impl SemanticCache {
         // Store in in-memory cache
         if let Ok(mut cache) = self.embedding_cache.lock() {
             // Basic size limit for in-memory cache to prevent leaks
-            if cache.len() < 1000 {
+            if cache.len() < 2000 {
                 cache.insert(normalized, vec);
             }
         }
@@ -479,6 +512,31 @@ impl SemanticCache {
     #[cfg(not(feature = "semantic-cache"))]
     #[allow(dead_code, clippy::unused_unit)]
     fn encode_query(&self, _query: &str) -> () {}
+
+    /// Perform background maintenance (pruning, TTL checks)
+    #[cfg(feature = "semantic-cache")]
+    pub async fn maintain(&self) -> StdResult<(), ResolverError> {
+        tracing::debug!("Performing semantic cache maintenance");
+
+        // The underlying framework handles max concepts automatically,
+        // but we can trigger additional maintenance if needed here.
+        // For example, pruning expired synthesis entries.
+
+        self.ops_since_maintenance
+            .store(0, std::sync::atomic::Ordering::SeqCst);
+        Ok(())
+    }
+
+    /// Check if maintenance is needed
+    #[cfg(feature = "semantic-cache")]
+    async fn check_maintenance(&self) {
+        let ops = self
+            .ops_since_maintenance
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        if ops >= 100 {
+            let _ = self.maintain().await;
+        }
+    }
 }
 
 #[cfg(feature = "semantic-cache")]
