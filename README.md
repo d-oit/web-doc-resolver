@@ -128,6 +128,20 @@ All API keys are **optional**. The resolver works without any keys by using free
 | `FIRECRAWL_API_KEY` | Firecrawl | Optional - deep extraction |
 | `MISTRAL_API_KEY` | Mistral | Optional - AI-powered fallback |
 
+### Tiered Cache TTLs
+
+The resolver uses a tiered TTL strategy to maximize the freshness of high-quality results while extending the life of stable documentation.
+
+| Provider | TTL (seconds) | Human-readable |
+|---|---|---|
+| `firecrawl` | 21600 | 6 hours |
+| `exa` | 14400 | 4 hours |
+| `jina` | 7200 | 2 hours |
+| `duckduckgo` | 3600 | 1 hour |
+| `llms_txt` | 28800 | 8 hours |
+| `synthesis` | 43200 | 12 hours |
+| `default` | 3600 | 1 hour |
+
 ### Setting API Keys
 
 ```bash

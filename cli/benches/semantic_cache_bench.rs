@@ -17,6 +17,7 @@ fn test_config(path: &str) -> Config {
             path: path.to_string(),
             threshold: 0.85,
             max_entries: 10000,
+            ttls: None,
         },
         ..Default::default()
     }
