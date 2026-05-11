@@ -347,6 +347,9 @@ impl QueryCascade {
                         if !config.disable_routing_memory {
                             let mut rm = routing_memory.lock().unwrap();
                             rm.record("", &provider.name, true, latency, quality.score);
+                            if provider.name == "exa_mcp" {
+                                let _ = rm.increment_provider_usage("exa_mcp");
+                            }
                         }
                         if let Some(cache) = cache {
                             let _ = cache.store(query, &results, &first.source).await;
