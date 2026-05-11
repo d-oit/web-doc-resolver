@@ -1,5 +1,9 @@
+import importlib
+import os
 import unittest
+from unittest.mock import patch
 
+import scripts.routing
 from scripts.routing import ResolutionBudget
 
 
@@ -15,11 +19,6 @@ class TestRoutingEnvOverride(unittest.TestCase):
         self.assertFalse(score >= budget.min_free_quality_to_skip_paid)
 
     def test_env_override_respected(self):
-        import importlib
-        import os
-        import scripts.routing
-        from unittest.mock import patch
-
         with patch.dict(os.environ, {"DO_WDR_MIN_FREE_QUALITY_TO_SKIP_PAID": "0.99"}):
             importlib.reload(scripts.routing)
             self.assertEqual(scripts.routing.DEFAULT_MIN_FREE_QUALITY, 0.99)
