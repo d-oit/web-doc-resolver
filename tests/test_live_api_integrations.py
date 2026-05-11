@@ -5,6 +5,7 @@ Run explicitly:
     pytest -m live -s tests/test_live_api_integrations.py
 """
 
+import logging
 import os
 import sys
 import uuid

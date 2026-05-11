@@ -56,7 +56,10 @@ def get_config_data() -> dict[str, Any]:
     config_path = os.getenv("DO_WDR_CONFIG", "config.toml")
     if os.path.exists(config_path):
         try:
-            import tomllib
+            try:
+                import tomllib
+            except ImportError:
+                import tomli as tomllib  # type: ignore
 
             with open(config_path, "rb") as f:
                 _CONFIG_DATA = tomllib.load(f)
