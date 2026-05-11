@@ -12,17 +12,21 @@ from scripts.models import ResolvedResult
 from scripts.utils import (
     _get_from_cache,
     _save_to_cache,
+    get_config_data,
     get_session,
 )
 
 logger = logging.getLogger(__name__)
 
-MAX_CHARS = int(os.getenv("WEB_RESOLVER_MAX_CHARS", "8000"))
-MIN_CHARS = int(os.getenv("WEB_RESOLVER_MIN_CHARS", "200"))
+# Load from config or env
+_config = get_config_data()
+
+MAX_CHARS = int(os.getenv("WEB_RESOLVER_MAX_CHARS", _config.get("max_chars", 8000)))
+MIN_CHARS = int(os.getenv("WEB_RESOLVER_MIN_CHARS", _config.get("min_chars", 200)))
 DEFAULT_TIMEOUT = int(os.getenv("WEB_RESOLVER_TIMEOUT", "30"))
-EXA_RESULTS = int(os.getenv("WEB_RESOLVER_EXA_RESULTS", "5"))
-TAVILY_RESULTS = int(os.getenv("WEB_RESOLVER_TAVILY_RESULTS", "5"))
-DDG_RESULTS = int(os.getenv("WEB_RESOLVER_DDG_RESULTS", "5"))
+EXA_RESULTS = int(os.getenv("WEB_RESOLVER_EXA_RESULTS", _config.get("exa_results", 5)))
+TAVILY_RESULTS = int(os.getenv("WEB_RESOLVER_TAVILY_RESULTS", _config.get("tavily_results", 5)))
+DDG_RESULTS = int(os.getenv("WEB_RESOLVER_DDG_RESULTS", _config.get("ddg_results", 5)))
 
 _rate_limits: dict[str, float] = {}
 
@@ -150,12 +154,14 @@ def resolve_with_tavily(query: str, max_chars: int = MAX_CHARS) -> ResolvedResul
         client = TavilyClient(api_key=api_key)
         res = client.search(query, max_results=TAVILY_RESULTS)
         if not res or not res.get("results"):
+            logger.warning(f"Tavily returned no results for query: {query}")
             return None
         content = "\n\n---\n\n".join([f"## {r['title']}\n\n{r['content']}" for r in res["results"]])
         result = ResolvedResult(source="tavily", content=content[:max_chars], query=query)
         _save_to_cache(query, "tavily", result.to_dict())
         return result
-    except Exception:
+    except Exception as e:
+        logger.error(f"Tavily resolution failed: {e}")
         return None
 
 
@@ -214,10 +220,7 @@ def resolve_with_duckduckgo(query: str, max_chars: int = MAX_CHARS) -> ResolvedR
     if _is_rate_limited("duckduckgo"):
         return None
     try:
-        try:
-            from ddgs import DDGS
-        except ImportError:
-            from duckduckgo_search import DDGS
+        from duckduckgo_search import DDGS
 
         with DDGS() as ddgs:
             results = list(ddgs.text(query, max_results=DDG_RESULTS))

@@ -9,6 +9,7 @@ import os
 import re
 import socket
 import time
+import typing
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from html.parser import HTMLParser
@@ -28,40 +29,46 @@ DEFAULT_TIMEOUT = int(os.getenv("WEB_RESOLVER_TIMEOUT", "30"))
 CACHE_DIR = os.path.expanduser(os.getenv("WEB_RESOLVER_CACHE_DIR", "~/.cache/do-web-doc-resolver"))
 CACHE_TTL = int(os.getenv("WEB_RESOLVER_CACHE_TTL", str(3600 * 24)))
 
-# Routing configuration
-MIN_FREE_QUALITY_TO_SKIP_PAID = float(
-    os.getenv("DO_WDR_ROUTING__MIN_FREE_QUALITY_TO_SKIP_PAID", "0.70")
-)
-PROVIDER_SKIP_WIN_RATE_THRESHOLD = float(
-    os.getenv("DO_WDR_ROUTING__PROVIDER_SKIP_WIN_RATE_THRESHOLD", "0.20")
-)
-EXA_MONTHLY_FREE_QUOTA = int(os.getenv("DO_WDR_ROUTING__EXA__MONTHLY_FREE_QUOTA", "1000"))
-EXA_BUDGET_WARN_THRESHOLD = float(os.getenv("DO_WDR_ROUTING__EXA__BUDGET_WARN_THRESHOLD", "0.80"))
-EXA_RESET_DAY = int(os.getenv("DO_WDR_ROUTING__EXA__RESET_DAY", "1"))
+# Tiered TTL defaults
+TIERED_TTL = {
+    "firecrawl": 21600,
+    "exa": 14400,
+    "exa_mcp": 14400,
+    "tavily": 14400,
+    "serper": 7200,
+    "jina": 7200,
+    "mistral": 28800,
+    "duckduckgo": 3600,
+    "llms_txt": 28800,
+    "synthesis": 43200,
+    "default": 3600,
+}
 
-# Load from config.toml if it exists
-try:
-    import toml
+_CONFIG_DATA: dict[str, Any] | None = None
 
-    if os.path.exists("config.toml"):
-        with open("config.toml") as f:
-            _toml_config = toml.load(f)
-            _routing = _toml_config.get("routing", {})
-            MIN_FREE_QUALITY_TO_SKIP_PAID = _routing.get(
-                "min_free_quality_to_skip_paid", MIN_FREE_QUALITY_TO_SKIP_PAID
-            )
-            PROVIDER_SKIP_WIN_RATE_THRESHOLD = _routing.get(
-                "provider_skip_win_rate_threshold", PROVIDER_SKIP_WIN_RATE_THRESHOLD
-            )
 
-            _exa_routing = _routing.get("exa", {})
-            EXA_MONTHLY_FREE_QUOTA = _exa_routing.get("monthly_free_quota", EXA_MONTHLY_FREE_QUOTA)
-            EXA_BUDGET_WARN_THRESHOLD = _exa_routing.get(
-                "budget_warn_threshold", EXA_BUDGET_WARN_THRESHOLD
-            )
-            EXA_RESET_DAY = _exa_routing.get("reset_day", EXA_RESET_DAY)
-except Exception as e:
-    logger.debug("Could not load config.toml: %s", e)
+def get_config_data() -> dict[str, Any]:
+    """Load configuration from config.toml if available."""
+    global _CONFIG_DATA
+    if _CONFIG_DATA is not None:
+        return _CONFIG_DATA
+
+    _CONFIG_DATA = {}
+    config_path = os.getenv("DO_WDR_CONFIG") or "config.toml"
+    if os.path.exists(config_path):
+        try:
+            try:
+                import tomllib
+            except ImportError:
+                import tomli as tomllib  # type: ignore
+
+            with open(config_path, "rb") as f:
+                _CONFIG_DATA = typing.cast(dict[str, Any], tomllib.load(f))
+        except Exception as e:
+            logger.debug(f"Failed to load config.toml: {e}")
+
+    return _CONFIG_DATA
+
 
 # Semantic cache configuration
 ENABLE_SEMANTIC_CACHE = os.environ.get("DO_WDR_SEMANTIC_CACHE", "1") == "1"
@@ -433,10 +440,13 @@ def fetch_llms_txt(url: str) -> str | None:
             content_type = response.headers.get("Content-Type", "")
             if "text" in content_type or "markdown" in content_type:
                 _save_to_cache(
-                    base_url, "llms_txt", {"found": True, "content": response.text}, ttl=3600
+                    base_url,
+                    "llms_txt",
+                    {"found": True, "content": response.text},
+                    ttl=get_ttl("llms_txt"),
                 )
                 return response.text
-        _save_to_cache(base_url, "llms_txt", {"found": False}, ttl=3600)
+        _save_to_cache(base_url, "llms_txt", {"found": False}, ttl=get_ttl("llms_txt"))
     except Exception:
         pass
     return None
@@ -571,6 +581,37 @@ def _get_cache():
     return _cache
 
 
+def get_ttl(provider: str, config: dict | None = None) -> int:
+    """Get the TTL for a given provider from config or defaults."""
+    # Normalize provider name for alias support
+    provider_key = provider
+    if provider in ("exa_mcp", "exa"):
+        provider_key = "exa"
+    elif provider in ("mistral_browser", "mistral_websearch"):
+        provider_key = "mistral"
+
+    # Use provided config or load from file
+    cfg = config if config is not None else get_config_data()
+
+    # Environment variable override takes precedence over file-based config
+    env_key = f"DO_WDR_CACHE_TTL_{provider_key.upper()}"
+    if env_key in os.environ:
+        try:
+            return int(os.environ[env_key])
+        except ValueError:
+            pass
+
+    if cfg:
+        # Try to get from nested config.toml style
+        ttl_cfg = cfg.get("cache", {}).get("ttl", {})
+        if provider_key in ttl_cfg:
+            return int(ttl_cfg[provider_key])
+        if "default" in ttl_cfg:
+            return int(ttl_cfg["default"])
+
+    return TIERED_TTL.get(provider_key, TIERED_TTL.get("default", 3600))
+
+
 def _get_from_cache(input_str: str, source: str) -> dict[str, Any] | None:
     cache = _get_cache()
     if not cache:
@@ -585,7 +626,12 @@ def _save_to_cache(input_str: str, source: str, result: dict[str, Any], ttl: int
     cache = _get_cache()
     if not cache:
         return
-    cache.set(_cache_key(input_str, source), result, expire=ttl or CACHE_TTL)
+
+    if ttl is None:
+        # Use tiered TTL based on source (provider)
+        ttl = get_ttl(source)
+
+    cache.set(_cache_key(input_str, source), result, expire=ttl)
 
 
 def _detect_error_type(error: Exception) -> ErrorType:

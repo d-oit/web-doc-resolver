@@ -27,20 +27,12 @@ pub struct ResolveMetrics {
     pub cascade_depth: usize,
     pub paid_usage: bool,
     pub cache_hit: bool,
-    pub synthesis_cache_hit: bool,
     pub budget_elapsed_ms: u64,
 }
 
 impl ResolveMetrics {
     pub fn new() -> Self {
         Self::default()
-    }
-
-    pub fn record_cache_hit(&mut self, cache_type: &str) {
-        if cache_type == "synthesis" {
-            self.synthesis_cache_hit = true;
-        }
-        self.cache_hit = true;
     }
 
     pub fn record_provider(&mut self, provider: ProviderType, latency_ms: u64, success: bool) {

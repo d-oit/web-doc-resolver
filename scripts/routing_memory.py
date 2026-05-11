@@ -3,13 +3,12 @@ Per-domain routing memory for the Web Doc Resolver.
 """
 
 from collections import defaultdict
-from typing import Any
 
 
 class RoutingMemory:
-    def __init__(self) -> None:
+    def __init__(self):
         # domain -> provider -> stats
-        self.domain_stats: dict[str, dict[str, dict[str, Any]]] = defaultdict(
+        self.domain_stats = defaultdict(
             lambda: defaultdict(
                 lambda: {
                     "success": 0,
@@ -19,13 +18,10 @@ class RoutingMemory:
                 }
             )
         )
-        self.exa_usage: int = 0
 
     def record(
         self, domain: str, provider: str, success: bool, latency_ms: int, quality_score: float
     ) -> None:
-        if provider == "exa_mcp":
-            self.exa_usage += 1
         stats = self.domain_stats[domain][provider]
         total = stats["success"] + stats["failure"]
         stats["avg_latency_ms"] = ((stats["avg_latency_ms"] * total) + latency_ms) / (total + 1)
@@ -34,24 +30,6 @@ class RoutingMemory:
             stats["success"] += 1
         else:
             stats["failure"] += 1
-
-    def get_exa_monthly_usage(self) -> int:
-        """Get monthly usage for Exa."""
-        return self.exa_usage
-
-    def get_win_rate(self, provider: str, domain: str) -> float:
-        """Get win rate for a provider on a specific domain."""
-        if domain not in self.domain_stats:
-            return 1.0
-        stats = self.domain_stats[domain].get(provider)
-        if not stats:
-            return 1.0
-        success = int(stats.get("success", 0))
-        failure = int(stats.get("failure", 0))
-        total = success + failure
-        if total == 0:
-            return 1.0
-        return float(success) / float(total)
 
     def rank(self, domain: str, providers: list[str]) -> list[str]:
         if domain not in self.domain_stats:
