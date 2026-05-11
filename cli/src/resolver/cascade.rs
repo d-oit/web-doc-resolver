@@ -3,6 +3,7 @@
 //! Shared functions used by both URL and query resolution.
 
 use crate::error::ResolverError;
+use std::time::Duration;
 
 /// Check if input is a URL
 pub fn is_url(input: &str) -> bool {
@@ -83,6 +84,18 @@ pub fn classify_error(err: &ResolverError) -> String {
         "provider_error".into()
     }
 }
+
+/// Default TTL for negative cache entries on failure
+pub const NEGATIVE_CACHE_FAILURE_TTL: Duration = Duration::from_secs(600);
+
+/// Default TTL for negative cache entries on thin content
+pub const NEGATIVE_CACHE_THIN_TTL: Duration = Duration::from_secs(1800);
+
+/// Default TTL for circuit breaker recovery
+pub const CIRCUIT_BREAKER_RECOVERY_TTL: Duration = Duration::from_secs(300);
+
+/// Default failure threshold for circuit breaker
+pub const CIRCUIT_BREAKER_FAILURE_THRESHOLD: usize = 3;
 
 #[cfg(test)]
 mod tests {

@@ -180,5 +180,5 @@ def synthesize_results(query: str, results: list[ResolvedResult], api_key: str, 
         content = resp.json()["choices"][0]["message"]["content"]
         return str(content)
     except Exception as e:
-        logger.error(f"LLM Synthesis failed: {e}")
+        logger.error("LLM Synthesis failed: %s", e)
         return deterministic_merge(results)

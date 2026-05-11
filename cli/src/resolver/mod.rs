@@ -28,6 +28,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 use std::time::Instant;
 
 static LINK_REGEX: OnceLock<regex::Regex> = OnceLock::new();
+const ENV_SYNTHESIS_MODEL: &str = "DO_WDR_SYNTHESIS_MODEL";
 
 /// Extract links from content
 fn extract_links(content: &str) -> Vec<String> {
@@ -187,7 +188,7 @@ impl Resolver {
 
         // Synthesize if MISTRAL_API_KEY is available
         if let Some(api_key) = self.config.api_key("mistral") {
-            let model = std::env::var("DO_WDR_SYNTHESIS_MODEL")
+            let model = std::env::var(ENV_SYNTHESIS_MODEL)
                 .unwrap_or_else(|_| "mistral-small-latest".to_string());
             let synthesized = synthesize_results(query, &results, &api_key, &model).await?;
             let mut res =

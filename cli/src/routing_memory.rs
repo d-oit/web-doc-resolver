@@ -11,6 +11,7 @@ pub struct ProviderStats {
 #[derive(Default)]
 pub struct RoutingMemory {
     domain_stats: HashMap<String, HashMap<String, ProviderStats>>,
+    exa_usage: usize,
 }
 
 impl RoutingMemory {
@@ -22,6 +23,10 @@ impl RoutingMemory {
         latency_ms: u64,
         quality_score: f32,
     ) {
+        if provider == "exa_mcp" {
+            self.exa_usage += 1;
+        }
+
         let providers = self.domain_stats.entry(domain.to_string()).or_default();
         let stats = providers.entry(provider.to_string()).or_default();
         let total = stats.success + stats.failure;
@@ -36,6 +41,26 @@ impl RoutingMemory {
         } else {
             stats.failure += 1;
         }
+    }
+
+    /// Get monthly usage for Exa
+    pub fn exa_monthly_usage(&self) -> usize {
+        self.exa_usage
+    }
+
+    /// Get win rate for a provider on a specific domain
+    pub fn domain_win_rate(&self, domain: &str, provider: &str) -> f32 {
+        let Some(providers) = self.domain_stats.get(domain) else {
+            return 1.0; // Assume 100% win rate if no data
+        };
+        let Some(stats) = providers.get(provider) else {
+            return 1.0;
+        };
+        let total = stats.success + stats.failure;
+        if total == 0 {
+            return 1.0;
+        }
+        stats.success as f32 / total as f32
     }
 
     pub fn rank_for_target(&self, target: &str, providers: &[String]) -> Vec<String> {

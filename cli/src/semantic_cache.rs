@@ -19,7 +19,7 @@
 //! ```
 
 use crate::ResolverError;
-use crate::config::Config;
+use crate::config::{CacheTtlConfig, Config};
 use crate::types::ResolvedResult;
 
 #[cfg(feature = "semantic-cache")]
@@ -98,19 +98,26 @@ impl SemanticCacheConfig {
                 return *ttl;
             }
         }
-        // Fallback defaults if not injected
-        match provider {
-            "firecrawl" => 21600,
-            "exa" | "exa_mcp" => 14400,
-            "tavily" => 14400,
-            "serper" => 7200,
-            "jina" => 7200,
-            "mistral" | "mistral_browser" | "mistral_websearch" => 28800,
-            "duckduckgo" => 3600,
-            "llms_txt" => 28800,
-            "synthesis" => 43200,
-            _ => 3600,
-        }
+        CacheTtlConfig::default().get(provider)
+    }
+
+    #[cfg(feature = "semantic-cache")]
+    fn metadata_expired(&self, metadata: &HashMap<String, Value>) -> bool {
+        let provider = metadata
+            .get("provider")
+            .and_then(Value::as_str)
+            .unwrap_or("default");
+
+        let Some(ts_str) = metadata.get("timestamp").and_then(Value::as_str) else {
+            return true;
+        };
+
+        let Ok(ts) = chrono::DateTime::parse_from_rfc3339(ts_str) else {
+            return true;
+        };
+
+        let ttl_secs = self.get_ttl(provider);
+        chrono::Utc::now().signed_duration_since(ts).num_seconds() > ttl_secs as i64
     }
 }
 
@@ -206,22 +213,10 @@ impl SemanticCache {
         if let Ok(Some(concept)) = self.framework.get_concept(&normalized).await {
             tracing::info!("Semantic cache EXACT HIT for query='{}'", query);
 
-            // Check expiration if possible
-            if let (Some(provider_val), Some(ts_val)) = (
-                concept.metadata.get("provider"),
-                concept.metadata.get("timestamp"),
-            ) {
-                if let (Some(provider), Some(ts_str)) = (provider_val.as_str(), ts_val.as_str()) {
-                    if let Ok(ts) = chrono::DateTime::parse_from_rfc3339(ts_str) {
-                        let ttl_secs = self.config.get_ttl(provider);
-                        let age = chrono::Utc::now().signed_duration_since(ts);
-                        if age.num_seconds() > ttl_secs as i64 {
-                            tracing::info!("Semantic cache entry expired for query='{}'", query);
-                            let _ = self.remove(query).await;
-                            return Ok(None);
-                        }
-                    }
-                }
+            if self.config.metadata_expired(&concept.metadata) {
+                tracing::info!("Semantic cache entry expired for query='{}'", query);
+                let _ = self.remove(&normalized).await;
+                return Ok(None);
             }
 
             if let Some(results_value) = concept.metadata.get("results") {
@@ -266,27 +261,13 @@ impl SemanticCache {
                 .await
                 .map_err(|e| ResolverError::Cache(format!("get_concept failed: {}", e)))?
             {
-                // Check expiration
-                if let (Some(provider_val), Some(ts_val)) = (
-                    concept.metadata.get("provider"),
-                    concept.metadata.get("timestamp"),
-                ) {
-                    if let (Some(provider), Some(ts_str)) = (provider_val.as_str(), ts_val.as_str())
-                    {
-                        if let Ok(ts) = chrono::DateTime::parse_from_rfc3339(ts_str) {
-                            let ttl_secs = self.config.get_ttl(provider);
-                            let age = chrono::Utc::now().signed_duration_since(ts);
-                            if age.num_seconds() > ttl_secs as i64 {
-                                tracing::info!(
-                                    "Semantic cache entry expired (semantic) for id: {}",
-                                    best_id
-                                );
-                                // We use best_id which is the concept ID (normalized query)
-                                let _ = self.remove(best_id).await;
-                                return Ok(None);
-                            }
-                        }
-                    }
+                if self.config.metadata_expired(&concept.metadata) {
+                    tracing::info!(
+                        "Semantic cache entry expired (semantic) for id: {}",
+                        best_id
+                    );
+                    let _ = self.remove(best_id).await;
+                    return Ok(None);
                 }
 
                 if let Some(results_value) = concept.metadata.get("results") {
@@ -455,7 +436,7 @@ impl SemanticCache {
         Ok(CacheStats {
             entries: 0,
             hit_rate: 0.0,
-            path: String::new(),
+            path: String::default(),
         })
     }
 
@@ -658,6 +639,36 @@ mod tests {
         // Cleanup
         drop(cache);
         drop(temp_dir);
+    }
+
+    #[test]
+    #[cfg(feature = "semantic-cache")]
+    fn test_metadata_expiration_uses_ttl() {
+        let config = SemanticCacheConfig {
+            enabled: true,
+            path: String::default(),
+            threshold: 0.85,
+            max_entries: 10000,
+            ttls: Some([("test_provider".to_string(), 1_u64)].into_iter().collect()),
+        };
+
+        let mut metadata = HashMap::new();
+        metadata.insert(
+            "provider".to_string(),
+            Value::String("test_provider".to_string()),
+        );
+        metadata.insert(
+            "timestamp".to_string(),
+            Value::String((chrono::Utc::now() - chrono::Duration::seconds(5)).to_rfc3339()),
+        );
+
+        assert!(config.metadata_expired(&metadata));
+
+        metadata.insert(
+            "timestamp".to_string(),
+            Value::String(chrono::Utc::now().to_rfc3339()),
+        );
+        assert!(!config.metadata_expired(&metadata));
     }
 
     #[tokio::test]

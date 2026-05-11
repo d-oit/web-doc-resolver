@@ -12,7 +12,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from html.parser import HTMLParser
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urljoin, urlparse
 
 import requests
@@ -43,31 +43,59 @@ TIERED_TTL = {
     "default": 3600,
 }
 
-_CONFIG_DATA: dict[str, Any] | None = None
 
-
-def get_config_data() -> dict[str, Any]:
+@lru_cache(maxsize=1)
+def get_config_data(config_path: str | None = None) -> dict[str, Any]:
     """Load configuration from config.toml if available."""
-    global _CONFIG_DATA
-    if _CONFIG_DATA is not None:
-        return _CONFIG_DATA
+    resolved_path = config_path or os.getenv("DO_WDR_CONFIG") or "config.toml"
+    if not os.path.exists(resolved_path):
+        return {}
 
-    _CONFIG_DATA = {}
-    config_path = os.getenv("DO_WDR_CONFIG", "config.toml")
-    if os.path.exists(config_path):
+    try:
         try:
-            try:
-                import tomllib
-            except ImportError:
-                import tomli as tomllib  # type: ignore
+            import tomllib
+        except ImportError:
+            import tomli as tomllib  # type: ignore
 
-            with open(config_path, "rb") as f:
-                _CONFIG_DATA = tomllib.load(f)
-        except Exception as e:
-            logger.debug(f"Failed to load config.toml: {e}")
+        with open(resolved_path, "rb") as f:
+            return cast(dict[str, Any], tomllib.load(f))
+    except Exception as e:
+        logger.debug("Failed to load config.toml: %s", e)
+        return {}
 
-    return _CONFIG_DATA
 
+_CONFIG = get_config_data()
+_ROUTING_CONFIG = _CONFIG.get("routing", {})
+_EXA_ROUTING_CONFIG = _ROUTING_CONFIG.get("exa", {})
+
+# Routing configuration
+MIN_FREE_QUALITY_TO_SKIP_PAID = float(
+    os.getenv(
+        "DO_WDR_ROUTING__MIN_FREE_QUALITY_TO_SKIP_PAID",
+        _ROUTING_CONFIG.get("min_free_quality_to_skip_paid", 0.70),
+    )
+)
+PROVIDER_SKIP_WIN_RATE_THRESHOLD = float(
+    os.getenv(
+        "DO_WDR_ROUTING__PROVIDER_SKIP_WIN_RATE_THRESHOLD",
+        _ROUTING_CONFIG.get("provider_skip_win_rate_threshold", 0.20),
+    )
+)
+EXA_MONTHLY_FREE_QUOTA = int(
+    os.getenv(
+        "DO_WDR_ROUTING__EXA__MONTHLY_FREE_QUOTA",
+        _EXA_ROUTING_CONFIG.get("monthly_free_quota", 1000),
+    )
+)
+EXA_BUDGET_WARN_THRESHOLD = float(
+    os.getenv(
+        "DO_WDR_ROUTING__EXA__BUDGET_WARN_THRESHOLD",
+        _EXA_ROUTING_CONFIG.get("budget_warn_threshold", 0.80),
+    )
+)
+EXA_RESET_DAY = int(
+    os.getenv("DO_WDR_ROUTING__EXA__RESET_DAY", _EXA_ROUTING_CONFIG.get("reset_day", 1))
+)
 
 # Semantic cache configuration
 ENABLE_SEMANTIC_CACHE = os.environ.get("DO_WDR_SEMANTIC_CACHE", "1") == "1"
@@ -573,11 +601,10 @@ def get_cache():
 
 
 def _get_cache():
-    global _cache
-    _cache = _get_cache_proxy()
-    if _cache is None:
-        _cache = get_cache()
-    return _cache
+    cache = _get_cache_proxy()
+    if cache is not None:
+        return cache
+    return get_cache()
 
 
 def get_ttl(provider: str, config: dict | None = None) -> int:
