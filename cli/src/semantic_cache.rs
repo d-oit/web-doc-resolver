@@ -550,7 +550,7 @@ impl SemanticCache {
     async fn check_maintenance(&self) {
         let ops = self
             .ops_since_maintenance
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         if ops >= 99 {
             let _ = self.maintain().await;
         }
