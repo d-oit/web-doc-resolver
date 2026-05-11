@@ -89,8 +89,7 @@ def test_live_exa_sdk_with_real_api_key():
     query = f"Rust agent frameworks {uuid.uuid4().hex[:8]}"
     _clear_cached_result(query, "exa")
     result = resolve_with_exa(query)
-    if result is None:
-        pytest.fail("Exa SDK returned None - check EXA_API_KEY and quota")
+    assert result is not None, "Exa SDK returned None - check EXA_API_KEY and quota"
     assert result.source == "exa"
     assert isinstance(result.content, str)
     assert len(result.content.strip()) > 0
@@ -105,11 +104,7 @@ def test_live_tavily_with_real_api_key(caplog):
         result = resolve_with_tavily(query)
     if result is None:
         print(f"\nLOGS:\n{caplog.text}")
-        quota_markers = ("usage limit", "quota", "credit", "exceeds")
-        if any(marker in caplog.text.lower() for marker in quota_markers):
-            pytest.skip("Tavily API quota or usage limit reached")
-    if result is None:
-        pytest.fail("Tavily returned None - check TAVILY_API_KEY and quota")
+    assert result is not None, "Tavily returned None - check TAVILY_API_KEY and quota"
     assert result.source == "tavily"
     assert isinstance(result.content, str)
     assert len(result.content.strip()) > 0

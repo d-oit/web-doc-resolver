@@ -111,13 +111,6 @@ class ProviderMetric:
     latency_ms: int
     success: bool
     paid: bool
-    attempt_index: int = 0
-    quality_score: float | None = None
-    accepted: bool = False
-    skip_reason: str | None = None
-    stop_reason: str | None = None
-    negative_cache_hit: bool = False
-    circuit_open: bool = False
 
 
 @dataclass
@@ -130,19 +123,7 @@ class ResolveMetrics:
     paid_usage: bool = False
     cache_hit: bool = False
 
-    def record_provider(
-        self,
-        provider: "ProviderType",
-        latency_ms: int,
-        success: bool,
-        attempt_index: int = 0,
-        quality_score: float | None = None,
-        accepted: bool = False,
-        skip_reason: str | None = None,
-        stop_reason: str | None = None,
-        negative_cache_hit: bool = False,
-        circuit_open: bool = False,
-    ):
+    def record_provider(self, provider: "ProviderType", latency_ms: int, success: bool):
         paid = provider.is_paid()
         if paid and success:
             self.paid_usage = True
@@ -152,13 +133,6 @@ class ResolveMetrics:
                 latency_ms=latency_ms,
                 success=success,
                 paid=paid,
-                attempt_index=attempt_index,
-                quality_score=quality_score,
-                accepted=accepted,
-                skip_reason=skip_reason,
-                stop_reason=stop_reason,
-                negative_cache_hit=negative_cache_hit,
-                circuit_open=circuit_open,
             )
         )
         self.total_latency_ms += latency_ms

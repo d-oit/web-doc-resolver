@@ -7,45 +7,7 @@ use crate::types::Profile;
 use serde::Deserialize;
 use std::env;
 use std::path::Path;
-use std::str::FromStr;
 use thiserror::Error;
-
-const ENV_CONFIG: &str = "DO_WDR_CONFIG";
-const ENV_MAX_CHARS: &str = "DO_WDR_MAX_CHARS";
-const ENV_MIN_CHARS: &str = "DO_WDR_MIN_CHARS";
-const ENV_EXA_RESULTS: &str = "DO_WDR_EXA_RESULTS";
-const ENV_TAVILY_RESULTS: &str = "DO_WDR_TAVILY_RESULTS";
-const ENV_OUTPUT_LIMIT: &str = "DO_WDR_OUTPUT_LIMIT";
-const ENV_LOG_LEVEL: &str = "DO_WDR_LOG_LEVEL";
-const ENV_SKIP_PROVIDERS: &str = "DO_WDR_SKIP_PROVIDERS";
-const ENV_PROVIDERS_ORDER: &str = "DO_WDR_PROVIDERS_ORDER";
-const ENV_PROFILE: &str = "DO_WDR_PROFILE";
-const ENV_QUALITY_THRESHOLD: &str = "DO_WDR_QUALITY_THRESHOLD";
-const ENV_MAX_PROVIDER_ATTEMPTS: &str = "DO_WDR_MAX_PROVIDER_ATTEMPTS";
-const ENV_MAX_PAID_ATTEMPTS: &str = "DO_WDR_MAX_PAID_ATTEMPTS";
-const ENV_MAX_TOTAL_LATENCY_MS: &str = "DO_WDR_MAX_TOTAL_LATENCY_MS";
-const ENV_DISABLE_ROUTING_MEMORY: &str = "DO_WDR_DISABLE_ROUTING_MEMORY";
-const ENV_CACHE_TTL_FIRECRAWL: &str = "DO_WDR_CACHE_TTL_FIRECRAWL";
-const ENV_CACHE_TTL_EXA: &str = "DO_WDR_CACHE_TTL_EXA";
-const ENV_CACHE_TTL_TAVILY: &str = "DO_WDR_CACHE_TTL_TAVILY";
-const ENV_CACHE_TTL_SERPER: &str = "DO_WDR_CACHE_TTL_SERPER";
-const ENV_CACHE_TTL_JINA: &str = "DO_WDR_CACHE_TTL_JINA";
-const ENV_CACHE_TTL_MISTRAL: &str = "DO_WDR_CACHE_TTL_MISTRAL";
-const ENV_CACHE_TTL_DUCKDUCKGO: &str = "DO_WDR_CACHE_TTL_DUCKDUCKGO";
-const ENV_CACHE_TTL_LLMS_TXT: &str = "DO_WDR_CACHE_TTL_LLMS_TXT";
-const ENV_CACHE_TTL_SYNTHESIS: &str = "DO_WDR_CACHE_TTL_SYNTHESIS";
-const ENV_CACHE_TTL_DEFAULT: &str = "DO_WDR_CACHE_TTL_DEFAULT";
-const ENV_MIN_FREE_QUALITY: &str = "DO_WDR_ROUTING__MIN_FREE_QUALITY_TO_SKIP_PAID";
-const ENV_SKIP_WIN_RATE: &str = "DO_WDR_ROUTING__PROVIDER_SKIP_WIN_RATE_THRESHOLD";
-const ENV_EXA_QUOTA: &str = "DO_WDR_ROUTING__EXA__MONTHLY_FREE_QUOTA";
-const ENV_EXA_BUDGET_WARN: &str = "DO_WDR_ROUTING__EXA__BUDGET_WARN_THRESHOLD";
-const ENV_EXA_RESET_DAY: &str = "DO_WDR_ROUTING__EXA__RESET_DAY";
-const ENV_SEMANTIC_CACHE_ENABLED: &str = "DO_WDR_SEMANTIC_CACHE__ENABLED";
-const ENV_SEMANTIC_CACHE_PATH: &str = "DO_WDR_SEMANTIC_CACHE__PATH";
-const ENV_SEMANTIC_CACHE_THRESHOLD: &str = "DO_WDR_SEMANTIC_CACHE__THRESHOLD";
-const ENV_SEMANTIC_CACHE_MAX_ENTRIES: &str = "DO_WDR_SEMANTIC_CACHE__MAX_ENTRIES";
-const ENV_SYNTHESIS_CACHE_ENABLED: &str = "DO_WDR_SYNTHESIS_CACHE__ENABLED";
-const ENV_SYNTHESIS_CACHE_TTL: &str = "DO_WDR_SYNTHESIS_CACHE__TTL";
 
 #[derive(Error, Debug)]
 #[allow(dead_code)]
@@ -120,86 +82,12 @@ pub struct Config {
     /// Cache configuration
     #[serde(default)]
     pub cache: CacheConfig,
-    /// Routing configuration
-    #[serde(default)]
-    pub routing: RoutingConfig,
 }
 
-#[derive(Debug, Clone, Deserialize, Default)]
-pub struct RoutingConfig {
-    /// Minimum quality of free result to skip paid providers (default: 0.70)
-    pub min_free_quality_to_skip_paid: Option<f32>,
-    /// Threshold for skipping providers with low win rate (default: 0.20)
-    pub provider_skip_win_rate_threshold: Option<f32>,
-    /// Exa-specific routing configuration
-    #[serde(default)]
-    pub exa: ExaRoutingConfig,
-}
-
-impl RoutingConfig {
-    pub fn min_free_quality_to_skip_paid(&self) -> f32 {
-        self.min_free_quality_to_skip_paid
-            .unwrap_or_else(default_min_free_quality_to_skip_paid)
-    }
-
-    pub fn provider_skip_win_rate_threshold(&self) -> f32 {
-        self.provider_skip_win_rate_threshold
-            .unwrap_or_else(default_provider_skip_win_rate_threshold)
-    }
-}
-
-fn default_min_free_quality_to_skip_paid() -> f32 {
-    0.70
-}
-
-fn default_provider_skip_win_rate_threshold() -> f32 {
-    0.20
-}
-
-#[derive(Debug, Clone, Deserialize)]
-pub struct ExaRoutingConfig {
-    /// Monthly free quota for Exa MCP (default: 1000)
-    #[serde(default = "default_exa_monthly_free_quota")]
-    pub monthly_free_quota: usize,
-    /// Threshold to warn or guard budget (default: 0.80)
-    #[serde(default = "default_exa_budget_warn_threshold")]
-    pub budget_warn_threshold: f32,
-    /// Day of month when quota resets (default: 1)
-    #[serde(default = "default_exa_reset_day")]
-    pub reset_day: u8,
-}
-
-impl Default for ExaRoutingConfig {
-    fn default() -> Self {
-        Self {
-            monthly_free_quota: default_exa_monthly_free_quota(),
-            budget_warn_threshold: default_exa_budget_warn_threshold(),
-            reset_day: default_exa_reset_day(),
-        }
-    }
-}
-
-fn default_exa_monthly_free_quota() -> usize {
-    1000
-}
-
-fn default_exa_budget_warn_threshold() -> f32 {
-    0.80
-}
-
-fn default_exa_reset_day() -> u8 {
-    1
-}
-
-/// Aggregated cache configuration
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct CacheConfig {
-    /// Provider result TTL configuration
     #[serde(default)]
     pub ttl: CacheTtlConfig,
-    /// Synthesis cache configuration
-    #[serde(default)]
-    pub synthesis: SynthesisCacheConfig,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -239,104 +127,6 @@ impl Default for CacheTtlConfig {
             llms_txt: default_ttl_llms_txt(),
             synthesis: default_ttl_synthesis(),
             default: default_ttl_default(),
-        }
-    }
-}
-
-impl CacheTtlConfig {
-    pub fn get(&self, provider: &str) -> u64 {
-        match provider {
-            "firecrawl" => self.firecrawl,
-            "exa" | "exa_mcp" => self.exa,
-            "tavily" => self.tavily,
-            "serper" => self.serper,
-            "jina" => self.jina,
-            "mistral" | "mistral_browser" | "mistral_websearch" => self.mistral,
-            "duckduckgo" => self.duckduckgo,
-            "llms_txt" => self.llms_txt,
-            "synthesis" => self.synthesis,
-            _ => self.default,
-        }
-    }
-
-    fn merge_non_defaults(&mut self, other: &Self) {
-        for (target, incoming, default) in [
-            (
-                &mut self.firecrawl,
-                other.firecrawl,
-                default_ttl_firecrawl(),
-            ),
-            (&mut self.exa, other.exa, default_ttl_exa()),
-            (&mut self.tavily, other.tavily, default_ttl_tavily()),
-            (&mut self.serper, other.serper, default_ttl_serper()),
-            (&mut self.jina, other.jina, default_ttl_jina()),
-            (&mut self.mistral, other.mistral, default_ttl_mistral()),
-            (
-                &mut self.duckduckgo,
-                other.duckduckgo,
-                default_ttl_duckduckgo(),
-            ),
-            (&mut self.llms_txt, other.llms_txt, default_ttl_llms_txt()),
-            (
-                &mut self.synthesis,
-                other.synthesis,
-                default_ttl_synthesis(),
-            ),
-            (&mut self.default, other.default, default_ttl_default()),
-        ] {
-            if incoming != default {
-                *target = incoming;
-            }
-        }
-    }
-
-    fn apply_env_overrides_from<F>(&mut self, env_lookup: &F)
-    where
-        F: Fn(&str) -> Option<String>,
-    {
-        for (target, name) in [
-            (&mut self.firecrawl, ENV_CACHE_TTL_FIRECRAWL),
-            (&mut self.exa, ENV_CACHE_TTL_EXA),
-            (&mut self.tavily, ENV_CACHE_TTL_TAVILY),
-            (&mut self.serper, ENV_CACHE_TTL_SERPER),
-            (&mut self.jina, ENV_CACHE_TTL_JINA),
-            (&mut self.mistral, ENV_CACHE_TTL_MISTRAL),
-            (&mut self.duckduckgo, ENV_CACHE_TTL_DUCKDUCKGO),
-            (&mut self.llms_txt, ENV_CACHE_TTL_LLMS_TXT),
-            (&mut self.synthesis, ENV_CACHE_TTL_SYNTHESIS),
-            (&mut self.default, ENV_CACHE_TTL_DEFAULT),
-        ] {
-            if let Some(v) = env_parse_from(env_lookup, name) {
-                *target = v;
-            }
-        }
-    }
-}
-
-/// Synthesis cache configuration
-#[derive(Debug, Clone, Deserialize)]
-pub struct SynthesisCacheConfig {
-    /// Enable synthesis cache
-    #[serde(default = "default_synthesis_cache_enabled")]
-    pub enabled: bool,
-    /// TTL for synthesis results in seconds (default: 43200 = 12h)
-    #[serde(default = "default_synthesis_cache_ttl")]
-    pub ttl: u64,
-}
-
-fn default_synthesis_cache_enabled() -> bool {
-    true
-}
-
-fn default_synthesis_cache_ttl() -> u64 {
-    default_ttl_synthesis()
-}
-
-impl Default for SynthesisCacheConfig {
-    fn default() -> Self {
-        Self {
-            enabled: default_synthesis_cache_enabled(),
-            ttl: default_synthesis_cache_ttl(),
         }
     }
 }
@@ -462,29 +252,6 @@ fn default_ttl_default() -> u64 {
     3600
 }
 
-fn env_value(name: &str) -> Option<String> {
-    env::var(name).ok()
-}
-
-fn env_parse<T>(name: &str) -> Option<T>
-where
-    T: FromStr,
-{
-    env_value(name).and_then(|value| value.parse().ok())
-}
-
-fn env_parse_from<T, F>(env_lookup: &F, name: &str) -> Option<T>
-where
-    T: FromStr,
-    F: Fn(&str) -> Option<String>,
-{
-    env_lookup(name).and_then(|value| value.parse().ok())
-}
-
-fn split_env_list(value: String) -> Vec<String> {
-    value.split(',').map(|s| s.trim().to_string()).collect()
-}
-
 impl Default for Config {
     fn default() -> Self {
         Self {
@@ -509,7 +276,6 @@ impl Default for Config {
             circuit_breaker_cooldown_secs: default_circuit_breaker_cooldown(),
             max_links: default_max_links(),
             cache: CacheConfig::default(),
-            routing: RoutingConfig::default(),
         }
     }
 }
@@ -527,13 +293,7 @@ impl Config {
 
     /// Merge another config into self, overriding only set values
     pub fn merge(&mut self, other: Config) {
-        self.merge_core(&other);
-        self.merge_cache(&other);
-        self.merge_routing(&other);
-        self.merge_profile(&other);
-    }
-
-    fn merge_core(&mut self, other: &Config) {
+        // Only override if the value differs from default
         if other.max_chars != default_max_chars() {
             self.max_chars = other.max_chars;
         }
@@ -550,13 +310,13 @@ impl Config {
             self.output_limit = other.output_limit;
         }
         if other.log_level != "info" {
-            self.log_level.clone_from(&other.log_level);
+            self.log_level = other.log_level;
         }
         if !other.skip_providers.is_empty() {
-            self.skip_providers.clone_from(&other.skip_providers);
+            self.skip_providers = other.skip_providers;
         }
         if !other.providers_order.is_empty() {
-            self.providers_order.clone_from(&other.providers_order);
+            self.providers_order = other.providers_order;
         }
         if other.negative_cache_ttl_secs != default_negative_cache_ttl() {
             self.negative_cache_ttl_secs = other.negative_cache_ttl_secs;
@@ -573,41 +333,38 @@ impl Config {
         if other.max_links != default_max_links() {
             self.max_links = other.max_links;
         }
-    }
+        // Merge cache TTLs
+        if other.cache.ttl.firecrawl != default_ttl_firecrawl() {
+            self.cache.ttl.firecrawl = other.cache.ttl.firecrawl;
+        }
+        if other.cache.ttl.exa != default_ttl_exa() {
+            self.cache.ttl.exa = other.cache.ttl.exa;
+        }
+        if other.cache.ttl.tavily != default_ttl_tavily() {
+            self.cache.ttl.tavily = other.cache.ttl.tavily;
+        }
+        if other.cache.ttl.serper != default_ttl_serper() {
+            self.cache.ttl.serper = other.cache.ttl.serper;
+        }
+        if other.cache.ttl.jina != default_ttl_jina() {
+            self.cache.ttl.jina = other.cache.ttl.jina;
+        }
+        if other.cache.ttl.mistral != default_ttl_mistral() {
+            self.cache.ttl.mistral = other.cache.ttl.mistral;
+        }
+        if other.cache.ttl.duckduckgo != default_ttl_duckduckgo() {
+            self.cache.ttl.duckduckgo = other.cache.ttl.duckduckgo;
+        }
+        if other.cache.ttl.llms_txt != default_ttl_llms_txt() {
+            self.cache.ttl.llms_txt = other.cache.ttl.llms_txt;
+        }
+        if other.cache.ttl.synthesis != default_ttl_synthesis() {
+            self.cache.ttl.synthesis = other.cache.ttl.synthesis;
+        }
+        if other.cache.ttl.default != default_ttl_default() {
+            self.cache.ttl.default = other.cache.ttl.default;
+        }
 
-    fn merge_cache(&mut self, other: &Config) {
-        self.cache.ttl.merge_non_defaults(&other.cache.ttl);
-        if other.cache.synthesis.enabled != default_synthesis_cache_enabled() {
-            self.cache.synthesis.enabled = other.cache.synthesis.enabled;
-        }
-        if other.cache.synthesis.ttl != default_synthesis_cache_ttl() {
-            self.cache.synthesis.ttl = other.cache.synthesis.ttl;
-        }
-    }
-
-    fn merge_routing(&mut self, other: &Config) {
-        if other.routing.min_free_quality_to_skip_paid.is_some() {
-            self.routing.min_free_quality_to_skip_paid =
-                other.routing.min_free_quality_to_skip_paid;
-        }
-        if other.routing.provider_skip_win_rate_threshold.is_some() {
-            self.routing.provider_skip_win_rate_threshold =
-                other.routing.provider_skip_win_rate_threshold;
-        }
-        if other.routing.exa.monthly_free_quota != default_exa_monthly_free_quota() {
-            self.routing.exa.monthly_free_quota = other.routing.exa.monthly_free_quota;
-        }
-        if (other.routing.exa.budget_warn_threshold - default_exa_budget_warn_threshold()).abs()
-            > f32::EPSILON
-        {
-            self.routing.exa.budget_warn_threshold = other.routing.exa.budget_warn_threshold;
-        }
-        if other.routing.exa.reset_day != default_exa_reset_day() {
-            self.routing.exa.reset_day = other.routing.exa.reset_day;
-        }
-    }
-
-    fn merge_profile(&mut self, other: &Config) {
         if other.profile != Profile::Balanced {
             self.profile = other.profile;
         }
@@ -628,128 +385,158 @@ impl Config {
         }
     }
 
-    fn apply_file_overrides(&mut self) {
-        if let Some(config_path) = env_value(ENV_CONFIG) {
+    /// Load configuration with environment variable overrides
+    pub fn load() -> Self {
+        // Start with defaults
+        let mut config = Config::default();
+
+        // Try to load from config.toml and merge
+        if let Ok(config_path) = env::var("DO_WDR_CONFIG") {
             if let Ok(file_config) = Config::from_file(&config_path) {
-                self.merge(file_config);
+                config.merge(file_config);
             }
         } else {
+            // Try default locations
             for path in ["./config.toml", "./do-wdr.toml", "./do-wdr.conf"] {
                 if let Ok(file_config) = Config::from_file(path) {
-                    self.merge(file_config);
+                    config.merge(file_config);
                     break;
                 }
             }
         }
-    }
 
-    fn apply_basic_env_overrides(&mut self) {
-        if let Some(v) = env_parse(ENV_MAX_CHARS) {
-            self.max_chars = v;
+        // Override with environment variables
+        if let Ok(val) = env::var("DO_WDR_MAX_CHARS") {
+            if let Ok(v) = val.parse() {
+                config.max_chars = v;
+            }
         }
-        if let Some(v) = env_parse(ENV_MIN_CHARS) {
-            self.min_chars = v;
+        if let Ok(val) = env::var("DO_WDR_MIN_CHARS") {
+            if let Ok(v) = val.parse() {
+                config.min_chars = v;
+            }
         }
-        if let Some(v) = env_parse(ENV_EXA_RESULTS) {
-            self.exa_results = v;
+        if let Ok(val) = env::var("DO_WDR_EXA_RESULTS") {
+            if let Ok(v) = val.parse() {
+                config.exa_results = v;
+            }
         }
-        if let Some(v) = env_parse(ENV_TAVILY_RESULTS) {
-            self.tavily_results = v;
+        if let Ok(val) = env::var("DO_WDR_TAVILY_RESULTS") {
+            if let Ok(v) = val.parse() {
+                config.tavily_results = v;
+            }
         }
-        if let Some(v) = env_parse(ENV_OUTPUT_LIMIT) {
-            self.output_limit = v;
+        if let Ok(val) = env::var("DO_WDR_OUTPUT_LIMIT") {
+            if let Ok(v) = val.parse() {
+                config.output_limit = v;
+            }
         }
-        if let Some(val) = env_value(ENV_LOG_LEVEL) {
-            self.log_level = val;
+        if let Ok(val) = env::var("DO_WDR_LOG_LEVEL") {
+            config.log_level = val;
         }
-        if let Some(val) = env_value(ENV_SKIP_PROVIDERS) {
-            self.skip_providers = split_env_list(val);
+        if let Ok(val) = env::var("DO_WDR_SKIP_PROVIDERS") {
+            config.skip_providers = val.split(',').map(|s| s.trim().to_string()).collect();
         }
-        if let Some(val) = env_value(ENV_PROVIDERS_ORDER) {
-            self.providers_order = split_env_list(val);
+        if let Ok(val) = env::var("DO_WDR_PROVIDERS_ORDER") {
+            config.providers_order = val.split(',').map(|s| s.trim().to_string()).collect();
         }
-        if let Some(p) = env_parse(ENV_PROFILE) {
-            self.profile = p;
+        if let Ok(val) = env::var("DO_WDR_PROFILE") {
+            if let Ok(p) = val.parse() {
+                config.profile = p;
+            }
         }
-        if let Some(v) = env_parse(ENV_QUALITY_THRESHOLD) {
-            self.quality_threshold = Some(v);
+        if let Ok(val) = env::var("DO_WDR_QUALITY_THRESHOLD") {
+            if let Ok(v) = val.parse() {
+                config.quality_threshold = Some(v);
+            }
         }
-        if let Some(v) = env_parse(ENV_MAX_PROVIDER_ATTEMPTS) {
-            self.max_provider_attempts = Some(v);
+        if let Ok(val) = env::var("DO_WDR_MAX_PROVIDER_ATTEMPTS") {
+            if let Ok(v) = val.parse() {
+                config.max_provider_attempts = Some(v);
+            }
         }
-        if let Some(v) = env_parse(ENV_MAX_PAID_ATTEMPTS) {
-            self.max_paid_attempts = Some(v);
+        if let Ok(val) = env::var("DO_WDR_MAX_PAID_ATTEMPTS") {
+            if let Ok(v) = val.parse() {
+                config.max_paid_attempts = Some(v);
+            }
         }
-        if let Some(v) = env_parse(ENV_MAX_TOTAL_LATENCY_MS) {
-            self.max_total_latency_ms = Some(v);
+        if let Ok(val) = env::var("DO_WDR_MAX_TOTAL_LATENCY_MS") {
+            if let Ok(v) = val.parse() {
+                config.max_total_latency_ms = Some(v);
+            }
         }
-        if let Some(v) = env_parse(ENV_DISABLE_ROUTING_MEMORY) {
-            self.disable_routing_memory = v;
+        if let Ok(val) = env::var("DO_WDR_DISABLE_ROUTING_MEMORY") {
+            if let Ok(v) = val.parse() {
+                config.disable_routing_memory = v;
+            }
         }
-    }
 
-    fn apply_cache_env_overrides_from<F>(&mut self, env_lookup: &F)
-    where
-        F: Fn(&str) -> Option<String>,
-    {
-        self.cache.ttl.apply_env_overrides_from(env_lookup);
-        if let Some(v) = env_parse_from(env_lookup, ENV_SYNTHESIS_CACHE_ENABLED) {
-            self.cache.synthesis.enabled = v;
+        // Cache TTL overrides from environment variables
+        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_FIRECRAWL") {
+            if let Ok(v) = val.parse() {
+                config.cache.ttl.firecrawl = v;
+            }
         }
-        if let Some(v) = env_parse_from(env_lookup, ENV_SYNTHESIS_CACHE_TTL) {
-            self.cache.synthesis.ttl = v;
+        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_EXA") {
+            if let Ok(v) = val.parse() {
+                config.cache.ttl.exa = v;
+            }
         }
-    }
+        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_TAVILY") {
+            if let Ok(v) = val.parse() {
+                config.cache.ttl.tavily = v;
+            }
+        }
+        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_SERPER") {
+            if let Ok(v) = val.parse() {
+                config.cache.ttl.serper = v;
+            }
+        }
+        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_JINA") {
+            if let Ok(v) = val.parse() {
+                config.cache.ttl.jina = v;
+            }
+        }
+        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_MISTRAL") {
+            if let Ok(v) = val.parse() {
+                config.cache.ttl.mistral = v;
+            }
+        }
+        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_DUCKDUCKGO") {
+            if let Ok(v) = val.parse() {
+                config.cache.ttl.duckduckgo = v;
+            }
+        }
+        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_LLMS_TXT") {
+            if let Ok(v) = val.parse() {
+                config.cache.ttl.llms_txt = v;
+            }
+        }
+        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_SYNTHESIS") {
+            if let Ok(v) = val.parse() {
+                config.cache.ttl.synthesis = v;
+            }
+        }
+        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_DEFAULT") {
+            if let Ok(v) = val.parse() {
+                config.cache.ttl.default = v;
+            }
+        }
 
-    fn apply_cache_env_overrides(&mut self) {
-        self.apply_cache_env_overrides_from(&env_value);
-    }
+        // Semantic cache config from env vars
+        if let Ok(val) = env::var("DO_WDR_SEMANTIC_CACHE__ENABLED") {
+            config.semantic_cache.enabled = val.parse().unwrap_or(false);
+        }
+        if let Ok(val) = env::var("DO_WDR_SEMANTIC_CACHE__PATH") {
+            config.semantic_cache.path = val;
+        }
+        if let Ok(val) = env::var("DO_WDR_SEMANTIC_CACHE__THRESHOLD") {
+            config.semantic_cache.threshold = val.parse().unwrap_or(0.85);
+        }
+        if let Ok(val) = env::var("DO_WDR_SEMANTIC_CACHE__MAX_ENTRIES") {
+            config.semantic_cache.max_entries = val.parse().unwrap_or(10000);
+        }
 
-    fn apply_routing_env_overrides(&mut self) {
-        if let Some(v) = env_parse(ENV_MIN_FREE_QUALITY) {
-            self.routing.min_free_quality_to_skip_paid = Some(v);
-        }
-        if let Some(v) = env_parse(ENV_SKIP_WIN_RATE) {
-            self.routing.provider_skip_win_rate_threshold = Some(v);
-        }
-        if let Some(v) = env_parse(ENV_EXA_QUOTA) {
-            self.routing.exa.monthly_free_quota = v;
-        }
-        if let Some(v) = env_parse(ENV_EXA_BUDGET_WARN) {
-            self.routing.exa.budget_warn_threshold = v;
-        }
-        if let Some(v) = env_parse(ENV_EXA_RESET_DAY) {
-            self.routing.exa.reset_day = v;
-        }
-    }
-
-    fn apply_semantic_cache_env_overrides(&mut self) {
-        if let Some(v) = env_parse(ENV_SEMANTIC_CACHE_ENABLED) {
-            self.semantic_cache.enabled = v;
-        }
-        if let Some(val) = env_value(ENV_SEMANTIC_CACHE_PATH) {
-            self.semantic_cache.path = val;
-        }
-        if let Some(v) = env_parse(ENV_SEMANTIC_CACHE_THRESHOLD) {
-            self.semantic_cache.threshold = v;
-        }
-        if let Some(v) = env_parse(ENV_SEMANTIC_CACHE_MAX_ENTRIES) {
-            self.semantic_cache.max_entries = v;
-        }
-    }
-
-    fn apply_env_overrides(&mut self) {
-        self.apply_basic_env_overrides();
-        self.apply_cache_env_overrides();
-        self.apply_routing_env_overrides();
-        self.apply_semantic_cache_env_overrides();
-    }
-
-    /// Load configuration with environment variable overrides
-    pub fn load() -> Self {
-        let mut config = Config::default();
-        config.apply_file_overrides();
-        config.apply_env_overrides();
         config
     }
 
@@ -774,7 +561,18 @@ impl Config {
 
     /// Get the TTL for a given provider
     pub fn get_ttl(&self, provider: &str) -> u64 {
-        self.cache.ttl.get(provider)
+        match provider {
+            "firecrawl" => self.cache.ttl.firecrawl,
+            "exa" | "exa_mcp" => self.cache.ttl.exa,
+            "tavily" => self.cache.ttl.tavily,
+            "serper" => self.cache.ttl.serper,
+            "jina" => self.cache.ttl.jina,
+            "mistral" | "mistral_browser" | "mistral_websearch" => self.cache.ttl.mistral,
+            "duckduckgo" => self.cache.ttl.duckduckgo,
+            "llms_txt" => self.cache.ttl.llms_txt,
+            "synthesis" => self.cache.ttl.synthesis,
+            _ => self.cache.ttl.default,
+        }
     }
 }
 
@@ -827,15 +625,5 @@ mod tests {
         assert_eq!(config.get_ttl("llms_txt"), 28800);
         assert_eq!(config.get_ttl("synthesis"), 43200);
         assert_eq!(config.get_ttl("unknown"), 3600);
-    }
-
-    #[test]
-    fn test_env_overrides_cache_ttl() {
-        let mut config = Config::default();
-        config.cache.ttl.apply_env_overrides_from(&|name| {
-            (name == ENV_CACHE_TTL_FIRECRAWL).then(|| "123".to_string())
-        });
-
-        assert_eq!(config.get_ttl("firecrawl"), 123);
     }
 }

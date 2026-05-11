@@ -49,45 +49,6 @@ pub struct PlannedProvider {
     pub skip_reason: Option<String>,
 }
 
-/// Check if a provider should be skipped based on budget or performance
-pub fn should_skip_provider(
-    provider_name: &str,
-    is_paid: bool,
-    best_quality: f32,
-    config: &crate::config::Config,
-    routing_memory: &crate::routing_memory::RoutingMemory,
-) -> Option<String> {
-    let threshold = config.routing.min_free_quality_to_skip_paid();
-    if best_quality < threshold || threshold.is_nan() {
-        return None;
-    }
-
-    // Quality gate: Skip paid providers
-    if is_paid {
-        return Some("quality_gate".into());
-    }
-
-    // Exa MCP budget guard
-    if provider_name == "exa_mcp" {
-        let usage = routing_memory.exa_monthly_usage();
-        let quota = config.routing.exa.monthly_free_quota;
-        if quota > 0 {
-            let exa_fraction = usage as f32 / quota as f32;
-            if exa_fraction > config.routing.exa.budget_warn_threshold {
-                return Some("quota_budget_guard".into());
-            }
-        }
-    }
-
-    // Low win-rate skip
-    let win_rate = routing_memory.domain_win_rate("query", provider_name);
-    if win_rate < config.routing.provider_skip_win_rate_threshold() {
-        return Some("low_win_rate".into());
-    }
-
-    None
-}
-
 #[allow(clippy::too_many_arguments)]
 pub fn plan_provider_order(
     target: &str,

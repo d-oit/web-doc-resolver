@@ -154,14 +154,14 @@ def resolve_with_tavily(query: str, max_chars: int = MAX_CHARS) -> ResolvedResul
         client = TavilyClient(api_key=api_key)
         res = client.search(query, max_results=TAVILY_RESULTS)
         if not res or not res.get("results"):
-            logger.warning("Tavily returned no results for query: %s", query)
+            logger.warning(f"Tavily returned no results for query: {query}")
             return None
         content = "\n\n---\n\n".join([f"## {r['title']}\n\n{r['content']}" for r in res["results"]])
         result = ResolvedResult(source="tavily", content=content[:max_chars], query=query)
         _save_to_cache(query, "tavily", result.to_dict())
         return result
     except Exception as e:
-        logger.error("Tavily resolution failed: %s", e)
+        logger.error(f"Tavily resolution failed: {e}")
         return None
 
 
