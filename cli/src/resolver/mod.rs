@@ -8,7 +8,7 @@
 //! - `url`: URL resolution cascade
 //! - `query`: Query resolution cascade
 
-pub mod cascade;
+mod cascade;
 mod query;
 mod url;
 
@@ -90,26 +90,17 @@ impl Resolver {
 
     /// Resolve a URL using the URL cascade
     pub async fn resolve_url(&self, url: &str) -> Result<ResolvedResult, ResolverError> {
-        self.resolve_url_with_config(url, &self.config).await
-    }
-
-    /// Resolve a URL using the URL cascade with custom config
-    pub async fn resolve_url_with_config(
-        &self,
-        url: &str,
-        config: &Config,
-    ) -> Result<ResolvedResult, ResolverError> {
         self.url_cascade
             .resolve(
                 url,
                 self.cache.as_ref(),
-                config,
+                &self.config,
                 self.negative_cache.clone(),
                 self.circuit_breakers.clone(),
                 self.routing_memory.clone(),
                 self.rate_limiters.clone(),
-                config.max_chars,
-                config.min_chars,
+                self.config.max_chars,
+                self.config.min_chars,
             )
             .await
     }
@@ -205,16 +196,7 @@ impl Resolver {
         if let Some(api_key) = self.config.api_key("mistral") {
             let model = std::env::var("DO_WDR_SYNTHESIS_MODEL")
                 .unwrap_or_else(|_| "mistral-small-latest".to_string());
-            let synthesized = synthesize_results(
-                query,
-                &results,
-                &api_key,
-                &model,
-                self.cache.as_ref(),
-                &self.config,
-                &mut metrics,
-            )
-            .await?;
+            let synthesized = synthesize_results(query, &results, &api_key, &model).await?;
             let mut res =
                 ResolvedResult::new(results[0].url.clone(), Some(synthesized), "synthesis", 1.0);
             metrics.record_provider(ProviderType::MistralWebSearch, 0, true); // Dummy record for synthesis
@@ -309,16 +291,6 @@ impl Resolver {
         }
 
         Err(ResolverError::Provider("No provider succeeded".to_string()))
-    }
-
-    /// Access to routing memory
-    pub fn routing_memory(&self) -> Arc<Mutex<RoutingMemory>> {
-        self.routing_memory.clone()
-    }
-
-    /// Access to semantic cache
-    pub fn cache(&self) -> Option<&SemanticCache> {
-        self.cache.as_ref()
     }
 }
 

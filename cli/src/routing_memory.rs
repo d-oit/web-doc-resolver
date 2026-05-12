@@ -1,4 +1,3 @@
-use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Default)]
@@ -7,7 +6,6 @@ pub struct ProviderStats {
     pub failure: usize,
     pub avg_latency_ms: f32,
     pub avg_quality: f32,
-    pub last_attempted: Option<DateTime<Utc>>,
 }
 
 #[derive(Default)]
@@ -32,7 +30,6 @@ impl RoutingMemory {
         stats.avg_latency_ms =
             ((stats.avg_latency_ms * total_f) + latency_ms as f32) / (total_f + 1.0);
         stats.avg_quality = ((stats.avg_quality * total_f) + quality_score) / (total_f + 1.0);
-        stats.last_attempted = Some(Utc::now());
 
         if success {
             stats.success += 1;
@@ -41,55 +38,51 @@ impl RoutingMemory {
         }
     }
 
-    pub fn compute_score(&self, provider: &str, domain: &str) -> f64 {
-        let Some(domain_map) = self.domain_stats.get(domain) else {
-            return 0.5;
-        };
-        let Some(stats) = domain_map.get(provider) else {
-            return 0.5;
+    pub fn rank_for_target(&self, target: &str, providers: &[String]) -> Vec<String> {
+        let domain = extract_domain(target).unwrap_or_default();
+        let Some(stats) = self.domain_stats.get(&domain) else {
+            return providers.to_vec();
         };
 
-        let attempts = stats.success + stats.failure;
-        if attempts == 0 {
-            return 0.5;
-        }
+        let mut ranked = providers.to_vec();
+        ranked.sort_by(|a, b| {
+            let sa = stats.get(a).cloned().unwrap_or_default();
+            let sb = stats.get(b).cloned().unwrap_or_default();
 
-        let success_rate = stats.success as f64 / attempts as f64;
+            let ta = sa.success + sa.failure;
+            let tb = sb.success + sb.failure;
 
-        let days_since_last = if let Some(last) = stats.last_attempted {
-            let duration = Utc::now().signed_duration_since(last);
-            duration.num_seconds() as f64 / 86400.0
-        } else {
-            0.0
-        };
+            let sra = if ta == 0 {
+                0.5
+            } else {
+                sa.success as f32 / ta as f32
+            };
+            let srb = if tb == 0 {
+                0.5
+            } else {
+                sb.success as f32 / tb as f32
+            };
 
-        let quality_factor = 0.5 + 0.5 * stats.avg_quality as f64;
-        let recency_weight = (-days_since_last / 7.0).exp();
-        let score = (success_rate * quality_factor * recency_weight) * 1000.0
-            / (stats.avg_latency_ms as f64).max(1.0);
+            srb.partial_cmp(&sra)
+                .unwrap_or(std::cmp::Ordering::Equal)
+                .then_with(|| {
+                    sb.avg_quality
+                        .partial_cmp(&sa.avg_quality)
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                })
+                .then_with(|| {
+                    sa.avg_latency_ms
+                        .partial_cmp(&sb.avg_latency_ms)
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                })
+        });
 
-        tracing::debug!(
-            "Provider score: domain={}, provider={}, score={:.4}, success_rate={:.2}, quality={:.2}, recency={:.2}, latency={:.1}ms",
-            domain,
-            provider,
-            score,
-            success_rate,
-            stats.avg_quality,
-            recency_weight,
-            stats.avg_latency_ms
-        );
-
-        score
+        ranked
     }
+}
 
-    pub fn rank_providers(&self, domain: &str, providers: &[String]) -> Vec<String> {
-        let mut scores: Vec<(&String, f64)> = providers
-            .iter()
-            .map(|p| (p, self.compute_score(p, domain)))
-            .collect();
-
-        scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-
-        scores.into_iter().map(|(p, _)| p.clone()).collect()
-    }
+fn extract_domain(target: &str) -> Option<String> {
+    url::Url::parse(target)
+        .ok()
+        .and_then(|u| u.host_str().map(|s| s.to_string()))
 }
