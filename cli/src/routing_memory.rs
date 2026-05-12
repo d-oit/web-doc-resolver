@@ -1,16 +1,5 @@
-use chrono::Utc;
-use rusqlite::{Connection, Result as SqliteResult, params};
+use chrono::{DateTime, Utc};
 use std::collections::HashMap;
-
-const CREATE_TABLE_PROVIDER_QUOTA_USAGE: &str = "CREATE TABLE IF NOT EXISTS provider_quota_usage (
-    provider    TEXT NOT NULL,
-    year_month  TEXT NOT NULL,
-    call_count  INTEGER NOT NULL DEFAULT 0,
-    updated_at  INTEGER NOT NULL,
-    PRIMARY KEY (provider, year_month)
-)";
-
-const DEFAULT_DB_PATH: &str = ".do-wdr_routing.db";
 
 #[derive(Debug, Clone, Default)]
 pub struct ProviderStats {
@@ -18,44 +7,15 @@ pub struct ProviderStats {
     pub failure: usize,
     pub avg_latency_ms: f32,
     pub avg_quality: f32,
+    pub last_attempted: Option<DateTime<Utc>>,
 }
 
+#[derive(Default)]
 pub struct RoutingMemory {
     domain_stats: HashMap<String, HashMap<String, ProviderStats>>,
-    db: Option<Connection>,
-}
-
-impl Default for RoutingMemory {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 impl RoutingMemory {
-    pub fn new() -> Self {
-        Self::with_db_path(DEFAULT_DB_PATH)
-    }
-
-    pub fn with_db_path(db_path: &str) -> Self {
-        let db = match Connection::open(db_path) {
-            Ok(conn) => {
-                if let Err(e) = conn.execute(CREATE_TABLE_PROVIDER_QUOTA_USAGE, []) {
-                    tracing::warn!("Failed to create provider_quota_usage table: {e}");
-                }
-                Some(conn)
-            }
-            Err(e) => {
-                tracing::warn!("Failed to open routing database '{db_path}': {e}");
-                None
-            }
-        };
-
-        Self {
-            domain_stats: HashMap::new(),
-            db,
-        }
-    }
-
     pub fn record(
         &mut self,
         domain: &str,
@@ -72,6 +32,7 @@ impl RoutingMemory {
         stats.avg_latency_ms =
             ((stats.avg_latency_ms * total_f) + latency_ms as f32) / (total_f + 1.0);
         stats.avg_quality = ((stats.avg_quality * total_f) + quality_score) / (total_f + 1.0);
+        stats.last_attempted = Some(Utc::now());
 
         if success {
             stats.success += 1;
@@ -80,138 +41,55 @@ impl RoutingMemory {
         }
     }
 
-    pub fn rank_for_target(&self, target: &str, providers: &[String]) -> Vec<String> {
-        let domain = extract_domain(target).unwrap_or_default();
-        let Some(stats) = self.domain_stats.get(&domain) else {
-            return providers.to_vec();
+    pub fn compute_score(&self, provider: &str, domain: &str) -> f64 {
+        let Some(domain_map) = self.domain_stats.get(domain) else {
+            return 0.5;
+        };
+        let Some(stats) = domain_map.get(provider) else {
+            return 0.5;
         };
 
-        let mut ranked = providers.to_vec();
-        ranked.sort_by(|a, b| {
-            let sa = stats.get(a).cloned().unwrap_or_default();
-            let sb = stats.get(b).cloned().unwrap_or_default();
-
-            let ta = sa.success + sa.failure;
-            let tb = sb.success + sb.failure;
-
-            let sra = if ta == 0 {
-                0.5
-            } else {
-                sa.success as f32 / ta as f32
-            };
-            let srb = if tb == 0 {
-                0.5
-            } else {
-                sb.success as f32 / tb as f32
-            };
-
-            srb.partial_cmp(&sra)
-                .unwrap_or(std::cmp::Ordering::Equal)
-                .then_with(|| {
-                    sb.avg_quality
-                        .partial_cmp(&sa.avg_quality)
-                        .unwrap_or(std::cmp::Ordering::Equal)
-                })
-                .then_with(|| {
-                    sa.avg_latency_ms
-                        .partial_cmp(&sb.avg_latency_ms)
-                        .unwrap_or(std::cmp::Ordering::Equal)
-                })
-        });
-
-        ranked
-    }
-
-    pub fn increment_provider_usage(&self, provider: &str) -> SqliteResult<()> {
-        let Some(ref conn) = self.db else {
-            return Ok(());
-        };
-        let ym = Utc::now().format("%Y-%m").to_string();
-        conn.execute(
-            "INSERT INTO provider_quota_usage (provider, year_month, call_count, updated_at)
-             VALUES (?1, ?2, 1, unixepoch())
-             ON CONFLICT(provider, year_month) DO UPDATE SET
-                 call_count = call_count + 1,
-                 updated_at = unixepoch()",
-            params![provider, ym],
-        )?;
-        Ok(())
-    }
-
-    pub fn exa_monthly_usage(&self) -> u32 {
-        let Some(ref conn) = self.db else {
-            return 0;
-        };
-        let ym = Utc::now().format("%Y-%m").to_string();
-        conn.query_row(
-            "SELECT COALESCE(call_count, 0) FROM provider_quota_usage
-             WHERE provider = 'exa_mcp' AND year_month = ?1",
-            params![ym],
-            |row| row.get(0),
-        )
-        .unwrap_or(0)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use tempfile::tempdir;
-
-    #[test]
-    fn test_routing_memory_db_init() {
-        let dir = tempdir().unwrap();
-        let db_path = dir.path().join("routing.db");
-        let rm = RoutingMemory::with_db_path(db_path.to_str().unwrap());
-
-        assert!(db_path.exists());
-
-        if let Some(ref conn) = rm.db {
-            let count: u32 = conn
-                .query_row(
-                    "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='provider_quota_usage'",
-                    [],
-                    |row| row.get(0),
-                )
-                .unwrap();
-            assert_eq!(count, 1);
-        }
-    }
-
-    #[test]
-    fn test_increment_provider_usage() {
-        let dir = tempdir().unwrap();
-        let db_path = dir.path().join("routing.db");
-        let rm = RoutingMemory::with_db_path(db_path.to_str().unwrap());
-
-        rm.increment_provider_usage("exa_mcp").unwrap();
-        assert_eq!(rm.exa_monthly_usage(), 1);
-
-        rm.increment_provider_usage("exa_mcp").unwrap();
-        assert_eq!(rm.exa_monthly_usage(), 2);
-    }
-
-    #[test]
-    fn test_different_month_reset() {
-        let dir = tempdir().unwrap();
-        let db_path = dir.path().join("routing.db");
-        let rm = RoutingMemory::with_db_path(db_path.to_str().unwrap());
-
-        if let Some(ref conn) = rm.db {
-            conn.execute(
-                "INSERT INTO provider_quota_usage (provider, year_month, call_count, updated_at) VALUES (?1, ?2, ?3, ?4)",
-                params!["exa_mcp", "2000-01", 10, 0],
-            ).unwrap();
+        let attempts = stats.success + stats.failure;
+        if attempts == 0 {
+            return 0.5;
         }
 
-        assert_eq!(rm.exa_monthly_usage(), 0);
-        rm.increment_provider_usage("exa_mcp").unwrap();
-        assert_eq!(rm.exa_monthly_usage(), 1);
-    }
-}
+        let success_rate = stats.success as f64 / attempts as f64;
 
-fn extract_domain(target: &str) -> Option<String> {
-    url::Url::parse(target)
-        .ok()
-        .and_then(|u| u.host_str().map(|s| s.to_string()))
+        let days_since_last = if let Some(last) = stats.last_attempted {
+            let duration = Utc::now().signed_duration_since(last);
+            duration.num_seconds() as f64 / 86400.0
+        } else {
+            0.0
+        };
+
+        let quality_factor = 0.5 + 0.5 * stats.avg_quality as f64;
+        let recency_weight = (-days_since_last / 7.0).exp();
+        let score = (success_rate * quality_factor * recency_weight) * 1000.0
+            / (stats.avg_latency_ms as f64).max(1.0);
+
+        tracing::debug!(
+            "Provider score: domain={}, provider={}, score={:.4}, success_rate={:.2}, quality={:.2}, recency={:.2}, latency={:.1}ms",
+            domain,
+            provider,
+            score,
+            success_rate,
+            stats.avg_quality,
+            recency_weight,
+            stats.avg_latency_ms
+        );
+
+        score
+    }
+
+    pub fn rank_providers(&self, domain: &str, providers: &[String]) -> Vec<String> {
+        let mut scores: Vec<(&String, f64)> = providers
+            .iter()
+            .map(|p| (p, self.compute_score(p, domain)))
+            .collect();
+
+        scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+
+        scores.into_iter().map(|(p, _)| p.clone()).collect()
+    }
 }

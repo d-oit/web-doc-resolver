@@ -10,6 +10,7 @@ use crate::error::ResolverError;
 use crate::link_validator::validate_links;
 use crate::metrics::ResolveMetrics;
 use crate::negative_cache::NegativeCache;
+use crate::providers::rate_limiter::RateLimiterRegistry;
 use crate::providers::{DirectFetchProvider, DoclingProvider, MistralBrowserProvider, OcrProvider};
 use crate::providers::{FirecrawlProvider, JinaProvider, LlmsTxtProvider, UrlProvider};
 use crate::quality::score_content;
@@ -137,6 +138,7 @@ impl UrlCascade {
         negative_cache: Arc<Mutex<NegativeCache>>,
         circuit_breakers: Arc<Mutex<CircuitBreakerRegistry>>,
         routing_memory: Arc<Mutex<RoutingMemory>>,
+        rate_limiters: Arc<RateLimiterRegistry>,
         max_chars: usize,
         min_chars: usize,
     ) -> Result<ResolvedResult, ResolverError> {
@@ -168,6 +170,7 @@ impl UrlCascade {
         let profile_defaults = routing_profile_defaults(&profile_name);
         let mut budget = build_budget(config, &profile_defaults);
         let mut routing_decisions = Vec::new();
+        let mut best_free_result: Option<ResolvedResult> = None;
 
         let planned = {
             let routing_memory = routing_memory.lock().unwrap();
@@ -189,6 +192,25 @@ impl UrlCascade {
         };
 
         for (idx, provider) in planned.iter().enumerate() {
+            if provider.is_paid {
+                if let Some(ref result) = best_free_result {
+                    let score = result.score as f32;
+
+                    let threshold = config
+                        .routing
+                        .min_free_quality_to_skip_paid
+                        .unwrap_or(profile_defaults.min_free_quality_to_skip_paid);
+
+                    if score >= threshold {
+                        metrics.record_gate(score);
+                        let mut final_res = result.clone();
+                        final_res.metrics = Some(metrics);
+                        final_res.routing_decisions = routing_decisions;
+                        return Ok(final_res);
+                    }
+                }
+            }
+
             if !budget.can_try(provider.is_paid) {
                 if matches!(
                     budget.stop_reason.as_deref(),
@@ -266,6 +288,9 @@ impl UrlCascade {
                 }
             }
 
+            // Acquire rate limit token
+            rate_limiters.acquire(&provider.name).await;
+
             let started = Instant::now();
             let result = self.extract_with_provider(url, provider_type).await;
             let latency = started.elapsed().as_millis() as u64;
@@ -312,8 +337,8 @@ impl UrlCascade {
                         res.validated_links = validate_links(&links).await;
                         res.score = score_result(&res.url, content_str);
                         res.content = Some(compact_content(content_str, max_chars));
-                        res.metrics = Some(metrics);
-                        res.routing_decisions = routing_decisions;
+                        res.metrics = Some(metrics.clone());
+                        res.routing_decisions = routing_decisions.clone();
 
                         // Record success
                         {
@@ -333,7 +358,29 @@ impl UrlCascade {
                         if let Some(cache) = cache {
                             let _ = cache.store(url, &[res.clone()], &res.source).await;
                         }
-                        return Ok(res);
+
+                        if provider.is_paid {
+                            return Ok(res);
+                        } else {
+                            if best_free_result.is_none()
+                                || (quality.score as f64) > best_free_result.as_ref().unwrap().score
+                            {
+                                best_free_result = Some(res.clone());
+                                best_free_result.as_mut().unwrap().score = quality.score as f64;
+                            }
+
+                            let threshold = config
+                                .routing
+                                .min_free_quality_to_skip_paid
+                                .unwrap_or(profile_defaults.min_free_quality_to_skip_paid);
+
+                            if quality.score >= threshold {
+                                metrics.record_gate(quality.score);
+                                res.metrics = Some(metrics);
+                                res.score = quality.score as f64;
+                                return Ok(res);
+                            }
+                        }
                     } else {
                         // Record thin content
                         {
@@ -405,6 +452,12 @@ impl UrlCascade {
                     }
                 }
             }
+        }
+
+        if let Some(mut result) = best_free_result {
+            result.metrics = Some(metrics);
+            result.routing_decisions = routing_decisions;
+            return Ok(result);
         }
 
         Err(ResolverError::Provider(

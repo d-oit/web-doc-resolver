@@ -26,7 +26,7 @@ providers = [
     "exa-py>=1.0.0",
     "tavily-python>=0.3.0",
     "firecrawl-py>=0.0.5",
-    # "mistralai>=2.0.0", (QUARANTINED ON PYPI)
+    "mistralai>=2.0.0",
     "duckduckgo-search>=6.0.0",
     "httpx>=0.27.0",
 ]

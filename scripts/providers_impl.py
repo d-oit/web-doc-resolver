@@ -105,16 +105,6 @@ def resolve_with_exa_mcp(query: str, max_chars: int = MAX_CHARS) -> ResolvedResu
                         source="exa_mcp", content=content[:max_chars], query=query
                     )
                     _save_to_cache(query, "exa_mcp", result.to_dict())
-
-                    # Increment provider usage in routing memory
-                    try:
-                        from scripts.routing_memory import RoutingMemory
-
-                        rm = RoutingMemory()
-                        rm.increment_provider_usage("exa_mcp")
-                    except Exception:
-                        pass
-
                     return result
     except Exception:
         return None
