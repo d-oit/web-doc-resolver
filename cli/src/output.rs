@@ -12,7 +12,6 @@ pub struct JsonOutput<'a> {
     pub url: &'a str,
     pub content: Option<&'a str>,
     pub score: f64,
-    pub metrics: Option<&'a crate::metrics::ResolveMetrics>,
 }
 
 impl<'a> JsonOutput<'a> {
@@ -23,7 +22,6 @@ impl<'a> JsonOutput<'a> {
             url: &result.url,
             content: result.content.as_deref(),
             score: result.score,
-            metrics: result.metrics.as_ref(),
         }
     }
 
@@ -35,7 +33,6 @@ impl<'a> JsonOutput<'a> {
             url: "",
             content: None,
             score: 0.0,
-            metrics: None,
         }
     }
 
