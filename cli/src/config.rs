@@ -458,7 +458,10 @@ impl Config {
         }
         if !other.providers.is_empty() {
             for (name, provider_config) in other.providers {
-                self.providers.insert(name, provider_config);
+                let entry = self.providers.entry(name).or_default();
+                if let Some(rl) = provider_config.rate_limit {
+                    entry.rate_limit = Some(rl);
+                }
             }
         }
     }
@@ -603,6 +606,35 @@ impl Config {
         if let Ok(val) = env::var("DO_WDR_CACHE_TTL_DEFAULT") {
             if let Ok(v) = val.parse() {
                 config.cache.ttl.default = v;
+            }
+        }
+
+        // Rate limit overrides from environment variables
+        // Format: DO_WDR_RATE_LIMIT_<PROVIDER>_RPS and DO_WDR_RATE_LIMIT_<PROVIDER>_BURST
+        // e.g. DO_WDR_RATE_LIMIT_FIRECRAWL_RPS=5 DO_WDR_RATE_LIMIT_FIRECRAWL_BURST=10
+        for (key, val) in env::vars() {
+            if let Some(rest) = key.strip_prefix("DO_WDR_RATE_LIMIT_") {
+                if let Some(provider) = rest.strip_suffix("_RPS") {
+                    if let Ok(rps) = val.parse::<f64>() {
+                        let provider_name = provider.to_lowercase();
+                        let entry = config.providers.entry(provider_name).or_default();
+                        let rl = entry.rate_limit.get_or_insert(RateLimitConfig {
+                            requests_per_second: 0.0,
+                            burst: default_burst(),
+                        });
+                        rl.requests_per_second = rps;
+                    }
+                } else if let Some(provider) = rest.strip_suffix("_BURST") {
+                    if let Ok(burst) = val.parse::<f64>() {
+                        let provider_name = provider.to_lowercase();
+                        let entry = config.providers.entry(provider_name).or_default();
+                        let rl = entry.rate_limit.get_or_insert(RateLimitConfig {
+                            requests_per_second: 0.0,
+                            burst: default_burst(),
+                        });
+                        rl.burst = burst;
+                    }
+                }
             }
         }
 

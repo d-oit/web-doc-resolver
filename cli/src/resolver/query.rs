@@ -275,8 +275,37 @@ impl QueryCascade {
                 }
             }
 
-            // Acquire rate limit token
-            rate_limiters.acquire(&provider.name).await;
+            // Acquire rate limit token with timeout to allow cascade fallback
+            if !rate_limiters
+                .acquire_timeout(&provider.name, Duration::from_secs(5))
+                .await
+            {
+                tracing::warn!("Rate limit timeout for provider {}", provider.name);
+                metrics.record_provider_detailed(
+                    provider_type,
+                    0,
+                    false,
+                    idx,
+                    None,
+                    false,
+                    Some("rate_limited".into()),
+                    budget.stop_reason.clone(),
+                    false,
+                    false,
+                );
+                routing_decisions.push(RoutingDecision {
+                    provider: provider.name.clone(),
+                    attempt_index: idx,
+                    quality_score: None,
+                    accepted: false,
+                    skip_reason: Some("rate_limited_timeout".into()),
+                    stop_reason: budget.stop_reason.clone(),
+                    negative_cache_hit: false,
+                    circuit_open: false,
+                    paid_provider: provider.is_paid,
+                });
+                continue;
+            }
 
             let started = Instant::now();
             let results = self
