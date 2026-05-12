@@ -89,8 +89,7 @@ def test_live_exa_sdk_with_real_api_key():
     query = f"Rust agent frameworks {uuid.uuid4().hex[:8]}"
     _clear_cached_result(query, "exa")
     result = resolve_with_exa(query)
-    if result is None:
-        pytest.skip("Exa SDK returned None - check EXA_API_KEY and quota")
+    assert result is not None, "Exa SDK returned None - check EXA_API_KEY and quota"
     assert result.source == "exa"
     assert isinstance(result.content, str)
     assert len(result.content.strip()) > 0

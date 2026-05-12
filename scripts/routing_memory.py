@@ -44,7 +44,7 @@ class RoutingMemory:
 
         return sorted(providers, key=provider_score, reverse=True)
 
-    def get_p75_latency(self, domain: str, provider: str, default: int = 2500) -> int:
+    def get_p75_latency(self, domain: str, provider: str, default: int = 3000) -> int:
         stats = self.domain_stats.get(domain, {}).get(provider)
         if not stats or stats["avg_latency_ms"] == 0:
             return default

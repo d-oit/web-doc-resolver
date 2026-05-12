@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -42,25 +42,11 @@ def setup_test_env():
         scripts.resolve._circuit_breakers.breakers.clear()
         scripts.providers_impl._rate_limits.clear()
 
-        # Mock quality check to always pass and return 1.0
-        original_score = scripts.quality.score_content
-        scripts.quality.score_content = lambda x: Mock(acceptable=True, score=1.0)
-
         # Mock synthesis to avoid LLM calls
         original_should_synth = scripts.synthesis.should_call_llm_synthesis
         original_merge = scripts.synthesis.deterministic_merge
         scripts.synthesis.should_call_llm_synthesis = lambda x: False
         scripts.synthesis.deterministic_merge = lambda x: "Merged content"
-
-        # Mock budget to always allow
-        original_can_try = scripts.routing.ResolutionBudget.can_try
-        scripts.routing.ResolutionBudget.can_try = lambda self, is_paid=False: True
-
-        # Force synchronous-like behavior by mocking p75 latency
-        original_p75 = scripts.routing_memory.RoutingMemory.get_p75_latency
-        scripts.routing_memory.RoutingMemory.get_p75_latency = lambda self, d, p, default=2500: (
-            999999
-        )
 
         # Force deterministic order for tests
         original_plan = scripts.routing.plan_provider_order
@@ -88,9 +74,6 @@ def setup_test_env():
         yield
 
         # Restore
-        scripts.quality.score_content = original_score
         scripts.synthesis.should_call_llm_synthesis = original_should_synth
         scripts.synthesis.deterministic_merge = original_merge
-        scripts.routing.ResolutionBudget.can_try = original_can_try
-        scripts.routing_memory.RoutingMemory.get_p75_latency = original_p75
         scripts.routing.plan_provider_order = original_plan
