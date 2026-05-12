@@ -32,8 +32,9 @@ class CircuitBreakerState:
 
 
 class CircuitBreakerRegistry:
-    def __init__(self):
+    def __init__(self, threshold: int = 3):
         self.breakers: dict[str, CircuitBreakerState] = {}
+        self.default_threshold = threshold
 
     def get_breaker(self, provider: str) -> CircuitBreakerState:
         if provider not in self.breakers:
@@ -44,8 +45,9 @@ class CircuitBreakerRegistry:
         return self.get_breaker(provider).is_open()
 
     def record_failure(
-        self, provider: str, threshold: int = 3, cooldown_seconds: int = 300
+        self, provider: str, threshold: int | None = None, cooldown_seconds: int = 300
     ) -> None:
+        threshold = threshold or self.default_threshold
         self.get_breaker(provider).record_failure(threshold, cooldown_seconds)
 
     def record_success(self, provider: str) -> None:
