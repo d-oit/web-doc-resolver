@@ -80,7 +80,8 @@ PROFILE_BUDGETS = {
 def extract_domain(url: str) -> str | None:
     try:
         parsed = urlparse(url)
-        return parsed.netloc.lower() or None
+        hostname = parsed.hostname
+        return hostname.lower() if hostname else None
     except Exception:
         return None
 
