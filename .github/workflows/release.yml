@@ -12,7 +12,6 @@ permissions:
 
 env:
   RUST_TOOLCHAIN: '1.85'
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   python-test:
