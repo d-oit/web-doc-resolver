@@ -2,10 +2,13 @@
 Budget-aware routing logic for the Web Doc Resolver.
 """
 
+import os
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
 from scripts.routing_memory import RoutingMemory
+
+DEFAULT_MIN_FREE_QUALITY = float(os.getenv("DO_WDR_MIN_FREE_QUALITY_TO_SKIP_PAID", "0.70"))
 
 
 @dataclass
@@ -13,6 +16,7 @@ class ResolutionBudget:
     max_provider_attempts: int
     max_paid_attempts: int
     max_total_latency_ms: int
+    min_free_quality_to_skip_paid: float = DEFAULT_MIN_FREE_QUALITY
     allow_paid: bool = True
     attempts: int = 0
     paid_attempts: int = 0
@@ -46,24 +50,28 @@ PROFILE_BUDGETS = {
         "max_provider_attempts": 3,
         "max_paid_attempts": 0,
         "max_total_latency_ms": 6000,
+        "min_free_quality_to_skip_paid": 0.70,
         "allow_paid": False,
     },
     "balanced": {
         "max_provider_attempts": 6,
         "max_paid_attempts": 2,
         "max_total_latency_ms": 12000,
+        "min_free_quality_to_skip_paid": 0.70,
         "allow_paid": True,
     },
     "fast": {
         "max_provider_attempts": 2,
         "max_paid_attempts": 1,
         "max_total_latency_ms": 4000,
+        "min_free_quality_to_skip_paid": 0.70,
         "allow_paid": True,
     },
     "quality": {
         "max_provider_attempts": 10,
         "max_paid_attempts": 5,
         "max_total_latency_ms": 20000,
+        "min_free_quality_to_skip_paid": 0.75,
         "allow_paid": True,
     },
 }
@@ -72,7 +80,8 @@ PROFILE_BUDGETS = {
 def extract_domain(url: str) -> str | None:
     try:
         parsed = urlparse(url)
-        return parsed.netloc.lower() or None
+        hostname = parsed.hostname
+        return hostname.lower() if hostname else None
     except Exception:
         return None
 

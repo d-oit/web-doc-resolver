@@ -87,7 +87,7 @@ class RoutingMemory:
         """Backward compatibility for rank method."""
         return self.rank_providers(domain, providers)
 
-    def get_p75_latency(self, domain: str, provider: str, default: int = 2500) -> int:
+    def get_p75_latency(self, domain: str, provider: str, default: int = 3000) -> int:
         stats = self.domain_stats.get(domain, {}).get(provider)
         if not stats or stats["avg_latency_ms"] == 0:
             return default
