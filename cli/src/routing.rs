@@ -94,9 +94,12 @@ pub fn plan_provider_order(
     };
 
     if let Some(memory) = routing_memory {
-        if is_url {
-            base = memory.rank_for_target(target, &base);
-        }
+        let domain = if is_url {
+            crate::resolver::cascade::extract_domain_or_default(target)
+        } else {
+            "query".to_string()
+        };
+        base = memory.rank_providers(&domain, &base);
     }
 
     base.into_iter()

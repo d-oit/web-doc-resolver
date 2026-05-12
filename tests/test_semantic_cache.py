@@ -72,6 +72,7 @@ def semantic_cache(temp_cache_dir):
 class TestSemanticCacheBasic:
     """Basic semantic cache functionality tests."""
 
+    @pytest.mark.benchmark
     def test_semantic_cache_store_and_query(self, semantic_cache) -> None:
         """Test basic store and query functionality."""
         query = "python list comprehension tutorial"
@@ -92,6 +93,7 @@ class TestSemanticCacheBasic:
         assert entry.result["content"] == result["content"]
         assert entry.similarity > 0.7
 
+    @pytest.mark.benchmark
     def test_semantic_cache_similar_queries(self, semantic_cache) -> None:
         """Test that similar queries return cached results."""
         # Store original query
@@ -117,6 +119,7 @@ class TestSemanticCacheBasic:
             assert entry.similarity >= 0.7, f"Similarity too low for: {similar}"
             assert entry.result["content"] == result["content"]
 
+    @pytest.mark.benchmark
     def test_semantic_cache_dissimilar_queries(self, semantic_cache) -> None:
         """Test that different queries do not return cached results."""
         # Store a query about Python
@@ -143,6 +146,7 @@ class TestSemanticCacheBasic:
 class TestSemanticCacheThreshold:
     """Tests for semantic cache threshold behavior."""
 
+    @pytest.mark.benchmark
     def test_semantic_cache_threshold_filtering(self, temp_cache_dir) -> None:
         """Test that threshold correctly filters results."""
         if not DEPS_AVAILABLE:
@@ -178,6 +182,7 @@ class TestSemanticCacheThreshold:
         finally:
             strict_cache.close()
 
+    @pytest.mark.benchmark
     def test_semantic_cache_low_threshold_hits(self, temp_cache_dir) -> None:
         """Test that low threshold allows more hits."""
         if not DEPS_AVAILABLE:
@@ -223,6 +228,7 @@ class TestSemanticCacheThreshold:
 class TestSemanticCachePersistence:
     """Tests for semantic cache persistence."""
 
+    @pytest.mark.benchmark
     def test_semantic_cache_persistence(self, temp_cache_dir) -> None:
         """Test that cache persists across instances."""
         if not DEPS_AVAILABLE:
@@ -263,6 +269,7 @@ class TestSemanticCachePersistence:
         finally:
             cache2.close()
 
+    @pytest.mark.benchmark
     def test_semantic_cache_stats(self, semantic_cache) -> None:
         """Test cache statistics reporting."""
         # Initially empty
@@ -283,6 +290,7 @@ class TestSemanticCachePersistence:
 class TestSemanticCacheEviction:
     """Tests for cache eviction behavior."""
 
+    @pytest.mark.benchmark
     def test_semantic_cache_eviction(self, temp_cache_dir) -> None:
         """Test that old entries are evicted when max_entries exceeded."""
         if not DEPS_AVAILABLE:
@@ -320,6 +328,7 @@ class TestSemanticCacheEviction:
 class TestSemanticCacheGlobal:
     """Tests for global semantic cache instance."""
 
+    @pytest.mark.benchmark
     def test_get_semantic_cache_singleton(self) -> None:
         """Test that get_semantic_cache returns singleton instance."""
         if not DEPS_AVAILABLE:
@@ -340,6 +349,7 @@ class TestSemanticCacheGlobal:
 
         reset_semantic_cache()
 
+    @pytest.mark.benchmark
     def test_get_semantic_cache_disabled(self) -> None:
         """Test that get_semantic_cache returns None when disabled."""
         from scripts.semantic_cache import get_semantic_cache, reset_semantic_cache
@@ -357,11 +367,13 @@ class TestSemanticCacheGlobal:
 class TestSemanticCacheErrorHandling:
     """Tests for error handling and edge cases."""
 
+    @pytest.mark.benchmark
     def test_semantic_cache_handles_empty_query(self, semantic_cache) -> None:
         """Test that empty queries are handled gracefully."""
         entry = semantic_cache.query("")
         assert entry is None
 
+    @pytest.mark.benchmark
     def test_semantic_cache_handles_large_content(self, semantic_cache) -> None:
         """Test that large content can be stored and retrieved."""
         query = "large content test"
@@ -375,6 +387,7 @@ class TestSemanticCacheErrorHandling:
         assert entry is not None
         assert len(entry.result["content"]) == 100000
 
+    @pytest.mark.benchmark
     def test_semantic_cache_clear(self, semantic_cache) -> None:
         """Test that clear removes all entries."""
         # Add entries
@@ -395,6 +408,7 @@ class TestSemanticCacheErrorHandling:
 class TestSemanticCacheIntegration:
     """Integration tests with resolve.py functions."""
 
+    @pytest.mark.benchmark
     def test_semantic_cache_via_resolve_functions(self, temp_cache_dir) -> None:
         """Test semantic cache integration with resolve functions."""
         if not DEPS_AVAILABLE:

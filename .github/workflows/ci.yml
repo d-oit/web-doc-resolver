@@ -196,7 +196,7 @@ jobs:
         run: cd cli && cargo build --features semantic-cache
 
       - name: Run tests with semantic-cache feature
-        run: cd cli && cargo test --features semantic-cache -- --test-threads=1
+        run: cd cli && cargo test --features semantic-cache
 
       - name: Run clippy with semantic-cache feature
         run: cd cli && cargo clippy --features semantic-cache -- -D warnings

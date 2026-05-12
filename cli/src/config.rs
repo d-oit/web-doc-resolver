@@ -51,6 +51,12 @@ pub struct Config {
     /// Semantic cache configuration
     #[serde(default)]
     pub semantic_cache: SemanticCacheConfig,
+    /// Cache configuration
+    #[serde(default)]
+    pub cache: CacheConfig,
+    /// Routing configuration
+    #[serde(default)]
+    pub routing: RoutingConfig,
     /// Execution profile (default: balanced)
     #[serde(default)]
     pub profile: Profile,
@@ -80,9 +86,6 @@ pub struct Config {
     /// Max links to extract (default: 10)
     #[serde(default = "default_max_links")]
     pub max_links: usize,
-    /// Cache configuration
-    #[serde(default)]
-    pub cache: CacheConfig,
     /// Provider-specific configurations
     #[serde(default)]
     pub providers: HashMap<String, ProviderConfig>,
@@ -104,10 +107,49 @@ fn default_burst() -> f64 {
     1.0
 }
 
+/// Routing configuration
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct RoutingConfig {
+    /// Quality threshold for free results to skip paid providers (default: 0.70)
+    pub min_free_quality_to_skip_paid: Option<f32>,
+}
+
+/// Aggregated cache configuration
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct CacheConfig {
+    /// Synthesis cache configuration
+    #[serde(default)]
+    pub synthesis: SynthesisCacheConfig,
     #[serde(default)]
     pub ttl: CacheTtlConfig,
+}
+
+/// Synthesis cache configuration
+#[derive(Debug, Clone, Deserialize)]
+pub struct SynthesisCacheConfig {
+    /// Enable synthesis cache
+    #[serde(default = "default_synthesis_cache_enabled")]
+    pub enabled: bool,
+    /// TTL for synthesis results in seconds (default: 43200 = 12h)
+    #[serde(default = "default_synthesis_cache_ttl")]
+    pub ttl: u64,
+}
+
+fn default_synthesis_cache_enabled() -> bool {
+    true
+}
+
+fn default_synthesis_cache_ttl() -> u64 {
+    43200
+}
+
+impl Default for SynthesisCacheConfig {
+    fn default() -> Self {
+        Self {
+            enabled: default_synthesis_cache_enabled(),
+            ttl: default_synthesis_cache_ttl(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -156,6 +198,7 @@ pub struct RoutingProfileConfig {
     pub max_paid_attempts: usize,
     pub max_total_latency_ms: u64,
     pub quality_threshold: f32,
+    pub min_free_quality_to_skip_paid: f32,
     pub allow_paid: bool,
 }
 
@@ -166,6 +209,7 @@ pub fn routing_profile_defaults(name: &str) -> RoutingProfileConfig {
             max_paid_attempts: 0,
             max_total_latency_ms: 6_000,
             quality_threshold: 0.70,
+            min_free_quality_to_skip_paid: 0.70,
             allow_paid: false,
         },
         "fast" => RoutingProfileConfig {
@@ -173,6 +217,7 @@ pub fn routing_profile_defaults(name: &str) -> RoutingProfileConfig {
             max_paid_attempts: 1,
             max_total_latency_ms: 4_000,
             quality_threshold: 0.60,
+            min_free_quality_to_skip_paid: 0.70,
             allow_paid: true,
         },
         "quality" => RoutingProfileConfig {
@@ -180,6 +225,7 @@ pub fn routing_profile_defaults(name: &str) -> RoutingProfileConfig {
             max_paid_attempts: 3,
             max_total_latency_ms: 15_000,
             quality_threshold: 0.55,
+            min_free_quality_to_skip_paid: 0.75, // Higher threshold for quality profile
             allow_paid: true,
         },
         _ => RoutingProfileConfig {
@@ -187,6 +233,7 @@ pub fn routing_profile_defaults(name: &str) -> RoutingProfileConfig {
             max_paid_attempts: 1,
             max_total_latency_ms: 9_000,
             quality_threshold: 0.65,
+            min_free_quality_to_skip_paid: 0.70,
             allow_paid: true,
         },
     }
@@ -284,6 +331,8 @@ impl Default for Config {
             skip_providers: Vec::new(),
             providers_order: Vec::new(),
             semantic_cache: SemanticCacheConfig::default(),
+            cache: CacheConfig::default(),
+            routing: RoutingConfig::default(),
             profile: Profile::Balanced,
             quality_threshold: None,
             max_provider_attempts: None,
@@ -295,7 +344,6 @@ impl Default for Config {
             circuit_breaker_threshold: default_circuit_breaker_threshold(),
             circuit_breaker_cooldown_secs: default_circuit_breaker_cooldown(),
             max_links: default_max_links(),
-            cache: CacheConfig::default(),
             providers: HashMap::new(),
         }
     }
@@ -392,6 +440,10 @@ impl Config {
         if other.quality_threshold.is_some() {
             self.quality_threshold = other.quality_threshold;
         }
+        if other.routing.min_free_quality_to_skip_paid.is_some() {
+            self.routing.min_free_quality_to_skip_paid =
+                other.routing.min_free_quality_to_skip_paid;
+        }
         if other.max_provider_attempts.is_some() {
             self.max_provider_attempts = other.max_provider_attempts;
         }
@@ -406,10 +458,7 @@ impl Config {
         }
         if !other.providers.is_empty() {
             for (name, provider_config) in other.providers {
-                let entry = self.providers.entry(name).or_default();
-                if let Some(rl) = provider_config.rate_limit {
-                    entry.rate_limit = Some(rl);
-                }
+                self.providers.insert(name, provider_config);
             }
         }
     }
@@ -477,6 +526,11 @@ impl Config {
         if let Ok(val) = env::var("DO_WDR_QUALITY_THRESHOLD") {
             if let Ok(v) = val.parse() {
                 config.quality_threshold = Some(v);
+            }
+        }
+        if let Ok(val) = env::var("DO_WDR_MIN_FREE_QUALITY_TO_SKIP_PAID") {
+            if let Ok(v) = val.parse() {
+                config.routing.min_free_quality_to_skip_paid = Some(v);
             }
         }
         if let Ok(val) = env::var("DO_WDR_MAX_PROVIDER_ATTEMPTS") {
@@ -549,35 +603,6 @@ impl Config {
         if let Ok(val) = env::var("DO_WDR_CACHE_TTL_DEFAULT") {
             if let Ok(v) = val.parse() {
                 config.cache.ttl.default = v;
-            }
-        }
-
-        // Rate limit overrides from environment variables
-        // Format: DO_WDR_RATE_LIMIT_<PROVIDER>_RPS and DO_WDR_RATE_LIMIT_<PROVIDER>_BURST
-        // e.g. DO_WDR_RATE_LIMIT_FIRECRAWL_RPS=5 DO_WDR_RATE_LIMIT_FIRECRAWL_BURST=10
-        for (key, val) in env::vars() {
-            if let Some(rest) = key.strip_prefix("DO_WDR_RATE_LIMIT_") {
-                if let Some(provider) = rest.strip_suffix("_RPS") {
-                    if let Ok(rps) = val.parse::<f64>() {
-                        let provider_name = provider.to_lowercase();
-                        let entry = config.providers.entry(provider_name).or_default();
-                        let rl = entry.rate_limit.get_or_insert(RateLimitConfig {
-                            requests_per_second: 0.0,
-                            burst: default_burst(),
-                        });
-                        rl.requests_per_second = rps;
-                    }
-                } else if let Some(provider) = rest.strip_suffix("_BURST") {
-                    if let Ok(burst) = val.parse::<f64>() {
-                        let provider_name = provider.to_lowercase();
-                        let entry = config.providers.entry(provider_name).or_default();
-                        let rl = entry.rate_limit.get_or_insert(RateLimitConfig {
-                            requests_per_second: 0.0,
-                            burst: default_burst(),
-                        });
-                        rl.burst = burst;
-                    }
-                }
             }
         }
 

@@ -147,6 +147,7 @@ impl QueryCascade {
         let profile_defaults = routing_profile_defaults(&profile_name);
         let mut budget = build_budget(config, &profile_defaults);
         let mut routing_decisions = Vec::new();
+        let mut best_free_result: Option<ResolvedResult> = None;
 
         let planned = {
             let routing_memory = routing_memory.lock().unwrap();
@@ -180,6 +181,22 @@ impl QueryCascade {
                 provider.name,
                 provider.is_paid
             );
+
+            if provider.is_paid {
+                if let Some(ref result) = best_free_result {
+                    let score = result.score as f32;
+
+                    let threshold = profile_defaults.min_free_quality_to_skip_paid;
+
+                    if score + f32::EPSILON >= threshold {
+                        metrics.record_gate(score);
+                        let mut final_res = result.clone();
+                        final_res.metrics = Some(metrics);
+                        final_res.routing_decisions = routing_decisions;
+                        return Ok(final_res);
+                    }
+                }
+            }
 
             if !budget.can_try(provider.is_paid) {
                 if matches!(
@@ -258,37 +275,8 @@ impl QueryCascade {
                 }
             }
 
-            // Acquire rate limit token with timeout to allow cascade fallback
-            if !rate_limiters
-                .acquire_timeout(&provider.name, Duration::from_secs(5))
-                .await
-            {
-                tracing::warn!("Rate limit timeout for provider {}", provider.name);
-                metrics.record_provider_detailed(
-                    provider_type,
-                    0,
-                    false,
-                    idx,
-                    None,
-                    false,
-                    Some("rate_limited".into()),
-                    budget.stop_reason.clone(),
-                    false,
-                    false,
-                );
-                routing_decisions.push(RoutingDecision {
-                    provider: provider.name.clone(),
-                    attempt_index: idx,
-                    quality_score: None,
-                    accepted: false,
-                    skip_reason: Some("rate_limited_timeout".into()),
-                    stop_reason: budget.stop_reason.clone(),
-                    negative_cache_hit: false,
-                    circuit_open: false,
-                    paid_provider: provider.is_paid,
-                });
-                continue;
-            }
+            // Acquire rate limit token
+            rate_limiters.acquire(&provider.name).await;
 
             let started = Instant::now();
             let results = self
@@ -370,8 +358,8 @@ impl QueryCascade {
                         first.validated_links = validate_links(&links).await;
                         first.score = score_result(&first.url, content_str);
                         first.content = Some(compact_content(content_str, max_chars));
-                        first.metrics = Some(metrics);
-                        first.routing_decisions = routing_decisions;
+                        first.metrics = Some(metrics.clone());
+                        first.routing_decisions = routing_decisions.clone();
 
                         // Record success
                         {
@@ -381,14 +369,30 @@ impl QueryCascade {
                         if !config.disable_routing_memory {
                             let mut rm = routing_memory.lock().unwrap();
                             rm.record("", &provider.name, true, latency, quality.score);
-                            if provider.name == "exa_mcp" {
-                                let _ = rm.increment_provider_usage("exa_mcp");
-                            }
                         }
                         if let Some(cache) = cache {
                             let _ = cache.store(query, &results, &first.source).await;
                         }
-                        return Ok(first);
+
+                        if provider.is_paid {
+                            return Ok(first);
+                        } else {
+                            if best_free_result.is_none()
+                                || (quality.score as f64) > best_free_result.as_ref().unwrap().score
+                            {
+                                best_free_result = Some(first.clone());
+                                best_free_result.as_mut().unwrap().score = quality.score as f64;
+                            }
+
+                            let threshold = profile_defaults.min_free_quality_to_skip_paid;
+
+                            if quality.score + f32::EPSILON >= threshold {
+                                metrics.record_gate(quality.score);
+                                first.metrics = Some(metrics);
+                                first.score = quality.score as f64;
+                                return Ok(first);
+                            }
+                        }
                     } else {
                         // Record thin content
                         {
@@ -479,6 +483,12 @@ impl QueryCascade {
                     }
                 }
             }
+        }
+
+        if let Some(mut result) = best_free_result {
+            result.metrics = Some(metrics);
+            result.routing_decisions = routing_decisions;
+            return Ok(result);
         }
 
         Err(ResolverError::Provider(
