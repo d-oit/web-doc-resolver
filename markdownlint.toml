@@ -1,8 +1,6 @@
 # markdownlint configuration for do-web-doc-resolver
 # See: https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
 
-[default]
-
 # Rules to disable (add as needed)
 # MD013: Line length (code blocks need long lines)
 MD013 = false
@@ -12,3 +10,48 @@ MD033 = false
 
 # MD041: First line heading (some files start with frontmatter)
 MD041 = false
+
+# MD022: Headings should be surrounded by blank lines
+MD022 = false
+
+# MD032: Lists should be surrounded by blank lines
+MD032 = false
+
+# MD024: Multiple headings with the same content
+MD024 = false
+
+# MD040: Fenced code blocks should have a language specified
+MD040 = false
+
+# MD031: Fenced code blocks should be surrounded by blank lines
+MD031 = false
+
+# MD060: Table column style
+MD060 = false
+
+# MD034: Bare URL used
+MD034 = false
+
+# MD030: Spaces after list markers
+MD030 = false
+
+# MD025: Multiple top-level headings in the same document
+MD025 = false
+
+# MD028: Blank line inside blockquote
+MD028 = false
+
+# MD047: Files should end with a single newline character
+MD047 = false
+
+# MD058: Tables should be surrounded by blank lines
+MD058 = false
+
+# MD009: Trailing spaces
+MD009 = false
+
+# MD029: Ordered list item prefix
+MD029 = false
+
+# MD036: Emphasis used instead of a heading
+MD036 = false

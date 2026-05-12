@@ -4,9 +4,6 @@
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-
 VERSION="${1:- unreleased}"
 FROM_TAG="${2:-$(git describe --tags --abbrev=0 2>/dev/null || echo "")}"
 
