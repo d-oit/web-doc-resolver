@@ -7,23 +7,15 @@ import math
 import time
 from collections import defaultdict
 
+from scripts._routing_utils import DEFAULT_PROVIDER_STATS, compute_p75_latency
+
 logger = logging.getLogger(__name__)
 
 
 class RoutingMemory:
     def __init__(self):
         # domain -> provider -> stats
-        self.domain_stats = defaultdict(
-            lambda: defaultdict(
-                lambda: {
-                    "success": 0,
-                    "failure": 0,
-                    "avg_latency_ms": 0.0,
-                    "avg_quality": 0.0,
-                    "last_attempted": None,
-                }
-            )
-        )
+        self.domain_stats = defaultdict(lambda: defaultdict(lambda: dict(DEFAULT_PROVIDER_STATS)))
 
     def record(
         self, domain: str, provider: str, success: bool, latency_ms: int, quality_score: float
@@ -56,6 +48,7 @@ class RoutingMemory:
             "attempts": attempts,
             "success_rate": success_rate,
             "avg_latency_ms": stats["avg_latency_ms"],
+            "avg_quality": stats["avg_quality"],
             "days_since_last": days_since_last,
         }
 
@@ -67,16 +60,22 @@ class RoutingMemory:
                 scores[p] = 0.5
                 continue
 
+            quality_factor = 0.5 + 0.5 * stats.get("avg_quality", 0.5)
             recency = math.exp(-stats["days_since_last"] / 7.0)
-            score = (stats["success_rate"] * recency) * 1000.0 / max(stats["avg_latency_ms"], 1.0)
+            score = (
+                (stats["success_rate"] * quality_factor * recency)
+                * 1000.0
+                / max(stats["avg_latency_ms"], 1.0)
+            )
             scores[p] = score
 
             logger.debug(
-                "Provider score: domain=%s, provider=%s, score=%.4f, success_rate=%.2f, recency=%.2f, latency=%.1fms",
+                "Provider score: domain=%s, provider=%s, score=%.4f, success_rate=%.2f, quality=%.2f, recency=%.2f, latency=%.1fms",
                 domain,
                 p,
                 score,
                 stats["success_rate"],
+                stats.get("avg_quality", 0.5),
                 recency,
                 stats["avg_latency_ms"],
             )
@@ -89,7 +88,6 @@ class RoutingMemory:
 
     def get_p75_latency(self, domain: str, provider: str, default: int = 3000) -> int:
         stats = self.domain_stats.get(domain, {}).get(provider)
-        if not stats or stats["avg_latency_ms"] == 0:
+        if not stats:
             return default
-        # Heuristic: p75 is often ~1.5x average for tail latency
-        return int(stats["avg_latency_ms"] * 1.5)
+        return compute_p75_latency(stats["avg_latency_ms"], default)

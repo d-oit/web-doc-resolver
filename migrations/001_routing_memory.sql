@@ -14,4 +14,4 @@ CREATE TABLE IF NOT EXISTS provider_attempts (
 );
 
 CREATE INDEX IF NOT EXISTS idx_provider_attempts_domain
-ON provider_attempts(provider, domain);
+ON provider_attempts(domain, provider);

@@ -63,16 +63,18 @@ impl RoutingMemory {
             0.0
         };
 
+        let quality_factor = 0.5 + 0.5 * stats.avg_quality as f64;
         let recency_weight = (-days_since_last / 7.0).exp();
-        let score =
-            (success_rate * recency_weight) * 1000.0 / (stats.avg_latency_ms as f64).max(1.0);
+        let score = (success_rate * quality_factor * recency_weight) * 1000.0
+            / (stats.avg_latency_ms as f64).max(1.0);
 
         tracing::debug!(
-            "Provider score: domain={}, provider={}, score={:.4}, success_rate={:.2}, recency={:.2}, latency={:.1}ms",
+            "Provider score: domain={}, provider={}, score={:.4}, success_rate={:.2}, quality={:.2}, recency={:.2}, latency={:.1}ms",
             domain,
             provider,
             score,
             success_rate,
+            stats.avg_quality,
             recency_weight,
             stats.avg_latency_ms
         );
@@ -90,15 +92,4 @@ impl RoutingMemory {
 
         scores.into_iter().map(|(p, _)| p.clone()).collect()
     }
-
-    pub fn rank_for_target(&self, target: &str, providers: &[String]) -> Vec<String> {
-        let domain = extract_domain(target).unwrap_or_default();
-        self.rank_providers(&domain, providers)
-    }
-}
-
-fn extract_domain(target: &str) -> Option<String> {
-    url::Url::parse(target)
-        .ok()
-        .and_then(|u| u.host_str().map(|s| s.to_string()))
 }
