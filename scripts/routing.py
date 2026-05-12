@@ -224,6 +224,6 @@ def plan_provider_order(
 
     domain = extract_domain(target) if is_url else "query"
     if domain and routing_memory:
-        base = routing_memory.rank(domain, base)
+        base = routing_memory.rank_providers(domain, base)
 
     return [p for p in base if p not in skip_providers]
