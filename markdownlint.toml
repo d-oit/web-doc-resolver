@@ -3,7 +3,6 @@
 
 [default]
 
-# Rules to disable (add as needed)
 # MD013: Line length (code blocks need long lines)
 MD013 = false
 
