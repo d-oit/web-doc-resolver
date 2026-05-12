@@ -8,7 +8,7 @@
 //! - `url`: URL resolution cascade
 //! - `query`: Query resolution cascade
 
-mod cascade;
+pub mod cascade;
 mod query;
 mod url;
 
@@ -19,6 +19,7 @@ use crate::config::Config;
 use crate::error::ResolverError;
 use crate::metrics::ResolveMetrics;
 use crate::negative_cache::NegativeCache;
+use crate::providers::rate_limiter::RateLimiterRegistry;
 use crate::routing_memory::RoutingMemory;
 use crate::semantic_cache::SemanticCache;
 use crate::synthesis::synthesize_results;
@@ -50,6 +51,7 @@ pub struct Resolver {
     negative_cache: Arc<Mutex<NegativeCache>>,
     circuit_breakers: Arc<Mutex<CircuitBreakerRegistry>>,
     routing_memory: Arc<Mutex<RoutingMemory>>,
+    rate_limiters: Arc<RateLimiterRegistry>,
 }
 
 impl Resolver {
@@ -64,6 +66,7 @@ impl Resolver {
         let cache = SemanticCache::new(&config).await.ok().flatten();
         #[cfg(not(feature = "semantic-cache"))]
         let cache: Option<SemanticCache> = None;
+        let rate_limiters = Arc::new(RateLimiterRegistry::new(&config));
         Self {
             config,
             cache,
@@ -72,6 +75,7 @@ impl Resolver {
             negative_cache: Arc::new(Mutex::new(NegativeCache::default())),
             circuit_breakers: Arc::new(Mutex::new(CircuitBreakerRegistry::default())),
             routing_memory: Arc::new(Mutex::new(RoutingMemory::default())),
+            rate_limiters,
         }
     }
 
@@ -86,16 +90,26 @@ impl Resolver {
 
     /// Resolve a URL using the URL cascade
     pub async fn resolve_url(&self, url: &str) -> Result<ResolvedResult, ResolverError> {
+        self.resolve_url_with_config(url, &self.config).await
+    }
+
+    /// Resolve a URL using the URL cascade with custom config
+    pub async fn resolve_url_with_config(
+        &self,
+        url: &str,
+        config: &Config,
+    ) -> Result<ResolvedResult, ResolverError> {
         self.url_cascade
             .resolve(
                 url,
                 self.cache.as_ref(),
-                &self.config,
+                config,
                 self.negative_cache.clone(),
                 self.circuit_breakers.clone(),
                 self.routing_memory.clone(),
-                self.config.max_chars,
-                self.config.min_chars,
+                self.rate_limiters.clone(),
+                config.max_chars,
+                config.min_chars,
             )
             .await
     }
@@ -110,6 +124,7 @@ impl Resolver {
                 self.negative_cache.clone(),
                 self.circuit_breakers.clone(),
                 self.routing_memory.clone(),
+                self.rate_limiters.clone(),
                 self.config.max_chars,
                 self.config.min_chars,
             )
@@ -160,6 +175,7 @@ impl Resolver {
                 if self.config.is_skipped(pt.name()) {
                     continue;
                 }
+                self.rate_limiters.acquire(pt.name()).await;
                 if let Ok(res) = self
                     .query_cascade
                     .search_with_provider(
@@ -189,7 +205,16 @@ impl Resolver {
         if let Some(api_key) = self.config.api_key("mistral") {
             let model = std::env::var("DO_WDR_SYNTHESIS_MODEL")
                 .unwrap_or_else(|_| "mistral-small-latest".to_string());
-            let synthesized = synthesize_results(query, &results, &api_key, &model).await?;
+            let synthesized = synthesize_results(
+                query,
+                &results,
+                &api_key,
+                &model,
+                self.cache.as_ref(),
+                &self.config,
+                &mut metrics,
+            )
+            .await?;
             let mut res =
                 ResolvedResult::new(results[0].url.clone(), Some(synthesized), "synthesis", 1.0);
             metrics.record_provider(ProviderType::MistralWebSearch, 0, true); // Dummy record for synthesis
@@ -234,10 +259,12 @@ impl Resolver {
         }
 
         let result = if is_url(input) {
+            self.rate_limiters.acquire(provider.name()).await;
             self.url_cascade
                 .extract_with_provider(input, provider)
                 .await
         } else {
+            self.rate_limiters.acquire(provider.name()).await;
             let results = self
                 .query_cascade
                 .search_with_provider(
@@ -282,6 +309,16 @@ impl Resolver {
         }
 
         Err(ResolverError::Provider("No provider succeeded".to_string()))
+    }
+
+    /// Access to routing memory
+    pub fn routing_memory(&self) -> Arc<Mutex<RoutingMemory>> {
+        self.routing_memory.clone()
+    }
+
+    /// Access to semantic cache
+    pub fn cache(&self) -> Option<&SemanticCache> {
+        self.cache.as_ref()
     }
 }
 

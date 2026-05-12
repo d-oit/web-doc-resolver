@@ -175,8 +175,14 @@ Detailed technical reference material is located in `agents-docs/`.
 - **Policies**: See `agents-docs/WORKFLOW.md` for Atomic Commit & Pre-Existing
   Issue resolution.
 - **Learning**: After work, run `learn` or append discoveries to nearest
-  `AGENTS.md`.
+  `AGENTS.md`. See `plans/AUDIT.md` → Learnings for accumulated knowledge.
 - **Context**: Delegate to sub-agents; Use `/clear`; Load skills only when
   needed.
+
+## Accumulated Learnings
+
+See [`plans/AUDIT.md` → Learnings](plans/AUDIT.md#learnings-captured-2026-05-12) for
+project-specific patterns (rate limiter design, CI flakiness fixes, config merge
+best practices).
 
 See `agents-docs/` for detailed reference documentation.
