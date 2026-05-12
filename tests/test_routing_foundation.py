@@ -544,7 +544,7 @@ class TestNormalizeUrl:
 
     def test_normalizes_case(self):
         result = self._normalize("HTTPS://Example.COM/Page")
-        assert result.startswith("https://example.com")
+        assert result == "https://example.com/Page"
 
 
 # ─── Synthesis Gate (T64.1) ───────────────────────────────────────────────
