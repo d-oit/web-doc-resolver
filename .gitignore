@@ -230,3 +230,7 @@ videos/
 
 # Semantic Cache
 .do-wdr_cache/
+
+# Routing Memory
+.do-wdr_routing.db
+.do-wdr_routing.db-journal

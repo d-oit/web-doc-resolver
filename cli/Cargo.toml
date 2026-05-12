@@ -28,6 +28,7 @@ futures = "0.3"
 
 # Semantic cache (optional - uses Turso/libsql internally)
 chaotic_semantic_memory = { version = "0.3", optional = true }
+rusqlite = { version = "0.31", features = ["bundled"] }
 
 [features]
 default = []
