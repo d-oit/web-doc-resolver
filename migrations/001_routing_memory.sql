@@ -1,3 +1,5 @@
+SET QUOTED_IDENTIFIER ON;
+GO
 -- DB Migration: Add index for per-domain routing memory adaptive ranking
 -- Milestone: Sprint 2 – Routing Intelligence
 
