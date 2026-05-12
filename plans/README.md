@@ -16,5 +16,3 @@
 | 06 | [Testing](06-testing-improvements.md) | Security, parity, benchmarks |
 | 07 | [Documentation](07-documentation-improvements.md) | Tutorials, ADRs |
 | 08 | [Deep Research](08-deep-research.md) | Multi-step research framework |
-| 10 | [PR #341 Fixes](10-pr341-quality-gate-fixes.md) | Quality gate merge, feedback fixes |
-| 11 | [Cache Pre-warming](11-cache-prewarming.md) | Follow-up PR from scope creep extraction |
