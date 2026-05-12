@@ -1,8 +1,18 @@
 import logging
+from typing import TypedDict
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_PROVIDER_STATS = {
+
+class ProviderStatsDict(TypedDict):
+    success: int
+    failure: int
+    avg_latency_ms: float
+    avg_quality: float
+    last_attempted: float | None
+
+
+DEFAULT_PROVIDER_STATS: ProviderStatsDict = {
     "success": 0,
     "failure": 0,
     "avg_latency_ms": 0.0,

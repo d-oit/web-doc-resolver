@@ -8,7 +8,7 @@ import sqlite3
 import time
 from collections import defaultdict
 
-from scripts._routing_utils import DEFAULT_PROVIDER_STATS, compute_p75_latency
+from scripts._routing_utils import DEFAULT_PROVIDER_STATS, ProviderStatsDict, compute_p75_latency
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,9 @@ DEFAULT_DB_PATH = ".do-wdr_routing.db"
 
 class RoutingMemory:
     def __init__(self, db_path: str = DEFAULT_DB_PATH):
-        self.domain_stats = defaultdict(lambda: defaultdict(lambda: dict(DEFAULT_PROVIDER_STATS)))
+        self.domain_stats: defaultdict[str, defaultdict[str, ProviderStatsDict]] = defaultdict(
+            lambda: defaultdict(lambda: ProviderStatsDict(**DEFAULT_PROVIDER_STATS))
+        )
         self._db_path = db_path
         self._conn: sqlite3.Connection | None = None
         self._init_db()
@@ -110,8 +112,11 @@ class RoutingMemory:
         return self.rank_providers(domain, providers)
 
     def get_p75_latency(self, domain: str, provider: str, default: int = 3000) -> int:
-        stats = self.domain_stats.get(domain, {}).get(provider)
-        if not stats:
+        domain_map = self.domain_stats.get(domain)
+        if domain_map is None:
+            return default
+        stats = domain_map.get(provider)
+        if stats is None:
             return default
         return compute_p75_latency(stats["avg_latency_ms"], default)
 

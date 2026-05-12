@@ -30,7 +30,7 @@ blake3 = "1.5"
 
 # Semantic cache (optional - uses Turso/libsql internally)
 chaotic_semantic_memory = { version = "0.3", optional = true }
-libsql-rusqlite = "0.31.0"
+rusqlite = { version = "0.31", features = ["bundled"] }
 
 [features]
 default = []
