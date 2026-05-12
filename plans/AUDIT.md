@@ -163,4 +163,17 @@
 
 ---
 
-*Last updated: 2026-05-05. Next audit: when version bumps to 1.0 or after P0 items are resolved.*
+*Last updated: 2026-05-12. Next audit: when version bumps to 1.0 or after P0 items are resolved.*
+
+## Learnings (captured 2026-05-12)
+
+### Rate Limiter Implementation Patterns
+- **Token bucket**: Clamp `capacity` to `max(1.0, ·)` in constructor to prevent infinite acquire loops
+- **Avoid polling**: Calculate exact sleep duration `(1.0 - tokens) / rate` instead of fixed-interval polling
+- **Cascade safety**: Use `acquire_timeout()` so rate-limited providers fall back instead of blocking the entire cascade
+- **Consolidated state**: Single `Mutex<BucketState>` is cleaner than multiple `Arc<Mutex<T>>`
+- **Config merge**: Target specific fields (`rate_limit`) rather than wholesale `ProviderConfig` replacement to preserve future fields
+
+### CI / Infrastructure
+- **libsql test flakiness**: `libsql` uses a global `Once` for threading config — tests must run with `--test-threads=1` to avoid cascade poisoning; pinned in CI at `.github/workflows/ci.yml`
+- **Rate limit env vars**: Follow existing pattern — `DO_WDR_RATE_LIMIT_<PROVIDER>_{RPS,BURST}` with granular field targeting in `Config::load()`

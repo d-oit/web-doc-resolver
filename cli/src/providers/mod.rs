@@ -13,6 +13,7 @@ pub mod llms_txt;
 pub mod mistral_browser;
 pub mod mistral_websearch;
 pub mod ocr;
+pub mod rate_limiter;
 pub mod serper;
 pub mod tavily;
 
