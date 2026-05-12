@@ -1,8 +1,8 @@
+use crate::config::Config;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::time::{Duration, Instant};
-use crate::config::Config;
 
 /// Token bucket rate limiter
 pub struct TokenBucket {
