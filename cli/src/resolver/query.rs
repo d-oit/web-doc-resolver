@@ -11,6 +11,7 @@ use crate::link_validator::validate_links;
 use crate::metrics::ResolveMetrics;
 use crate::negative_cache::NegativeCache;
 use crate::providers::MistralWebSearchProvider;
+use crate::providers::rate_limiter::RateLimiterRegistry;
 use crate::providers::{
     DuckDuckGoProvider, ExaMcpProvider, ExaSdkProvider, QueryProvider, SerperProvider,
 };
@@ -121,6 +122,7 @@ impl QueryCascade {
         negative_cache: Arc<Mutex<NegativeCache>>,
         circuit_breakers: Arc<Mutex<CircuitBreakerRegistry>>,
         routing_memory: Arc<Mutex<RoutingMemory>>,
+        rate_limiters: Arc<RateLimiterRegistry>,
         max_chars: usize,
         min_chars: usize,
     ) -> Result<ResolvedResult, ResolverError> {
@@ -272,6 +274,9 @@ impl QueryCascade {
                     continue;
                 }
             }
+
+            // Acquire rate limit token
+            rate_limiters.acquire(&provider.name).await;
 
             let started = Instant::now();
             let results = self

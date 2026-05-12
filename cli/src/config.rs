@@ -5,6 +5,7 @@
 use crate::semantic_cache::SemanticCacheConfig;
 use crate::types::Profile;
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::env;
 use std::path::Path;
 use thiserror::Error;
@@ -85,6 +86,25 @@ pub struct Config {
     /// Max links to extract (default: 10)
     #[serde(default = "default_max_links")]
     pub max_links: usize,
+    /// Provider-specific configurations
+    #[serde(default)]
+    pub providers: HashMap<String, ProviderConfig>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct ProviderConfig {
+    pub rate_limit: Option<RateLimitConfig>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct RateLimitConfig {
+    pub requests_per_second: f64,
+    #[serde(default = "default_burst")]
+    pub burst: f64,
+}
+
+fn default_burst() -> f64 {
+    1.0
 }
 
 /// Routing configuration
@@ -324,6 +344,7 @@ impl Default for Config {
             circuit_breaker_threshold: default_circuit_breaker_threshold(),
             circuit_breaker_cooldown_secs: default_circuit_breaker_cooldown(),
             max_links: default_max_links(),
+            providers: HashMap::new(),
         }
     }
 }
@@ -434,6 +455,11 @@ impl Config {
         }
         if other.disable_routing_memory {
             self.disable_routing_memory = other.disable_routing_memory;
+        }
+        if !other.providers.is_empty() {
+            for (name, provider_config) in other.providers {
+                self.providers.insert(name, provider_config);
+            }
         }
     }
 

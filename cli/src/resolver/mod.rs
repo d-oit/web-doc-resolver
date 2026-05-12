@@ -19,6 +19,7 @@ use crate::config::Config;
 use crate::error::ResolverError;
 use crate::metrics::ResolveMetrics;
 use crate::negative_cache::NegativeCache;
+use crate::providers::rate_limiter::RateLimiterRegistry;
 use crate::routing_memory::RoutingMemory;
 use crate::semantic_cache::SemanticCache;
 use crate::synthesis::synthesize_results;
@@ -50,6 +51,7 @@ pub struct Resolver {
     negative_cache: Arc<Mutex<NegativeCache>>,
     circuit_breakers: Arc<Mutex<CircuitBreakerRegistry>>,
     routing_memory: Arc<Mutex<RoutingMemory>>,
+    rate_limiters: Arc<RateLimiterRegistry>,
 }
 
 impl Resolver {
@@ -64,6 +66,7 @@ impl Resolver {
         let cache = SemanticCache::new(&config).await.ok().flatten();
         #[cfg(not(feature = "semantic-cache"))]
         let cache: Option<SemanticCache> = None;
+        let rate_limiters = Arc::new(RateLimiterRegistry::new(&config));
         Self {
             config,
             cache,
@@ -72,6 +75,7 @@ impl Resolver {
             negative_cache: Arc::new(Mutex::new(NegativeCache::default())),
             circuit_breakers: Arc::new(Mutex::new(CircuitBreakerRegistry::default())),
             routing_memory: Arc::new(Mutex::new(RoutingMemory::default())),
+            rate_limiters,
         }
     }
 
@@ -103,6 +107,7 @@ impl Resolver {
                 self.negative_cache.clone(),
                 self.circuit_breakers.clone(),
                 self.routing_memory.clone(),
+                self.rate_limiters.clone(),
                 config.max_chars,
                 config.min_chars,
             )
@@ -119,6 +124,7 @@ impl Resolver {
                 self.negative_cache.clone(),
                 self.circuit_breakers.clone(),
                 self.routing_memory.clone(),
+                self.rate_limiters.clone(),
                 self.config.max_chars,
                 self.config.min_chars,
             )
@@ -169,6 +175,7 @@ impl Resolver {
                 if self.config.is_skipped(pt.name()) {
                     continue;
                 }
+                self.rate_limiters.acquire(pt.name()).await;
                 if let Ok(res) = self
                     .query_cascade
                     .search_with_provider(
@@ -252,10 +259,12 @@ impl Resolver {
         }
 
         let result = if is_url(input) {
+            self.rate_limiters.acquire(provider.name()).await;
             self.url_cascade
                 .extract_with_provider(input, provider)
                 .await
         } else {
+            self.rate_limiters.acquire(provider.name()).await;
             let results = self
                 .query_cascade
                 .search_with_provider(

@@ -10,6 +10,7 @@ use crate::error::ResolverError;
 use crate::link_validator::validate_links;
 use crate::metrics::ResolveMetrics;
 use crate::negative_cache::NegativeCache;
+use crate::providers::rate_limiter::RateLimiterRegistry;
 use crate::providers::{DirectFetchProvider, DoclingProvider, MistralBrowserProvider, OcrProvider};
 use crate::providers::{FirecrawlProvider, JinaProvider, LlmsTxtProvider, UrlProvider};
 use crate::quality::score_content;
@@ -137,6 +138,7 @@ impl UrlCascade {
         negative_cache: Arc<Mutex<NegativeCache>>,
         circuit_breakers: Arc<Mutex<CircuitBreakerRegistry>>,
         routing_memory: Arc<Mutex<RoutingMemory>>,
+        rate_limiters: Arc<RateLimiterRegistry>,
         max_chars: usize,
         min_chars: usize,
     ) -> Result<ResolvedResult, ResolverError> {
@@ -285,6 +287,9 @@ impl UrlCascade {
                     continue;
                 }
             }
+
+            // Acquire rate limit token
+            rate_limiters.acquire(&provider.name).await;
 
             let started = Instant::now();
             let result = self.extract_with_provider(url, provider_type).await;
