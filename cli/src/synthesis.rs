@@ -23,7 +23,6 @@ use std::sync::LazyLock;
 /// Patterns that may indicate prompt injection attempts
 static INJECTION_PATTERNS: LazyLock<Vec<regex::Regex>> = LazyLock::new(|| {
     vec![
-        // Common instruction override attempts
         regex::Regex::new(
             r"(?i)(ignore\s+(all\s+)?(previous|above|prior)\s+(instructions?|rules?|directives?))",
         )
@@ -34,12 +33,9 @@ static INJECTION_PATTERNS: LazyLock<Vec<regex::Regex>> = LazyLock::new(|| {
         .unwrap(),
         regex::Regex::new(r"(?i)(new\s+(system\s+)?(instructions?|rules?|prompt))").unwrap(),
         regex::Regex::new(r"(?i)(override\s+(your\s+)?(safety|guidelines|constraints?))").unwrap(),
-        // Role manipulation
         regex::Regex::new(r"(?i)(you\s+are\s+(now|no\s+longer|just|a))").unwrap(),
         regex::Regex::new(r"(?i)(pretend\s+(to\s+be|you\s+are))").unwrap(),
-        // Code execution attempts
         regex::Regex::new(r"(?i)(execute|run\s+(this|that)\s+(code|command|script))").unwrap(),
-        // Prompt leaking attempts
         regex::Regex::new(
             r"(?i)(tell\s+(me|us)\s+(your|the)\s+(system\s+)?(prompt|instructions?|rules?))",
         )
@@ -51,13 +47,11 @@ static INJECTION_PATTERNS: LazyLock<Vec<regex::Regex>> = LazyLock::new(|| {
 fn sanitize_content(content: &str) -> String {
     let mut sanitized = content.to_string();
 
-    // Remove null bytes and other control characters that could cause issues
     sanitized = sanitized
         .chars()
         .filter(|c| !c.is_control() || *c == '\n' || *c == '\t')
         .collect();
 
-    // Truncate to a reasonable length to prevent context overflow attacks
     const MAX_CONTENT_LENGTH: usize = 50000;
     if sanitized.len() > MAX_CONTENT_LENGTH {
         sanitized.truncate(MAX_CONTENT_LENGTH);
@@ -113,16 +107,13 @@ pub async fn synthesize_results(
 
     let client = Client::new();
 
-    // Build context from results, sanitizing each piece of untrusted content
     let mut context = String::new();
     let mut has_suspicious_content = false;
 
     for (i, res) in results.iter().enumerate() {
         if let Some(content) = &res.content {
-            // Sanitize untrusted document content
             let sanitized = sanitize_content(content);
 
-            // Check for potential injection patterns
             if contains_injection_pattern(&sanitized) {
                 has_suspicious_content = true;
                 tracing::warn!(
@@ -141,12 +132,10 @@ pub async fn synthesize_results(
         }
     }
 
-    // Add warning if suspicious content was detected
     if has_suspicious_content {
         context.push_str("\n⚠️ Warning: Some source content contained suspicious patterns. Results should be reviewed manually.\n");
     }
 
-    // Use a trusted system prompt aligned with 2026 LLM-Readable-Doc standards
     let system_prompt = format!(
         "You are an expert research assistant. Synthesize the provided context into a high-quality, \
         LLM-ready markdown document following the 2026 LLM-Readable-Doc standards. \
@@ -234,11 +223,6 @@ mod tests {
         let api_key = "test_key";
         let model = "test_model";
 
-        // Since we don't have a real SemanticCache easily available in tests without features
-        // and we want to test the logic in synthesize_results, we can use the no-op cache
-        // but it won't actually hit.
-        // To really test this, we'd need a mock SemanticCache or the feature enabled.
-
         let res = synthesize_results(
             "test query",
             &results,
@@ -250,7 +234,6 @@ mod tests {
         )
         .await;
 
-        // It should fail because of invalid API key/URL, but we care about the cache call
         assert!(res.is_err());
     }
 }

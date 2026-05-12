@@ -27,8 +27,8 @@ pub struct ResolveMetrics {
     pub cascade_depth: usize,
     pub paid_usage: bool,
     pub cache_hit: bool,
-    pub synthesis_cache_hit: bool,
     pub budget_elapsed_ms: u64,
+    pub synthesis_cache_hit: bool,
     pub quality_gate_passed: bool,
     pub quality_gate_score: Option<f32>,
 }

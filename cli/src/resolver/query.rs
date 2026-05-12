@@ -22,12 +22,9 @@ use crate::types::{ProviderType, ResolvedResult, RoutingDecision};
 use std::collections::HashMap;
 use std::result::Result;
 use std::sync::{Arc, Mutex};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
-use super::cascade::{
-    CIRCUIT_BREAKER_FAILURE_THRESHOLD, CIRCUIT_BREAKER_RECOVERY_TTL, NEGATIVE_CACHE_FAILURE_TTL,
-    NEGATIVE_CACHE_THIN_TTL, classify_error,
-};
+use super::cascade::classify_error;
 
 /// Query cascade resolver
 pub struct QueryCascade {
@@ -185,14 +182,11 @@ impl QueryCascade {
 
             if provider.is_paid {
                 if let Some(ref result) = best_free_result {
-                    let score = result.score as f32; // result.score was updated with quality score or similar
+                    let score = result.score as f32;
 
-                    let threshold = config
-                        .routing
-                        .min_free_quality_to_skip_paid
-                        .unwrap_or(profile_defaults.min_free_quality_to_skip_paid);
+                    let threshold = profile_defaults.min_free_quality_to_skip_paid;
 
-                    if score >= threshold {
+                    if score + f32::EPSILON >= threshold {
                         metrics.record_gate(score);
                         let mut final_res = result.clone();
                         final_res.metrics = Some(metrics);
@@ -385,12 +379,9 @@ impl QueryCascade {
                                 best_free_result.as_mut().unwrap().score = quality.score as f64;
                             }
 
-                            let threshold = config
-                                .routing
-                                .min_free_quality_to_skip_paid
-                                .unwrap_or(profile_defaults.min_free_quality_to_skip_paid);
+                            let threshold = profile_defaults.min_free_quality_to_skip_paid;
 
-                            if quality.score >= threshold {
+                            if quality.score + f32::EPSILON >= threshold {
                                 metrics.record_gate(quality.score);
                                 first.metrics = Some(metrics);
                                 first.score = quality.score as f64;
@@ -405,7 +396,7 @@ impl QueryCascade {
                                 query,
                                 &provider.name,
                                 "thin_content",
-                                NEGATIVE_CACHE_THIN_TTL,
+                                Duration::from_secs(config.negative_cache_ttl_secs),
                                 HashMap::new(),
                             );
                         }
@@ -470,8 +461,8 @@ impl QueryCascade {
                         let mut cb = circuit_breakers.lock().unwrap();
                         cb.record_failure(
                             &provider.name,
-                            CIRCUIT_BREAKER_FAILURE_THRESHOLD,
-                            CIRCUIT_BREAKER_RECOVERY_TTL,
+                            config.circuit_breaker_threshold as usize,
+                            Duration::from_secs(config.circuit_breaker_cooldown_secs),
                         );
                     }
 
@@ -481,7 +472,7 @@ impl QueryCascade {
                             query,
                             &provider.name,
                             reason,
-                            NEGATIVE_CACHE_FAILURE_TTL,
+                            Duration::from_secs(config.error_cache_ttl_secs),
                             HashMap::new(),
                         );
                     }

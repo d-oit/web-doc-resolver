@@ -1,0 +1,11 @@
+version = 1
+
+[[ignore]]
+# Test files: @staticmethod suggestions are noise on pytest class methods
+paths = ["tests/**"]
+issues = ["PYL-R0201"]
+
+[[ignore]]
+# Test files: reimport issues from refactored conftest removal  
+paths = ["tests/**"]
+issues = ["PYL-R0401"]
