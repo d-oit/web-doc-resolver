@@ -122,7 +122,6 @@ class ResolveMetrics:
     cascade_depth: int = 0
     paid_usage: bool = False
     cache_hit: bool = False
-    quality_gate: dict[str, Any] = field(default_factory=dict)
 
     def record_provider(self, provider: "ProviderType", latency_ms: int, success: bool):
         paid = provider.is_paid()

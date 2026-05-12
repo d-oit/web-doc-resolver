@@ -40,7 +40,7 @@ fi
 # Python checks
 echo "Running Python tests (unit only)..."
 cd "$REPO_ROOT"
-python -m pytest --tb=short -q -m "not live and not benchmark"
+python -m pytest --tb=short -q -m "not live"
 
 echo "Running ruff..."
 python -m ruff check .
