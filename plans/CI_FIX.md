@@ -1,7 +1,10 @@
 # Plan: Fix GitHub Actions CI Failures
 
-## Goal ✅ COMPLETED
+## Goal ✅ COMPLETED (Two Epochs)
 Fix all GitHub Actions CI warnings and failures including pre-existing issues.
+
+### Epoch 1: npm / ESLint peer deps
+### Epoch 2: libsql semantic-cache test flakiness
 
 ## Issues Identified
 
@@ -23,7 +26,15 @@ Fix all GitHub Actions CI warnings and failures including pre-existing issues.
 
 3. Verify CI passes on next run
 
+### 3. Semantic cache tests — libsql Once poisoning (FLAKY)
+- **Error**: `Once instance has previously been poisoned` — `libsql` uses a global `std::sync::Once` for threading configuration; parallel test execution causes one test to poison the `Once` on panic, cascading to all subsequent tests
+- **Root cause**: Not a code bug — `libsql` internals not designed for parallel init; exacerbated by any test panicking first
+- **Fix**: Run with `--test-threads=1` so tests initialize `libsql` sequentially
+- **File**: `.github/workflows/ci.yml` line 199
+- **When to re-evaluate**: When `chaotic_semantic_memory` or `libsql` bumps major version (possible fix upstream)
+
 ## Success Criteria ✅ MET
 - CI UI workflow passes on main branch (pending E2E completion)
 - All npm-related jobs now pass with --legacy-peer-deps
 - No pre-existing npm failures remain
+- Semantic cache tests pass reliably with `--test-threads=1`
