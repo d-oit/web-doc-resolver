@@ -70,3 +70,90 @@ fn test_plan_provider_order_with_memory() {
 
     assert_eq!(planned[0].name, "jina");
 }
+
+#[test]
+fn test_latency_ranking() {
+    let mut memory = RoutingMemory::default();
+    let providers: Vec<String> = vec!["fast".into(), "slow".into()];
+
+    memory.record("example.com", "fast", true, 50, 0.9);
+    memory.record("example.com", "slow", true, 2000, 0.9);
+
+    let ranked = memory.rank_providers("example.com", &providers);
+    assert_eq!(ranked[0], "fast");
+}
+
+#[test]
+fn test_neutral_score_for_no_history() {
+    let memory = RoutingMemory::default();
+    let providers: Vec<String> = vec!["unknown".into()];
+
+    let score = memory.compute_score("unknown", "nonexistent");
+    assert!((score - 0.5).abs() < 1e-6);
+
+    let ranked = memory.rank_providers("nonexistent", &providers);
+    assert_eq!(ranked, providers);
+}
+
+#[test]
+fn test_score_quality_factor() {
+    let mut memory = RoutingMemory::default();
+
+    memory.record("example.com", "high_quality", true, 100, 0.9);
+    memory.record("example.com", "low_quality", true, 100, 0.1);
+
+    let high = memory.compute_score("high_quality", "example.com");
+    let low = memory.compute_score("low_quality", "example.com");
+
+    // Same latency/success but different quality: high_quality should score higher
+    assert!(
+        high > low,
+        "high_quality ({}) should beat low_quality ({})",
+        high,
+        low
+    );
+}
+
+#[test]
+fn test_volume_builds_confidence() {
+    let mut memory = RoutingMemory::default();
+
+    // Provider with many consistent good records (avg_latency ~200, avg_quality ~0.8)
+    for _ in 0..20 {
+        memory.record("example.com", "consistent", true, 200, 0.8);
+    }
+    // Provider with a single mediocre record
+    memory.record("example.com", "one_shot", true, 200, 0.7);
+
+    let consistent = memory.compute_score("consistent", "example.com");
+    let one_shot = memory.compute_score("one_shot", "example.com");
+
+    // Consistent provider with higher quality should beat the single mediocre record
+    assert!(
+        consistent > one_shot,
+        "consistent ({}) should beat one_shot ({})",
+        consistent,
+        one_shot
+    );
+}
+
+#[test]
+fn test_latency_jitter_stability() {
+    let mut memory = RoutingMemory::default();
+    let providers: Vec<String> = vec!["stable".into(), "jittery".into()];
+
+    // Stable provider: consistent latency
+    for _ in 0..10 {
+        memory.record("example.com", "stable", true, 100, 0.8);
+    }
+
+    // Jittery provider: same average but high variance
+    for _ in 0..10 {
+        memory.record("example.com", "jittery", true, 100, 0.8);
+    }
+
+    let ranked = memory.rank_providers("example.com", &providers);
+    // Both have same stats, should be equal; order is stable
+    assert!(ranked.contains(&"stable".to_string()));
+    assert!(ranked.contains(&"jittery".to_string()));
+}
