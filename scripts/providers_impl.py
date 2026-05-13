@@ -59,6 +59,9 @@ set_rate_limit = _set_rate_limit
 
 
 def resolve_with_jina(url: str, max_chars: int = MAX_CHARS) -> ResolvedResult | None:
+    if not is_safe_url(url):
+        logger.warning(f"SSRF blocked: {url}")
+        return None
     cached = _get_from_cache(url, "jina")
     if cached:
         return ResolvedResult(**cached)
@@ -247,6 +250,9 @@ def resolve_with_duckduckgo(query: str, max_chars: int = MAX_CHARS) -> ResolvedR
 
 
 def resolve_with_firecrawl(url: str, max_chars: int = MAX_CHARS) -> ResolvedResult | None:
+    if not is_safe_url(url):
+        logger.warning(f"SSRF blocked: {url}")
+        return None
     cached = _get_from_cache(url, "firecrawl")
     if cached:
         return ResolvedResult(**cached)
@@ -319,10 +325,11 @@ def resolve_with_mistral_browser(url: str, max_chars: int = MAX_CHARS) -> Resolv
             # Clean up the agent
             try:
                 client.beta.agents.delete(agent_id=agent.id)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Mistral browser agent cleanup failed: %s", e)
         return None
-    except Exception:
+    except Exception as e:
+        logger.warning("Mistral browser resolution failed: %s", e)
         return None
 
 

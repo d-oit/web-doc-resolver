@@ -20,7 +20,7 @@ class RoutingMemory:
     def __init__(self):
         # domain -> provider -> stats
         self.domain_stats = defaultdict(lambda: defaultdict(lambda: dict(DEFAULT_PROVIDER_STATS)))
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
     def record(
         self, domain: str, provider: str, success: bool, latency_ms: int, quality_score: float
@@ -63,7 +63,7 @@ class RoutingMemory:
         with self._lock:
             scores = {}
             for p in providers:
-                stats = self._get_domain_stats_unlocked(p, domain)
+                stats = self.get_domain_stats(p, domain)
                 if not stats or stats["attempts"] == 0:
                     scores[p] = SCORE_BASE
                     continue
@@ -89,25 +89,6 @@ class RoutingMemory:
                 )
 
             return sorted(providers, key=lambda p: scores[p], reverse=True)
-
-    def _get_domain_stats_unlocked(self, provider: str, domain: str) -> dict | None:
-        if domain not in self.domain_stats or provider not in self.domain_stats[domain]:
-            return None
-        stats = self.domain_stats[domain][provider]
-        attempts = stats["success"] + stats["failure"]
-        if attempts == 0:
-            return None
-        success_rate = stats["success"] / attempts
-        days_since_last = 0.0
-        if stats["last_attempted"]:
-            days_since_last = (time.time() - stats["last_attempted"]) / 86400.0
-        return {
-            "attempts": attempts,
-            "success_rate": success_rate,
-            "avg_latency_ms": stats["avg_latency_ms"],
-            "avg_quality": stats["avg_quality"],
-            "days_since_last": days_since_last,
-        }
 
     def rank(self, domain: str, providers: list[str]) -> list[str]:
         """Backward compatibility for rank method."""
