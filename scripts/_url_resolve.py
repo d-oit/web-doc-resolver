@@ -101,7 +101,7 @@ def resolve_url(
 
 def resolve_url_stream(
     url: str, max_chars: int = 8000, profile: Profile = Profile.BALANCED
-) -> Generator[dict[str, Any], None, None]:
+) -> Generator[dict[str, Any]]:
     logger.info(f"Resolving URL: {url}")
 
     cached_result = _check_semantic_cache(url)

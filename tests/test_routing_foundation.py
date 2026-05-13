@@ -6,7 +6,7 @@ plan_provider_order. Tests here validate the UNMOCKED modules (NegativeCacheEntr
 CircuitBreakerState, RoutingMemory.record/rank, QualityScore dataclass, score_content).
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -151,14 +151,14 @@ class TestNegativeCache:
 
     def test_should_skip_returns_true_for_valid_entry(self):
         cache = MagicMock()
-        future = (datetime.now(timezone.utc) + timedelta(minutes=1)).isoformat()
+        future = (datetime.now(UTC) + timedelta(minutes=1)).isoformat()
         cache.get.return_value = {"expires_at": future}
         assert should_skip_from_negative_cache(cache, "query", "provider") is True
 
     def test_should_skip_returns_false_for_expired_entry(self):
         cache = MagicMock()
         cache.get.return_value = {
-            "expiry": (datetime.now(timezone.utc) - timedelta(minutes=1)).timestamp()
+            "expiry": (datetime.now(UTC) - timedelta(minutes=1)).timestamp()
         }
         assert should_skip_from_negative_cache(cache, "query", "provider") is False
 

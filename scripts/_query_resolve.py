@@ -103,7 +103,7 @@ def resolve_query_stream(
     max_chars: int = 8000,
     skip_providers: set[str] | None = None,
     profile: Profile = Profile.BALANCED,
-) -> Generator[dict[str, Any], None, None]:
+) -> Generator[dict[str, Any]]:
     skip = skip_providers or set()
 
     cached_result = _check_semantic_cache(query)
