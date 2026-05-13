@@ -69,14 +69,30 @@ depend on them for state synchronization.
 
 ## Wave 4 — ADR-012 Remaining + Quality Fixes
 
-| Task | Files | Effort |
-|---|---|---|
-| P3 Log provider exceptions (not silent return None) | `scripts/providers_impl.py` | S ✅ |
-| P4 Replace requests.post with shared session | `scripts/synthesis.py` | M |
-| P5 Fix preflight_route loose pattern matching | `scripts/routing.py` | M |
-| P6 Remove unused NegativeCacheEntry | `scripts/cache_negative.py` | S |
-| P7 Remove dead TIERED_TTL entry | `scripts/utils.py` | S |
-| Q1-Q6 Quality scoring fixes | `scripts/quality.py` | M |
+| Task | Files | Effort | Status |
+|---|---|---|---|
+| P3a SSRF warning logs added (Wave 1 Codacy) | `scripts/providers_impl.py` | S | ✅ |
+| P3b Log all exceptions (9 providers still silent) | `scripts/providers_impl.py` | M | ❌ |
+| P4 Replace requests.post with shared session | `scripts/synthesis.py` | M | ❌ |
+| P5 Fix preflight_route loose pattern matching | `scripts/routing.py` | M | ❌ |
+| P6 Remove unused NegativeCacheEntry (Python) | `scripts/cache_negative.py` | S | ❌ (dataclass dead code) |
+| P7 TIERED_TTL → move to constants.py (NOT dead) | `scripts/utils.py` → `constants.py` | S | ❌ (active code, move in Wave 3) |
+| Q1-Q6 Quality scoring fixes | `scripts/quality.py` | M | ❌ |
+
+## Feature PRs Merged Since Wave 1 (alongside ADR work)
+
+| PR | Feature |
+|----|---------|
+| #338 | Tiered provider TTL in config.toml |
+| #339 | Cache pre-warming (Rust CLI) |
+| #340 | Synthesis alignment with 2026 LLM-ready standards |
+| #341 | Quality confidence gate |
+| #342 | Probabilistic provider skip |
+| #343 | Adaptive per-domain provider reordering |
+| #353 | Semantic cache optimization + observability |
+| #356 | Exa MCP monthly usage tracking |
+| #358 | Per-provider token-bucket rate throttling |
+| #354, #357 | Security fix + CLI Markdown parsing |
 
 ## Wave 5 — ADR-013 New Test Files
 
@@ -110,10 +126,24 @@ depend on them for state synchronization.
 | Minor: Bare except in Mistral browser | `scripts/providers_impl.py` | Changed to `except Exception as e:` with logging |
 | HIGH: TOCTOU race in CircuitBreakerState.is_open | `scripts/circuit_breaker.py` | Capture `open_until` once at function entry |
 
-## Execution Order
+## Completed ADRs
+
+| ADR | Status | Notes |
+|-----|--------|-------|
+| ADR-009 | Referenced | Cross-runtime parity analysis documented |
+| ADR-012 | Wave 1 ✅ PR #364 | Correctness & Safety — Codacy feedback incorporated |
+| ADR-013 | Wave 1b ✅ | Test coverage & CI reliability — npm peer deps, libsql fix |
+| ADR-014 | PENDING | Architecture & parity — prerequisite for Waves 4-6 |
+
+## Next Steps
+
+See **[15-GOAP-NEXT-PHASE.md](15-GOAP-NEXT-PHASE.md)** for the detailed
+next-phase plan covering Waves 2-6 plus AUDIT P0/P1 items.
+
+## Execution Order (Updated)
 
 ```
-Wave 1 ✅ → Wave 2 (fast: CI config) → Wave 3 (prerequisite for all code work)
-→ Wave 4 (logging + quality) + Wave 5 (tests) in parallel
-→ Wave 6 (cascade consolidation, depends on Wave 3)
+Wave 1 ✅ → Wave 2 (CI config) → Wave 3 (constants/state extraction)
+→ Wave 4 (quality fixes) + AUDIT P0/P1 items in parallel
+→ Wave 5 (tests) + Wave 6 (cascade consolidation) in parallel
 ```
