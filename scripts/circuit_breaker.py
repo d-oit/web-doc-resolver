@@ -14,13 +14,12 @@ class CircuitBreakerState:
 
     def is_open(self) -> bool:
         now = datetime.now(timezone.utc)
-        if self.open_until is None:
+        open_until = self.open_until
+        if open_until is None:
             return False
-        # Ensure self.open_until is timezone-aware for comparison if it's not already
-        target = self.open_until
-        if target.tzinfo is None:
-            target = target.replace(tzinfo=timezone.utc)
-        return target > now
+        if open_until.tzinfo is None:
+            open_until = open_until.replace(tzinfo=timezone.utc)
+        return open_until > now
 
     def record_failure(self, threshold: int = 3, cooldown_seconds: int = 300) -> None:
         self.failures += 1
