@@ -60,7 +60,7 @@ set_rate_limit = _set_rate_limit
 
 def resolve_with_jina(url: str, max_chars: int = MAX_CHARS) -> ResolvedResult | None:
     if not is_safe_url(url):
-        logger.warning(f"SSRF blocked: {url}")
+        logger.warning("SSRF blocked: %s", url)
         return None
     cached = _get_from_cache(url, "jina")
     if cached:
@@ -251,7 +251,7 @@ def resolve_with_duckduckgo(query: str, max_chars: int = MAX_CHARS) -> ResolvedR
 
 def resolve_with_firecrawl(url: str, max_chars: int = MAX_CHARS) -> ResolvedResult | None:
     if not is_safe_url(url):
-        logger.warning(f"SSRF blocked: {url}")
+        logger.warning("SSRF blocked: %s", url)
         return None
     cached = _get_from_cache(url, "firecrawl")
     if cached:
