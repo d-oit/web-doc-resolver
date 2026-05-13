@@ -6,18 +6,20 @@
 
 ### Status
 
-PROPOSED → IMPLEMENTING
+IMPLEMENTED → MERGED (PR #366)
 
 ### Context
 
 The `nightly-bridge.yml` workflow runs formatting (ruff, black, cargo fmt) and
 attempts to commit + push the result directly to `main`. This violates two
 GitHub repository branch protection rules:
+
 1. **Changes must be made through a pull request** — no direct pushes to `main`
 2. **4 of 4 required status checks are expected** — CI must pass before merge
 
 This caused the 2026-05-13 nightly run to fail:
-```
+
+```text
 remote: error: GH013: Repository rule violations found for refs/heads/main.
 remote: - 4 of 4 required status checks are expected.
 remote: - Changes must be made through a pull request.
@@ -26,6 +28,7 @@ remote: - Changes must be made through a pull request.
 ### Decision
 
 Replace the direct `git push` to `main` with a PR-based workflow:
+
 1. Create a feature branch with a datestamp (`chore/nightly-format-YYYYMMDD`)
 2. Commit formatting changes to that branch
 3. Push the branch
@@ -73,10 +76,20 @@ eliminating the repository rule violation failure.
 
 ### Postconditions
 
-1. Nightly formatting changes are committed to a branch and submitted as a PR
-2. No more `GH013: Repository rule violations found` failures
-3. Formatting drift is visible as open PRs instead of silent pushes
-4. `tests/test_routing_foundation.py` passes `ruff format .` without changes
+1. ✅ Nightly formatting changes are committed to a branch and submitted as a PR
+2. ✅ No more `GH013: Repository rule violations found` failures
+3. ✅ Formatting drift is visible as open PRs instead of silent pushes
+4. ❌ `tests/test_routing_foundation.py` ruff format — still needs verification
+5. ✅ Nightly CI run on 2026-05-13 succeeded after PR #366 merge
+
+### Outcome
+
+PR #366 merged to `main` at commit `6d9314e`. The nightly bridge workflow now:
+
+1. Creates `chore/nightly-format-YYYYMMDD` branch
+2. Commits and pushes to that branch
+3. Creates a PR targeting `main` via `gh pr create`
+4. Does NOT push directly to `main`
 
 ### Risks
 

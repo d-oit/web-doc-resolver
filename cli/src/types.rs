@@ -94,27 +94,6 @@ impl std::str::FromStr for Profile {
     }
 }
 
-impl Profile {
-    /// Get allowed provider types for this profile
-    pub fn is_provider_allowed(&self, provider: ProviderType) -> bool {
-        match self {
-            Profile::Free => !provider.is_paid(),
-            Profile::Fast => provider.is_fast(),
-            Profile::Balanced => true,
-            Profile::Quality => true,
-        }
-    }
-
-    /// Get max hops/cascade depth for this profile
-    pub fn max_hops(&self) -> usize {
-        match self {
-            Profile::Free => 3,
-            Profile::Fast => 2,
-            Profile::Balanced => 6,
-            Profile::Quality => 8,
-        }
-    }
-}
 
 /// Provider types
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

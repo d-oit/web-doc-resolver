@@ -20,6 +20,42 @@ env:
   NODE_VERSION: '22'
 
 jobs:
+  validate-version:
+    name: Validate Version (no regression)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Check version against latest Git tag
+        run: |
+          LATEST_TAG=$(git tag -l "v*.*.*" --sort=-version:refname | head -1)
+          MANIFEST_VERSION=$(grep '^version' pyproject.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+
+          if [ -z "$LATEST_TAG" ]; then
+            echo "No tags found — skipping version regression check"
+            exit 0
+          fi
+
+          TAG_VERSION="${LATEST_TAG#v}"
+          echo "Latest tag: v$TAG_VERSION"
+          echo "Manifest:    $MANIFEST_VERSION"
+
+          # Compare versions using sort
+          HIGHER=$(printf '%s\n%s\n' "$TAG_VERSION" "$MANIFEST_VERSION" | sort -V | tail -1)
+          if [ "$HIGHER" != "$MANIFEST_VERSION" ]; then
+            echo "❌ Version regression detected!"
+            echo "   Latest tag: v$TAG_VERSION"
+            echo "   Manifest:   $MANIFEST_VERSION"
+            echo ""
+            echo "   This PR would regress the version. Run:"
+            echo "   python scripts/sync_versions.py --set $TAG_VERSION"
+            exit 1
+          fi
+          echo "✅ Manifest version ($MANIFEST_VERSION) >= latest tag ($TAG_VERSION)"
+
   validate-symlink:
     name: Validate Skill Symlink
     runs-on: ubuntu-latest
@@ -66,7 +102,7 @@ jobs:
           cache: 'pip'
 
       - name: Install lint tools
-        run: pip install ruff black mypy types-requests
+        run: pip install ruff black flake8 mypy types-requests
 
       - name: Run ruff
         run: ruff check .
@@ -103,7 +139,7 @@ jobs:
         run: python -m pytest -m "not live" --cov=scripts --cov-report=xml --cov-report=term
 
       - name: Upload coverage report
-        if: matrix.python-version == env.PYTHON_VERSION
+        if: matrix.python-version == '3.12'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: coverage-report

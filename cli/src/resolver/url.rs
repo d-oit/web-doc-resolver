@@ -5,7 +5,7 @@
 use crate::bias_scorer::score_result;
 use crate::circuit_breaker::CircuitBreakerRegistry;
 use crate::compaction::compact_content;
-use crate::config::{RoutingProfileConfig, routing_profile_defaults};
+use crate::config::routing_profile_defaults;
 use crate::error::ResolverError;
 use crate::link_validator::validate_links;
 use crate::metrics::ResolveMetrics;
@@ -14,7 +14,7 @@ use crate::providers::rate_limiter::RateLimiterRegistry;
 use crate::providers::{DirectFetchProvider, DoclingProvider, MistralBrowserProvider, OcrProvider};
 use crate::providers::{FirecrawlProvider, JinaProvider, LlmsTxtProvider, UrlProvider};
 use crate::quality::score_content;
-use crate::routing::{ResolutionBudget, plan_provider_order};
+use crate::routing::plan_provider_order;
 use crate::routing_memory::RoutingMemory;
 use crate::semantic_cache::SemanticCache;
 use crate::types::{ProviderType, ResolvedResult, RoutingDecision};
@@ -23,7 +23,7 @@ use std::result::Result;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
-use super::cascade::{classify_error, extract_domain_or_default, is_safe_url};
+use super::cascade::{build_budget, classify_error, extract_domain_or_default, is_safe_url};
 
 /// URL cascade resolver
 pub struct UrlCascade {
@@ -472,25 +472,3 @@ impl Default for UrlCascade {
     }
 }
 
-/// Build resolution budget from config
-fn build_budget(
-    config: &crate::config::Config,
-    profile_defaults: &RoutingProfileConfig,
-) -> ResolutionBudget {
-    ResolutionBudget {
-        max_provider_attempts: config
-            .max_provider_attempts
-            .unwrap_or(profile_defaults.max_provider_attempts),
-        max_paid_attempts: config
-            .max_paid_attempts
-            .unwrap_or(profile_defaults.max_paid_attempts),
-        max_total_latency_ms: config
-            .max_total_latency_ms
-            .unwrap_or(profile_defaults.max_total_latency_ms),
-        allow_paid: profile_defaults.allow_paid,
-        attempts: 0,
-        paid_attempts: 0,
-        elapsed_ms: 0,
-        stop_reason: None,
-    }
-}

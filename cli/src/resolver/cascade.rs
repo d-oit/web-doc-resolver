@@ -2,7 +2,9 @@
 //!
 //! Shared functions used by both URL and query resolution.
 
+use crate::config::{Config, RoutingProfileConfig};
 use crate::error::ResolverError;
+use crate::routing::ResolutionBudget;
 
 /// Check if input is a URL
 pub fn is_url(input: &str) -> bool {
@@ -81,6 +83,29 @@ pub fn classify_error(err: &ResolverError) -> String {
         "auth_required".into()
     } else {
         "provider_error".into()
+    }
+}
+
+/// Build resolution budget from config
+pub fn build_budget(
+    config: &Config,
+    profile_defaults: &RoutingProfileConfig,
+) -> ResolutionBudget {
+    ResolutionBudget {
+        max_provider_attempts: config
+            .max_provider_attempts
+            .unwrap_or(profile_defaults.max_provider_attempts),
+        max_paid_attempts: config
+            .max_paid_attempts
+            .unwrap_or(profile_defaults.max_paid_attempts),
+        max_total_latency_ms: config
+            .max_total_latency_ms
+            .unwrap_or(profile_defaults.max_total_latency_ms),
+        allow_paid: profile_defaults.allow_paid,
+        attempts: 0,
+        paid_attempts: 0,
+        elapsed_ms: 0,
+        stop_reason: None,
     }
 }
 

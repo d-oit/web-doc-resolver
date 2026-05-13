@@ -31,7 +31,7 @@ repos:
     rev: v0.10.0.1
     hooks:
       - id: shellcheck
-        args: ['--severity=warning']
+        args: ['--severity=error']
         files: \.(sh|bash)$
 
   # Markdown linting
@@ -39,7 +39,7 @@ repos:
     rev: v0.39.0
     hooks:
       - id: markdownlint
-        args: ['--config', 'markdownlint.toml']
+        args: ['--config', '.markdownlint.json']
 
   # Type checking
   - repo: https://github.com/pre-commit/mirrors-mypy

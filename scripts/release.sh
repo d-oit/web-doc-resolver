@@ -100,27 +100,10 @@ else
     echo -e "${YELLOW}Quality gate script not found, skipping${NC}"
 fi
 
-# Step 3: Update versions
+# Step 3: Update versions using sync_versions.py (handles all 4 files: pyproject.toml, cli/Cargo.toml, web/package.json, cli/src/cli.rs)
 echo ""
 echo -e "${BLUE}Step 3: Updating versions to v$NEW_VERSION...${NC}"
-
-# Update web/package.json
-if [ -f "$ROOT_DIR/web/package.json" ]; then
-    sed -i "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" "$ROOT_DIR/web/package.json"
-    echo -e "  ✓ web/package.json"
-fi
-
-# Update cli/Cargo.toml
-if [ -f "$ROOT_DIR/cli/Cargo.toml" ]; then
-    sed -i "s/^version = \".*\"/version = \"$NEW_VERSION\"/" "$ROOT_DIR/cli/Cargo.toml"
-    echo -e "  ✓ cli/Cargo.toml"
-fi
-
-# Update pyproject.toml or setup.py
-if [ -f "$ROOT_DIR/pyproject.toml" ]; then
-    sed -i "s/version = \".*\"/version = \"$NEW_VERSION\"/" "$ROOT_DIR/pyproject.toml"
-    echo -e "  ✓ pyproject.toml"
-fi
+python "$ROOT_DIR/scripts/sync_versions.py" --set "$NEW_VERSION"
 
 # Step 4: Capture screenshots
 echo ""

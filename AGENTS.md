@@ -3,7 +3,7 @@
 > **Primary Integration Guide** — This file is the main entry point for AI
 > agents and developers integrating the resolver as a skill. For deep
 > technical reference, see **[agents-docs/](agents-docs/README.md)**.
-
+>
 > **do-web-doc-resolver** — resolves queries or URLs into clean Markdown via a
 > provider cascade.
 > Supported by: Claude Code, Windsurf, Gemini CLI, Codex, Copilot, OpenCode,
@@ -39,9 +39,45 @@ readonly MAX_PR_TITLE_LENGTH=72
 
 ## Version Management
 
-This repository uses `pyproject.toml`, `cli/Cargo.toml`, and `web/package.json`
-for versioning.
-Run `./scripts/sync_versions.py` to ensure all versions are in sync.
+This repository uses 4 canonical version files that MUST always be in sync:
+
+| File | Field | Purpose |
+|------|-------|---------|
+| `pyproject.toml` | `[project] version` | **Source of truth** (Python package) |
+| `cli/Cargo.toml` | `[package] version` | Rust crate version |
+| `web/package.json` | `"version"` | NPM package version |
+| `cli/src/cli.rs` | `#[command(version = "...")]` | CLI `--version` output |
+
+### Sync All Version Files
+
+```bash
+python scripts/sync_versions.py           # check only (exit 1 if drift)
+python scripts/sync_versions.py --fix     # auto-fix all 4 targets to pyproject.toml
+python scripts/sync_versions.py --set 1.2.0  # set specific version everywhere
+```
+
+### Release Version Bumping
+
+Use the release script — it calls `sync_versions.py` internally:
+
+```bash
+./scripts/release.sh patch   # 0.3.3 → 0.3.4
+./scripts/release.sh minor   # 0.3.3 → 0.4.0
+./scripts/release.sh major   # 0.3.3 → 1.0.0
+```
+
+### Guard Against Version Regression
+
+CI enforces `validate-version` job on every PR: the manifest version in
+`pyproject.toml` MUST be >= the latest GitHub tag. This prevents old branches
+from overwriting release versions when merged.
+
+**If CI fails with "Version regression detected"**:
+
+```bash
+LATEST_TAG=$(git tag -l "v*.*.*" --sort=-version:refname | head -1)
+python scripts/sync_versions.py --set "${LATEST_TAG#v}"
+```
 
 ## Quality Gate (Required Before Commit)
 
@@ -53,7 +89,7 @@ Run `./scripts/sync_versions.py` to ensure all versions are in sync.
 
 - Python: `pytest -m "not live"`
 - Rust: `cd cli && cargo test`
-- Web: `cd web && npx playwright test --project=desktop`
+- Web: \`cd web && npx playwright test --project=desktop --project=mobile --project=tablet\`
 
 **Guard Rails:**
 
@@ -126,6 +162,7 @@ Run `./scripts/sync_versions.py` to ensure all versions are in sync.
 - Markdown linting passes (`markdownlint`)
 - No new secrets committed (Gitleaks)
 - `AGENTS.md` updated if repository structure or skills change
+- **Version**: `pyproject.toml` version >= latest GitHub tag (enforced by CI)
 
 ## Project Documentation
 
