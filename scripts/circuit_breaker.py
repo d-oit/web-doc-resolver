@@ -44,7 +44,12 @@ class CircuitBreakerRegistry:
             return self.breakers[provider]
 
     def is_open(self, provider: str) -> bool:
-        return self.get_breaker(provider).is_open()
+        with self._lock:
+            breaker = self.breakers.get(provider)
+            if breaker is None:
+                self.breakers[provider] = CircuitBreakerState()
+                breaker = self.breakers[provider]
+            return breaker.is_open()
 
     def record_failure(
         self, provider: str, threshold: int | None = None, cooldown_seconds: int = 300

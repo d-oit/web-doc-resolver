@@ -102,6 +102,7 @@
 | #358 | Per-provider token-bucket rate throttling | ✅ |
 | #359-#361 | Template workflows, gitleaks SHA-pins, .gitattributes | ✅ |
 | #364 | ADR-012 Wave 1: thread safety, SSRF, provider fixes | ✅ |
+| #365 | PR #365: GOAP Wave 2-7 plan + N5/N12 fixes + SSRF gaps | ✅ |
 
 ### 7. Newly Discovered Issues (2026-05-13 Audit)
 
@@ -111,14 +112,15 @@
 | N2 | `config.rs` 712 lines — **exceeds** 500-line limit | `cli/src/config.rs` | P0 |
 | N3 | `build_budget()` duplicated verbatim in 2 files | `query.rs:506` + `url.rs:475` | P1 |
 | N4 | Dead `Profile::is_provider_allowed()` + `max_hops()` — never called | `cli/src/types.rs:99-116` | P2 |
-| N5 | `CircuitBreakerRegistry.is_open()` — TOCTOU: state object used outside lock scope | `scripts/circuit_breaker.py:46-47` | P1 |
+| N5 | `CircuitBreakerRegistry.is_open()` — TOCTOU: state object used outside lock scope | `scripts/circuit_breaker.py:46-47` | ✅ RESOLVED — inlined under lock in PR #365 |
 | N6 | `_maybe_evict()` not independently lock-protected | `scripts/semantic_cache.py:336` | P2 |
 | N7 | 11/13 skills missing `evals.json` | `.agents/skills/*/` | P2 |
 | N8 | No `pnpm-lock.yaml` anywhere in repo | `cli/ui/`, `web/` | P2 |
 | N9 | `duckduckgo-search` vs `ddgs` package name mismatch | `requirements.txt:9` | P1 |
 | N10 | `setup-hooks.sh` only validates symlinks, not quality gate | `scripts/setup-hooks.sh` | P2 |
 | N11 | CI runs 3 Playwright projects; AGENTS.md says 1 | `ci-ui.yml:176` vs `AGENTS.md:55` | P2 |
-| N12 | Raw `requests.post()` in synthesis — no SSRF, no retry, no shared session | `scripts/synthesis.py:165` | P1 |
+| N12 | Raw `requests.post()` in synthesis — no SSRF, no retry, no shared session | `scripts/synthesis.py:165` | ✅ RESOLVED — switched to `get_session()` in PR #365 |
+| N13 | SSRF gaps in `resolve_with_docling()` + `resolve_with_ocr()` — no `is_safe_url()` | `scripts/providers_impl.py:373-393` | ✅ RESOLVED — added `is_safe_url()` checks in PR #365 |
 
 ---
 
@@ -135,6 +137,13 @@
 - **Probabilistic skip**: Providers with low win rate get skip probability proportional to fail ratio
 - **Adaptive reordering**: Routing memory ranks providers by domain performance per-profile
 - **Exa MCP tracking**: Monthly usage count stored in routing memory DB; resets on provider cooldown
+
+### PR #365 — TOCTOU, SSRF Gaps, Shared Session (2026-05-13)
+- **TOCTOU in CircuitBreakerRegistry.is_open()**: Fix by inlining the state lookup + `is_open()` check under a single `self._lock` scope. This eliminates the window where `get_breaker()` releases the lock before the caller reads `breaker.is_open()`.
+- **SSRF gaps in docling + ocr**: Two provider functions (`resolve_with_docling`, `resolve_with_ocr`) passed user URLs to `subprocess.run()` without `is_safe_url()` validation. Added the check consistent with jina/firecrawl/mistral_browser pattern.
+- **Shared session for synthesis**: `synthesize_results()` used raw `requests.post()` bypassing connection pooling, retry, and SSRF validation. Switched to `get_session()` from `scripts.utils`.
+- **Lazy logging fix**: Changed f-string logging in mistral_browser SSRF warning to `%s` format for consistency with DeepSource PYL-W1203 rules.
+- **Monkey-patching in resolve.py (lines 85-91)** remains necessary until ADR-014 creates `scripts/state.py`. Tests depend on these overwrites for state synchronization.
 
 ## Priority Actions
 
@@ -159,15 +168,15 @@
 
 ### P1 — High (next sprint)
 
-| # | Action | File / Area |
-|---|---|---|
-| 7 | Create rate-limiting middleware | `web/middleware.ts` |
-| 8 | Unit tests for web utilities (6 files: circuit-breaker, errors, quality, keys, log, results) | `web/lib/*.ts` |
-| 9 | Fix `CircuitBreakerRegistry.is_open()` TOCTOU | `scripts/circuit_breaker.py:46-47` |
-| 10 | Fix 7 silent exception handlers in providers | `scripts/providers_impl.py` |
-| 11 | Replace raw `requests.post()` with shared session + SSRF in synthesis | `scripts/synthesis.py:165` |
-| 12 | Extract duplicate `build_budget()` to cascade.rs | `query.rs:506` + `url.rs:475` |
-| 13 | Fix CI/config issues (coverage upload, gitleaks, flake8, shellcheck severity) | `.github/workflows/`, `.pre-commit-config.yaml` |
+| # | Action | File / Area | Status |
+|---|---|---|---|
+| 7 | Create rate-limiting middleware | `web/middleware.ts` | |
+| 8 | Unit tests for web utilities (6 files: circuit-breaker, errors, quality, keys, log, results) | `web/lib/*.ts` | |
+| 9 | Fix `CircuitBreakerRegistry.is_open()` TOCTOU | `scripts/circuit_breaker.py:46-47` | ✅ RESOLVED (PR #365) |
+| 10 | Fix 7 silent exception handlers in providers | `scripts/providers_impl.py` | |
+| 11 | Replace raw `requests.post()` with shared session + SSRF in synthesis | `scripts/synthesis.py:165` | ✅ RESOLVED (PR #365) |
+| 12 | Extract duplicate `build_budget()` to cascade.rs | `query.rs:506` + `url.rs:475` | |
+| 13 | Fix CI/config issues (coverage upload, gitleaks, flake8, shellcheck severity) | `.github/workflows/`, `.pre-commit-config.yaml` | |
 
 ### P2 — Medium (roadmap)
 

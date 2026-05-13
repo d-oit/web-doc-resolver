@@ -22,14 +22,15 @@ concerns, parity gaps).
 | N2 | `config.rs` 712 lines (over 500 limit) | `cli/src/config.rs` | P0 |
 | N3 | `build_budget()` duplicated verbatim in 2 files | `query.rs:506` + `url.rs:475` | P1 |
 | N4 | Dead `Profile::is_provider_allowed()` + `max_hops()` | `cli/src/types.rs:99-116` | P2 |
-| N5 | `CircuitBreakerRegistry.is_open()` TOCTOU — state used outside lock | `scripts/circuit_breaker.py:46-47` | P1 |
+| N5 | `CircuitBreakerRegistry.is_open()` TOCTOU — state used outside lock | `scripts/circuit_breaker.py:46-47` | P1 ✅ RESOLVED (PR #365) |
 | N6 | `_maybe_evict()` not independently lock-protected | `scripts/semantic_cache.py:336` | P2 |
 | N7 | 11/13 skills missing `evals.json` (was 0/13) | `.agents/skills/*/` | P2 |
 | N8 | No `pnpm-lock.yaml` in repo | `cli/ui/`, `web/` | P2 |
 | N9 | `duckduckgo-search` vs `ddgs` package name mismatch | `requirements.txt:9` | P1 |
 | N10 | `setup-hooks.sh` only validates symlinks, not quality gate | `scripts/setup-hooks.sh` | P2 |
 | N11 | CI runs 3 Playwright projects; AGENTS.md says 1 | `ci-ui.yml:176` vs `AGENTS.md:55` | P2 |
-| N12 | Raw `requests.post()` in synthesis — no SSRF, no retry, no session | `scripts/synthesis.py:165` | P1 |
+| N12 | Raw `requests.post()` in synthesis — no SSRF, no retry, no session | `scripts/synthesis.py:165` | P1 ✅ RESOLVED (PR #365) |
+| N13 | SSRF gaps in `resolve_with_docling()` + `resolve_with_ocr()` — no `is_safe_url()` | `scripts/providers_impl.py:373-393` | P1 ✅ RESOLVED (PR #365) |
 
 ## Actions (dependency-ordered waves)
 
@@ -65,13 +66,15 @@ concerns, parity gaps).
 | ID | Task | File | Notes |
 |----|------|------|-------|
 | P3b | Add logging to 7 silent exception handlers | `scripts/providers_impl.py` | `except Exception:` → `except Exception as e: logger.warning(...)` |
-| P4 | Replace `requests.post` with `get_session()` + SSRF check | `scripts/synthesis.py:165` | No retry, no SSRF protection |
+| P4 | Replace `requests.post` with `get_session()` + SSRF check | `scripts/synthesis.py:165` | ✅ DONE (PR #365) |
 | P5 | Anchor `preflight_route` patterns with word boundaries | `scripts/routing.py:157-158` | Regex or anchored matching |
 | P6 | Remove dead `NegativeCacheEntry` dataclass | `scripts/cache_negative.py:11-16` | Never instantiated |
 | Q1-Q6 | Extract 11 magic numbers to named constants | `scripts/quality.py` | |
-| N5 | Fix `CircuitBreakerRegistry.is_open()` TOCTOU | `scripts/circuit_breaker.py:46-47` | Check state under lock |
+| N5 | Fix `CircuitBreakerRegistry.is_open()` TOCTOU | `scripts/circuit_breaker.py:46-47` | ✅ DONE (PR #365) |
 | N6 | Add lock guard to `_maybe_evict()` as defense-in-depth | `scripts/semantic_cache.py:336` | Reentrant-safe |
-| N12 | Add SSRF check to Mistral API call in synthesis | `scripts/synthesis.py` | Direct calls bypass SSRF |
+| N12 | Add SSRF check to Mistral API call in synthesis | `scripts/synthesis.py` | ✅ DONE (PR #365) |
+| N13 | Add SSRF checks to docling + ocr providers | `scripts/providers_impl.py:373-393` | ✅ DONE (PR #365) |
+| N13b | Fix lazy logging (f-string → %s) in mistral_browser SSRF warn | `scripts/providers_impl.py:277` | ✅ DONE (PR #365) |
 
 ### Wave 5 — Rust File Splits & Dedup (Effort: M-L, ~2 PRs)
 
