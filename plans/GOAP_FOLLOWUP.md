@@ -108,6 +108,7 @@ depend on them for state synchronization.
 | MEDIUM: Lock→RLock mismatch in RoutingMemory | `scripts/routing_memory.py` | Changed to `threading.RLock()`, deduplicated `get_domain_stats` |
 | MEDIUM: SSRF missing from Jina/Firecrawl | `scripts/providers_impl.py` | Added `is_safe_url()` checks |
 | Minor: Bare except in Mistral browser | `scripts/providers_impl.py` | Changed to `except Exception as e:` with logging |
+| HIGH: TOCTOU race in CircuitBreakerState.is_open | `scripts/circuit_breaker.py` | Capture `open_until` once at function entry |
 
 ## Execution Order
 
