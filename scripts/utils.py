@@ -8,6 +8,7 @@ import logging
 import os
 import re
 import socket
+import threading
 import time
 import typing
 from concurrent.futures import ThreadPoolExecutor
@@ -94,7 +95,9 @@ BLOCKED_SCHEMES: set[str] = {"file", "javascript", "data", "vbscript"}
 
 
 _global_session: requests.Session | None = None
+_session_lock = threading.Lock()
 _cache = None
+_cache_lock = threading.RLock()
 
 
 def create_session_with_retry() -> requests.Session:
@@ -121,16 +124,18 @@ def create_session_with_retry() -> requests.Session:
 
 def get_session() -> requests.Session:
     global _global_session
-    if _global_session is None:
-        _global_session = create_session_with_retry()
+    with _session_lock:
+        if _global_session is None:
+            _global_session = create_session_with_retry()
     return _global_session
 
 
 def close_session() -> None:
     global _global_session
-    if _global_session is not None:
-        _global_session.close()
-        _global_session = None
+    with _session_lock:
+        if _global_session is not None:
+            _global_session.close()
+            _global_session = None
 
 
 def _safe_request(
@@ -231,7 +236,7 @@ def is_url(input_str: str) -> bool:
         return False
     try:
         result = urlparse(input_str)
-        return all([result.scheme in ("http", "https", "ftp", "ftps"), result.netloc])
+        return all([result.scheme in {"http", "https"}, result.netloc])
     except Exception:
         return False
 
@@ -575,9 +580,10 @@ def get_cache():
 
 def _get_cache():
     global _cache
-    _cache = _get_cache_proxy()
-    if _cache is None:
-        _cache = get_cache()
+    with _cache_lock:
+        _cache = _get_cache_proxy()
+        if _cache is None:
+            _cache = get_cache()
     return _cache
 
 
@@ -613,25 +619,28 @@ def get_ttl(provider: str, config: dict | None = None) -> int:
 
 
 def _get_from_cache(input_str: str, source: str) -> dict[str, Any] | None:
-    cache = _get_cache()
+    with _cache_lock:
+        cache = _get_cache()
     if not cache:
         return None
-    result = cache.get(_cache_key(input_str, source))
+    with _cache_lock:
+        result = cache.get(_cache_key(input_str, source))
     if result is None:
         return None
     return dict(result)
 
 
 def _save_to_cache(input_str: str, source: str, result: dict[str, Any], ttl: int | None = None):
-    cache = _get_cache()
+    with _cache_lock:
+        cache = _get_cache()
     if not cache:
         return
 
     if ttl is None:
-        # Use tiered TTL based on source (provider)
         ttl = get_ttl(source)
 
-    cache.set(_cache_key(input_str, source), result, expire=ttl)
+    with _cache_lock:
+        cache.set(_cache_key(input_str, source), result, expire=ttl)
 
 
 def _detect_error_type(error: Exception) -> ErrorType:

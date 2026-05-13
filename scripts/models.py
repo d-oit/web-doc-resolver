@@ -47,6 +47,7 @@ class Profile(Enum):
             return 6
         if self == Profile.QUALITY:
             return 8
+        return 4
 
 
 class ProviderType(Enum):

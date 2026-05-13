@@ -550,9 +550,9 @@ class TestAdditionalEdgeCases:
     """Additional edge case tests for comprehensive coverage."""
 
     def test_url_with_ftp_scheme(self):
-        """Test that FTP URLs are properly detected."""
-        assert is_url("ftp://ftp.example.com/file.txt")
-        assert is_url("ftps://secure.example.com/file.txt")
+        """Test that FTP URLs are rejected (SSRF hardening)."""
+        assert not is_url("ftp://ftp.example.com/file.txt")
+        assert not is_url("ftps://secure.example.com/file.txt")
 
     def test_url_with_javascript_scheme(self):
         """Test that javascript: URLs are handled correctly (no netloc)."""
@@ -562,7 +562,7 @@ class TestAdditionalEdgeCases:
     def test_url_with_file_scheme(self):
         """Test that file: URLs are handled correctly."""
         # file://localhost/ has netloc, file:/// does not
-        # Our is_url requires scheme in (http, https, ftp, ftps)
+        # Our is_url only allows http and https
         assert not is_url("file:///path/to/file.txt")  # Not in allowed schemes
         assert not is_url("file://localhost/path/to/file.txt")  # Not in allowed schemes
 
@@ -612,7 +612,7 @@ class TestAdditionalEdgeCases:
         """Test URLs with authentication credentials."""
         assert is_url("https://user:pass@example.com/path")
         assert is_url("https://user@example.com/path")
-        assert is_url("ftp://anonymous:anon@ftp.example.com/file")
+        assert not is_url("ftp://anonymous:anon@ftp.example.com/file")
 
     def test_url_ipv4_address(self):
         """Test URLs with IPv4 addresses."""

@@ -163,7 +163,7 @@
 
 ---
 
-*Last updated: 2026-05-12. Next audit: when version bumps to 1.0 or after P0 items are resolved.*
+*Last updated: 2026-05-13. ADR-012 Wave 1 complete. Next: Wave 2 CI/config fixes.*
 
 ## Learnings (captured 2026-05-12)
 
@@ -177,3 +177,9 @@
 ### CI / Infrastructure
 - **libsql test flakiness**: `libsql` uses a global `Once` for threading config — tests must run with `--test-threads=1` to avoid cascade poisoning; pinned in CI at `.github/workflows/ci.yml`
 - **Rate limit env vars**: Follow existing pattern — `DO_WDR_RATE_LIMIT_<PROVIDER>_{RPS,BURST}` with granular field targeting in `Config::load()`
+
+### ADR-012 Wave 1 (2026-05-13)
+- **`threading.Lock` is non-reentrant**: Calling `_get_cache()` (which acquires `_cache_lock`) from within `_get_from_cache()` (which also holds `_cache_lock`) causes a deadlock. Use `threading.RLock` for nested lock acquisition.
+- **Conftest needs lock-safe clearing**: After adding locks to RoutingMemory/CircuitBreakerRegistry, the conftest `autouse` fixture must call `.clear()` methods (which hold the lock) instead of directly accessing `.domain_stats.clear()` or `.breakers.clear()`.
+- **Monkey-patching is a necessary evil**: `resolve.py` lines 85-91 wire shared instances to `_url_resolve`/`_query_resolve`. Until ADR-014 creates `scripts/state.py`, these overwrites must remain — tests depend on them for state synchronization.
+- **Test suite runs in ~60s**: The full non-live suite runs in ~60 seconds. The `pre-commit` hook timeout was caused by a deadlock, not slow tests.

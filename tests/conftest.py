@@ -37,10 +37,10 @@ def setup_test_env():
 
     # Mock get_cache to return our memory cache
     with patch("scripts.utils.get_cache", return_value=cache):
-        # Reset other globals
-        scripts.resolve._routing_memory.domain_stats.clear()
-        scripts.resolve._circuit_breakers.breakers.clear()
-        scripts.providers_impl._rate_limits.clear()
+        # Reset other globals via lock-safe methods
+        scripts.resolve._routing_memory.clear()
+        scripts.resolve._circuit_breakers.clear()
+        scripts.providers_impl._clear_rate_limits()
 
         # Mock synthesis to avoid LLM calls
         original_should_synth = scripts.synthesis.should_call_llm_synthesis

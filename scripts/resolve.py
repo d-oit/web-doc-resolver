@@ -31,6 +31,7 @@ from scripts.providers_impl import (
     _is_rate_limited,
     _rate_limits,
     _set_rate_limit,
+    resolve_with_docling,
     resolve_with_duckduckgo,
     resolve_with_exa,
     resolve_with_exa_mcp,
@@ -38,6 +39,8 @@ from scripts.providers_impl import (
     resolve_with_jina,
     resolve_with_mistral_browser,
     resolve_with_mistral_websearch,
+    resolve_with_ocr,
+    resolve_with_serper,
     resolve_with_tavily,
 )
 from scripts.semantic_cache import get_semantic_cache
@@ -79,8 +82,9 @@ def _get_executor(max_workers: int = 10) -> concurrent.futures.ThreadPoolExecuto
     return _executor
 
 
-# Keep facade and extracted submodules on the same shared state so callers,
-# tests, and future monkeypatches still observe one resolver runtime.
+# TODO(ADR-014): Replace monkey-patching with scripts/state.py singleton.
+# These overwrites sync sub-module state but create race conditions under
+# concurrent imports. Both conftest.py and the cascade depend on this wiring.
 scripts._query_resolve._circuit_breakers = _circuit_breakers
 scripts._query_resolve._routing_memory = _routing_memory
 scripts._url_resolve._circuit_breakers = _circuit_breakers
@@ -183,6 +187,10 @@ def resolve_direct(
         ProviderType.MISTRAL_BROWSER: resolve_with_mistral_browser,
         ProviderType.MISTRAL_WEBSEARCH: resolve_with_mistral_websearch,
         ProviderType.DIRECT_FETCH: fetch_url_content,
+        ProviderType.LLMS_TXT: fetch_llms_txt,
+        ProviderType.SERPER: resolve_with_serper,
+        ProviderType.DOCLING: resolve_with_docling,
+        ProviderType.OCR: resolve_with_ocr,
     }
     if provider in funcs:
         res = funcs[provider](input_str, max_chars)

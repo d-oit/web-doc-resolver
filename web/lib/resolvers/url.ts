@@ -10,6 +10,11 @@ async function safeFetch(
   timeoutMs = 15000,
   maxRedirects = 5
 ): Promise<Response> {
+  const initialValidation = await validateUrlForFetchAsync(url);
+  if (!initialValidation.valid) {
+    throw new Error(`SSRF blocked: ${initialValidation.error || "Invalid URL"}`);
+  }
+
   let currentUrl = url;
   let redirectCount = 0;
 
