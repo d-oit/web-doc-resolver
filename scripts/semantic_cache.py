@@ -390,7 +390,9 @@ class SemanticCache:
                 cursor = self._conn.execute("SELECT COUNT(*) as count FROM cache_entries")
                 total_entries = cursor.fetchone()["count"]
 
-                cursor = self._conn.execute("SELECT AVG(access_count) as avg_access FROM cache_entries")
+                cursor = self._conn.execute(
+                    "SELECT AVG(access_count) as avg_access FROM cache_entries"
+                )
                 avg_access = cursor.fetchone()["avg_access"] or 0
 
             return {
