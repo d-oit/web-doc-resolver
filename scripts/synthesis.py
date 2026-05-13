@@ -6,9 +6,8 @@ import datetime
 import logging
 from difflib import SequenceMatcher
 
-import requests
-
 from scripts.models import ResolvedResult
+from scripts.utils import get_session
 
 logger = logging.getLogger(__name__)
 
@@ -162,7 +161,8 @@ def synthesize_results(query: str, results: list[ResolvedResult], api_key: str, 
     user_prompt = f"Query: '{query}'\n\nContext:\n{context}"
 
     try:
-        resp = requests.post(
+        session = get_session()
+        resp = session.post(
             "https://api.mistral.ai/v1/chat/completions",
             headers={
                 "Authorization": f"Bearer {api_key}",
@@ -182,5 +182,5 @@ def synthesize_results(query: str, results: list[ResolvedResult], api_key: str, 
         content = resp.json()["choices"][0]["message"]["content"]
         return str(content)
     except Exception as e:
-        logger.error(f"LLM Synthesis failed: {e}")
+        logger.error("LLM Synthesis failed: %s", e)
         return deterministic_merge(results)

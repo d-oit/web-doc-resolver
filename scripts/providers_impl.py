@@ -274,7 +274,7 @@ def resolve_with_firecrawl(url: str, max_chars: int = MAX_CHARS) -> ResolvedResu
 
 def resolve_with_mistral_browser(url: str, max_chars: int = MAX_CHARS) -> ResolvedResult | None:
     if not is_safe_url(url):
-        logger.warning(f"SSRF: blocked URL {url}")
+        logger.warning("SSRF blocked: %s", url)
         return None
     cached = _get_from_cache(url, "mistral_browser")
     if cached:
@@ -371,6 +371,9 @@ def resolve_with_mistral_websearch(query: str, max_chars: int = MAX_CHARS) -> Re
 
 
 def resolve_with_docling(url: str, max_chars: int) -> ResolvedResult | None:
+    if not is_safe_url(url):
+        logger.warning("SSRF blocked: %s", url)
+        return None
     try:
         res = subprocess.run(
             ["docling", "--format", "markdown", url], capture_output=True, text=True, timeout=60
@@ -383,6 +386,9 @@ def resolve_with_docling(url: str, max_chars: int) -> ResolvedResult | None:
 
 
 def resolve_with_ocr(url: str, max_chars: int) -> ResolvedResult | None:
+    if not is_safe_url(url):
+        logger.warning("SSRF blocked: %s", url)
+        return None
     try:
         res = subprocess.run(
             ["tesseract", url, "stdout"], capture_output=True, text=True, timeout=30
