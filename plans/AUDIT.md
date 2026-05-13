@@ -82,6 +82,7 @@
 | I3 | Version number question | All at 0.3.1 — verify if should be 1.x |
 | I4 | DuckDuckGo CAPTCHA blocking | Externally blocked — deprioritized, monitoring |
 | I5 | `cli/ui/` pnpm lock file | Repo uses pnpm; lock file status needs verification |
+| I6 | `markdownlint.toml` config not respected | `MD013 = false` set but rule still fires; pre-commit blocks valid docs-only commits | `markdownlint.toml`, `.githooks/pre-commit` |
 
 ### 6. Recently Merged Features (since last audit)
 

@@ -45,6 +45,7 @@ concerns, parity gaps).
 | K4 | Fix `duckduckgo-search` → `ddgs` in requirements.txt | `requirements.txt:9` | Package renamed upstream |
 | K5 | Add `3.13` classifier + black/ruff target-version | `pyproject.toml` | CI tests 3.13 but not listed |
 | K6 | Update AGENTS.md Playwright command to include all 3 projects | `AGENTS.md:55` | CI runs `desktop+mobile+tablet` |
+| K7 | Fix `markdownlint.toml` config parsing — `MD013=false` ignored | `markdownlint.toml`, `.githooks/pre-commit`, `.pre-commit-config.yaml` | TOML format may not be recognized; consider JSON or YAML config, or add `--disable MD013` to the hook args |
 
 ### Wave 3 — ADR-014 Constants & State Extraction (Effort: M, ~1 PR)
 
