@@ -14,6 +14,7 @@
 | 012 | [Correctness & Safety](012-correctness-and-safety-fixes.md) | Thread safety, SSRF, provider gaps | Wave 1 ✅ Wave 4 PENDING |
 | 013 | [Test Coverage & CI](013-test-coverage-and-ci-reliability.md) | Misleading tests, CI fixes | Wave 1b ✅ Wave 2,5 PENDING |
 | 014 | [Architecture & Parity](014-architecture-and-parity.md) | DRY consolidation, constants, dead code | Wave 3,6 PENDING |
+| 015 | [Nightly Bridge PR](17-NIGHTLY-BRIDGE-PR.md) | Nightly workflow push→PR | PROPOSED → IMPLEMENTING |
 
 ## Implementation Waves
 
@@ -44,6 +45,7 @@
 | 11 | [Cache Pre-warming](11-cache-prewarming.md) | CLI + web prewarm (Scope creep extraction) | PENDING |
 | 15 | [Next Phase](15-GOAP-NEXT-PHASE.md) | Wave 2-6 + AUDIT P0/P1 items | Superseded (see 16) |
 | 16 | [GOAP Waves 2-6](16-GOAP-WAVE2-6.md) | CI, constants, quality, splits, tests, parity | Active plan |
+| 17 | [Nightly Bridge PR](17-NIGHTLY-BRIDGE-PR.md) | ADR-015 + GOAP: nightly push→PR fix | Active plan |
 
 ## Executed Plans (Completed)
 
@@ -52,3 +54,4 @@
 | [CI_FIX.md](CI_FIX.md) | npm peer deps + libsql fix |
 | [ESLINT_CONFIG_UPDATE.md](ESLINT_CONFIG_UPDATE.md) | ESLint 2026 config |
 | [GOAP_FOLLOWUP.md](GOAP_FOLLOWUP.md) | ADR-012/013/014 wave tracking |
+| [17-NIGHTLY-BRIDGE-PR.md](17-NIGHTLY-BRIDGE-PR.md) | ADR-015 + GOAP: nightly push→PR fix |
