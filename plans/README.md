@@ -9,7 +9,7 @@
 | # | ADR | Topic | Status |
 |---|---|---|---|
 | 009 | [Cross-Runtime](009-cross-runtime-analysis.md) | Parity gaps, config vs env | Referenced |
-| 012 | [Correctness & Safety](012-correctness-and-safety-fixes.md) | Thread safety, SSRF, provider gaps | Wave 1 ✅ (PR #fix/adr-012) |
+| 012 | [Correctness & Safety](012-correctness-and-safety-fixes.md) | Thread safety, SSRF, provider gaps | Wave 1 ✅ Merged (PR #364) |
 | 013 | [Test Coverage & CI](013-test-coverage-and-ci-reliability.md) | Misleading tests, CI fixes | Pending |
 | 014 | [Architecture & Parity](014-architecture-and-parity.md) | DRY consolidation, constants, dead code | Pending |
 
