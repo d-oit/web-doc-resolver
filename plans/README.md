@@ -6,6 +6,67 @@
 → **[16-GOAP-WAVE2-6.md](16-GOAP-WAVE2-6.md)** — Comprehensive 7-wave plan (supersedes 15).
 → **[15-GOAP-NEXT-PHASE.md](15-GOAP-NEXT-PHASE.md)** — Previous plan (superseded by 16).
 
+## Release Readiness: v0.3.4
+
+**Current version**: `0.3.1` (manifest) — GitHub latest: `v0.3.3` (tag/manifest drift from PR #270 regression)
+**Commits since v0.3.1**: 234
+**Quality gate**: PASS (exit 0) — ~3262 markdownlint warnings (non-blocking)
+**CI**: All workflows passing on `main`
+
+### Version Drift Root Cause
+
+Commit `c283dfa` (PR #270) merged an old branch on top of v0.3.3 release, reverting all 4 manifests and CHANGELOG entries. Old branch was forked BEFORE release tags, so merge overwrote release version.
+
+**Permanent fix applied (3-layer defense):**
+
+1. `release.sh` now calls `sync_versions.py --set` (handles all 4 files including `cli.rs`)
+2. CI `validate-version` job enforces manifest >= latest tag on every PR
+3. Quality gate warns locally on version regression
+
+### What Changed Since v0.3.1 (highlights)
+
+### Blockers for v0.3.4
+
+| # | Blocker | File/Area | Status |
+|---|---------|-----------|--------|
+| B1 | --- | --- | ✅ RESOLVED — Wave 2 + Wave 5 executed |
+
+### Recommended: Release v0.3.4 (patch)
+
+- **234 commits** since v0.3.1 — significant feature work (rate throttling, adaptive routing, quality gate, semantic cache, SSRF hardening, nightly CI fix, CI config fixes, Rust file splits)
+- Latest GitHub release is v0.3.3 — need to align manifests with tag history
+- Wave 2 + Wave 5 executed — ready for patch release
+- Remaining work (Waves 3, 4, 6, 7) can ship in v0.3.5+
+
+### GitHub Actions Status (2026-05-13)
+
+| Workflow | Status | Notes |
+|----------|--------|-------|
+| CI | ✅ passing | Python + Rust CI |
+| CI UI | ✅ passing | Next.js lint + Playwright 3 projects |
+| Integration Tests | ✅ passing | CLI integration |
+| Gitleaks | ✅ passing | Secret scanning |
+| Nightly Bridge | ✅ passing (PR #366) | Fixed: push→PR creation |
+| Close Resolved Issues | ✅ passing | Auto-close linked issues |
+| Dep Submission | ✅ passing | Python dependency graph |
+
+### What Changed Since v0.3.1 (highlights)
+
+- feat: Per-provider token-bucket rate throttling (#358)
+- feat: Adaptive per-domain provider reordering (#343)
+- feat: Quality confidence gate — skip paid on high free quality (#341)
+- feat: Probabilistic provider skip for low-win-rate providers (#342)
+- feat: Tiered provider TTL in config.toml (#338)
+- feat: Startup pre-warm for top-N domains (#339)
+- feat: Semantic cache optimization + observability (#353)
+- feat: Exa MCP monthly usage tracking (#356)
+- fix: TOCTOU race in CircuitBreakerState.is_open() (#365)
+- fix: SSRF gaps in docling + ocr providers (#365)
+- fix: Shared session for synthesis (no raw requests.post) (#365)
+- fix: Nightly Bridge CI push→PR creation (#366)
+- ci: Template workflows, gitleaks SHA-pins, .gitattributes (#359-361)
+- ci: Quality gate with shellcheck + markdownlint + caching
+
 ## Active ADRs
 
 | # | ADR | Topic | Status |
@@ -14,7 +75,7 @@
 | 012 | [Correctness & Safety](012-correctness-and-safety-fixes.md) | Thread safety, SSRF, provider gaps | Wave 1 ✅ Wave 4 PENDING |
 | 013 | [Test Coverage & CI](013-test-coverage-and-ci-reliability.md) | Misleading tests, CI fixes | Wave 1b ✅ Wave 2,5 PENDING |
 | 014 | [Architecture & Parity](014-architecture-and-parity.md) | DRY consolidation, constants, dead code | Wave 3,6 PENDING |
-| 015 | [Nightly Bridge PR](17-NIGHTLY-BRIDGE-PR.md) | Nightly workflow push→PR | PROPOSED → IMPLEMENTING |
+| 015 | [Nightly Bridge PR](17-NIGHTLY-BRIDGE-PR.md) | Nightly workflow push→PR | ✅ **IMPLEMENTED** (PR #366 merged) |
 
 ## Implementation Waves
 
@@ -22,10 +83,10 @@
 |------|-----|-------|--------|
 | 1 | ADR-012 T1-T6, S1-S3, P1-P2 | Thread safety, SSRF, provider reachability | ✅ **DONE** (PR #364) |
 | 1b | ADR-013 I6-I8 | web/package.json version fixes, npm peer deps, libsql | ✅ **DONE** |
-| 2 | ADR-013 I1-I5, K1-K7 + N9/N11 | CI fixes, pre-commit, gitleaks, classifiers, package names | PENDING |
+| 2 | ADR-013 I1-I5, K1-K7 + N9/N11 | CI fixes, pre-commit, gitleaks, classifiers, package names | ✅ **DONE** (K7 markdownlint config OPEN) |
 | 3 | ADR-014 A1-A8 | constants.py, state.py extraction | PENDING |
-| 4 | ADR-012 P3b,P4-P7, Q1-Q6 + N5/N6/N12/N13 | Logging, quality, synthesis fixes, TOCTOU, lock guards, SSRF gaps | PARTIAL (P4,N5,N12,N13,N13b ✅ DONE) |
-| 5 | R1-R7 | Rust file splits & dedup (semantic_cache, config, query) | PENDING |
+| 4 | ADR-012 P3b,P4-P7, Q1-Q6 + N5/N6/N12/N13 | Logging, quality, synthesis fixes, TOCTOU, lock guards, SSRF gaps | PARTIAL (P4,N5,N12,N13,N13b ✅ DONE; P3b,P5,P6,Q1-Q6,N6 ❌) |
+| 5 | R1-R7 | Rust file splits & dedup (semantic_cache, config, query) | ✅ **DONE** (R5 deferred) |
 | 6 | T1-T8 | Test coverage for web lib + Rust resolver + skills evals | PENDING |
 | 7 | W1-W4 | Web middleware + cross-platform parity (preflight, hedging) | PENDING |
 

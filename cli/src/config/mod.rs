@@ -1,7 +1,3 @@
-//! Configuration module for the Web Documentation Resolver CLI.
-//!
-//! Provides layered config loading: config.toml + DO_WDR_* env vars + API key env vars.
-
 use crate::semantic_cache::SemanticCacheConfig;
 use crate::types::Profile;
 use serde::Deserialize;
@@ -9,6 +5,13 @@ use std::collections::HashMap;
 use std::env;
 use std::path::Path;
 use thiserror::Error;
+
+use defaults::*;
+mod defaults;
+mod parsing;
+
+pub use defaults::RoutingProfileConfig;
+pub use defaults::routing_profile_defaults;
 
 #[derive(Error, Debug)]
 #[allow(dead_code)]
@@ -21,72 +24,48 @@ pub enum ConfigError {
     InvalidConfig(String),
 }
 
-/// Main configuration struct
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
-    /// Maximum characters in output (default: 8000)
     #[serde(default = "default_max_chars")]
     pub max_chars: usize,
-    /// Minimum characters for valid content (default: 200)
     #[serde(default = "default_min_chars")]
     pub min_chars: usize,
-    /// Number of Exa results (default: 5)
     #[serde(default = "default_exa_results")]
     pub exa_results: usize,
-    /// Number of Tavily results (default: 3)
     #[serde(default = "default_tavily_results")]
     pub tavily_results: usize,
-    /// Maximum output results (default: 10)
     #[serde(default = "default_output_limit")]
     pub output_limit: usize,
-    /// Log level (default: info)
     #[serde(default)]
     pub log_level: String,
-    /// Skip specific providers
     #[serde(default)]
     pub skip_providers: Vec<String>,
-    /// Provider order (custom cascade order)
     #[serde(default)]
     pub providers_order: Vec<String>,
-    /// Semantic cache configuration
     #[serde(default)]
     pub semantic_cache: SemanticCacheConfig,
-    /// Cache configuration
     #[serde(default)]
     pub cache: CacheConfig,
-    /// Routing configuration
     #[serde(default)]
     pub routing: RoutingConfig,
-    /// Execution profile (default: balanced)
     #[serde(default)]
     pub profile: Profile,
-    /// Quality threshold (default: from profile)
     pub quality_threshold: Option<f32>,
-    /// Max provider attempts (default: from profile)
     pub max_provider_attempts: Option<usize>,
-    /// Max paid attempts (default: from profile)
     pub max_paid_attempts: Option<usize>,
-    /// Max total latency (default: from profile)
     pub max_total_latency_ms: Option<u64>,
-    /// Disable routing memory
     #[serde(default)]
     pub disable_routing_memory: bool,
-    /// Negative cache TTL for thin content in seconds (default: 1800)
     #[serde(default = "default_negative_cache_ttl")]
     pub negative_cache_ttl_secs: u64,
-    /// Negative cache TTL for errors in seconds (default: 600)
     #[serde(default = "default_error_cache_ttl")]
     pub error_cache_ttl_secs: u64,
-    /// Circuit breaker failure threshold (default: 3)
     #[serde(default = "default_circuit_breaker_threshold")]
     pub circuit_breaker_threshold: u32,
-    /// Circuit breaker cooldown in seconds (default: 300)
     #[serde(default = "default_circuit_breaker_cooldown")]
     pub circuit_breaker_cooldown_secs: u64,
-    /// Max links to extract (default: 10)
     #[serde(default = "default_max_links")]
     pub max_links: usize,
-    /// Provider-specific configurations
     #[serde(default)]
     pub providers: HashMap<String, ProviderConfig>,
 }
@@ -103,44 +82,25 @@ pub struct RateLimitConfig {
     pub burst: f64,
 }
 
-fn default_burst() -> f64 {
-    1.0
-}
-
-/// Routing configuration
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct RoutingConfig {
-    /// Quality threshold for free results to skip paid providers (default: 0.70)
     pub min_free_quality_to_skip_paid: Option<f32>,
 }
 
-/// Aggregated cache configuration
 #[derive(Debug, Clone, Deserialize, Default)]
 pub struct CacheConfig {
-    /// Synthesis cache configuration
     #[serde(default)]
     pub synthesis: SynthesisCacheConfig,
     #[serde(default)]
     pub ttl: CacheTtlConfig,
 }
 
-/// Synthesis cache configuration
 #[derive(Debug, Clone, Deserialize)]
 pub struct SynthesisCacheConfig {
-    /// Enable synthesis cache
     #[serde(default = "default_synthesis_cache_enabled")]
     pub enabled: bool,
-    /// TTL for synthesis results in seconds (default: 43200 = 12h)
     #[serde(default = "default_synthesis_cache_ttl")]
     pub ttl: u64,
-}
-
-fn default_synthesis_cache_enabled() -> bool {
-    true
-}
-
-fn default_synthesis_cache_ttl() -> u64 {
-    43200
 }
 
 impl Default for SynthesisCacheConfig {
@@ -193,132 +153,6 @@ impl Default for CacheTtlConfig {
     }
 }
 
-pub struct RoutingProfileConfig {
-    pub max_provider_attempts: usize,
-    pub max_paid_attempts: usize,
-    pub max_total_latency_ms: u64,
-    pub quality_threshold: f32,
-    pub min_free_quality_to_skip_paid: f32,
-    pub allow_paid: bool,
-}
-
-pub fn routing_profile_defaults(name: &str) -> RoutingProfileConfig {
-    match name {
-        "free" => RoutingProfileConfig {
-            max_provider_attempts: 3,
-            max_paid_attempts: 0,
-            max_total_latency_ms: 6_000,
-            quality_threshold: 0.70,
-            min_free_quality_to_skip_paid: 0.70,
-            allow_paid: false,
-        },
-        "fast" => RoutingProfileConfig {
-            max_provider_attempts: 2,
-            max_paid_attempts: 1,
-            max_total_latency_ms: 4_000,
-            quality_threshold: 0.60,
-            min_free_quality_to_skip_paid: 0.70,
-            allow_paid: true,
-        },
-        "quality" => RoutingProfileConfig {
-            max_provider_attempts: 6,
-            max_paid_attempts: 3,
-            max_total_latency_ms: 15_000,
-            quality_threshold: 0.55,
-            min_free_quality_to_skip_paid: 0.75, // Higher threshold for quality profile
-            allow_paid: true,
-        },
-        _ => RoutingProfileConfig {
-            max_provider_attempts: 4,
-            max_paid_attempts: 1,
-            max_total_latency_ms: 9_000,
-            quality_threshold: 0.65,
-            min_free_quality_to_skip_paid: 0.70,
-            allow_paid: true,
-        },
-    }
-}
-
-fn default_max_chars() -> usize {
-    8000
-}
-
-fn default_min_chars() -> usize {
-    200
-}
-
-fn default_exa_results() -> usize {
-    5
-}
-
-fn default_tavily_results() -> usize {
-    3
-}
-
-fn default_output_limit() -> usize {
-    10
-}
-
-fn default_negative_cache_ttl() -> u64 {
-    1800
-}
-
-fn default_error_cache_ttl() -> u64 {
-    600
-}
-
-fn default_circuit_breaker_threshold() -> u32 {
-    3
-}
-
-fn default_circuit_breaker_cooldown() -> u64 {
-    300
-}
-
-fn default_max_links() -> usize {
-    10
-}
-
-fn default_ttl_firecrawl() -> u64 {
-    21600
-}
-
-fn default_ttl_exa() -> u64 {
-    14400
-}
-
-fn default_ttl_tavily() -> u64 {
-    14400
-}
-
-fn default_ttl_serper() -> u64 {
-    7200
-}
-
-fn default_ttl_jina() -> u64 {
-    7200
-}
-
-fn default_ttl_mistral() -> u64 {
-    28800
-}
-
-fn default_ttl_duckduckgo() -> u64 {
-    3600
-}
-
-fn default_ttl_llms_txt() -> u64 {
-    28800
-}
-
-fn default_ttl_synthesis() -> u64 {
-    43200
-}
-
-fn default_ttl_default() -> u64 {
-    3600
-}
-
 impl Default for Config {
     fn default() -> Self {
         Self {
@@ -350,19 +184,15 @@ impl Default for Config {
 }
 
 impl Config {
-    /// Load configuration from a TOML file and merge with defaults
     pub fn from_file(path: impl AsRef<Path>) -> Result<Self, ConfigError> {
         let content = std::fs::read_to_string(path.as_ref())?;
         let file_config: Config = toml::from_str(&content)?;
-        // Merge file config with defaults - file values override defaults
         let mut config = Config::default();
         config.merge(file_config);
         Ok(config)
     }
 
-    /// Merge another config into self, overriding only set values
     pub fn merge(&mut self, other: Config) {
-        // Only override if the value differs from default
         if other.max_chars != default_max_chars() {
             self.max_chars = other.max_chars;
         }
@@ -402,7 +232,6 @@ impl Config {
         if other.max_links != default_max_links() {
             self.max_links = other.max_links;
         }
-        // Merge cache TTLs
         if other.cache.ttl.firecrawl != default_ttl_firecrawl() {
             self.cache.ttl.firecrawl = other.cache.ttl.firecrawl;
         }
@@ -463,167 +292,12 @@ impl Config {
         }
     }
 
-    /// Load configuration with environment variable overrides
     pub fn load() -> Self {
-        // Start with defaults
         let mut config = Config::default();
-
-        // Try to load from config.toml and merge
-        if let Ok(config_path) = env::var("DO_WDR_CONFIG") {
-            if let Ok(file_config) = Config::from_file(&config_path) {
-                config.merge(file_config);
-            }
-        } else {
-            // Try default locations
-            for path in ["./config.toml", "./do-wdr.toml", "./do-wdr.conf"] {
-                if let Ok(file_config) = Config::from_file(path) {
-                    config.merge(file_config);
-                    break;
-                }
-            }
-        }
-
-        // Override with environment variables
-        if let Ok(val) = env::var("DO_WDR_MAX_CHARS") {
-            if let Ok(v) = val.parse() {
-                config.max_chars = v;
-            }
-        }
-        if let Ok(val) = env::var("DO_WDR_MIN_CHARS") {
-            if let Ok(v) = val.parse() {
-                config.min_chars = v;
-            }
-        }
-        if let Ok(val) = env::var("DO_WDR_EXA_RESULTS") {
-            if let Ok(v) = val.parse() {
-                config.exa_results = v;
-            }
-        }
-        if let Ok(val) = env::var("DO_WDR_TAVILY_RESULTS") {
-            if let Ok(v) = val.parse() {
-                config.tavily_results = v;
-            }
-        }
-        if let Ok(val) = env::var("DO_WDR_OUTPUT_LIMIT") {
-            if let Ok(v) = val.parse() {
-                config.output_limit = v;
-            }
-        }
-        if let Ok(val) = env::var("DO_WDR_LOG_LEVEL") {
-            config.log_level = val;
-        }
-        if let Ok(val) = env::var("DO_WDR_SKIP_PROVIDERS") {
-            config.skip_providers = val.split(',').map(|s| s.trim().to_string()).collect();
-        }
-        if let Ok(val) = env::var("DO_WDR_PROVIDERS_ORDER") {
-            config.providers_order = val.split(',').map(|s| s.trim().to_string()).collect();
-        }
-        if let Ok(val) = env::var("DO_WDR_PROFILE") {
-            if let Ok(p) = val.parse() {
-                config.profile = p;
-            }
-        }
-        if let Ok(val) = env::var("DO_WDR_QUALITY_THRESHOLD") {
-            if let Ok(v) = val.parse() {
-                config.quality_threshold = Some(v);
-            }
-        }
-        if let Ok(val) = env::var("DO_WDR_MIN_FREE_QUALITY_TO_SKIP_PAID") {
-            if let Ok(v) = val.parse() {
-                config.routing.min_free_quality_to_skip_paid = Some(v);
-            }
-        }
-        if let Ok(val) = env::var("DO_WDR_MAX_PROVIDER_ATTEMPTS") {
-            if let Ok(v) = val.parse() {
-                config.max_provider_attempts = Some(v);
-            }
-        }
-        if let Ok(val) = env::var("DO_WDR_MAX_PAID_ATTEMPTS") {
-            if let Ok(v) = val.parse() {
-                config.max_paid_attempts = Some(v);
-            }
-        }
-        if let Ok(val) = env::var("DO_WDR_MAX_TOTAL_LATENCY_MS") {
-            if let Ok(v) = val.parse() {
-                config.max_total_latency_ms = Some(v);
-            }
-        }
-        if let Ok(val) = env::var("DO_WDR_DISABLE_ROUTING_MEMORY") {
-            if let Ok(v) = val.parse() {
-                config.disable_routing_memory = v;
-            }
-        }
-
-        // Cache TTL overrides from environment variables
-        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_FIRECRAWL") {
-            if let Ok(v) = val.parse() {
-                config.cache.ttl.firecrawl = v;
-            }
-        }
-        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_EXA") {
-            if let Ok(v) = val.parse() {
-                config.cache.ttl.exa = v;
-            }
-        }
-        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_TAVILY") {
-            if let Ok(v) = val.parse() {
-                config.cache.ttl.tavily = v;
-            }
-        }
-        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_SERPER") {
-            if let Ok(v) = val.parse() {
-                config.cache.ttl.serper = v;
-            }
-        }
-        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_JINA") {
-            if let Ok(v) = val.parse() {
-                config.cache.ttl.jina = v;
-            }
-        }
-        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_MISTRAL") {
-            if let Ok(v) = val.parse() {
-                config.cache.ttl.mistral = v;
-            }
-        }
-        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_DUCKDUCKGO") {
-            if let Ok(v) = val.parse() {
-                config.cache.ttl.duckduckgo = v;
-            }
-        }
-        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_LLMS_TXT") {
-            if let Ok(v) = val.parse() {
-                config.cache.ttl.llms_txt = v;
-            }
-        }
-        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_SYNTHESIS") {
-            if let Ok(v) = val.parse() {
-                config.cache.ttl.synthesis = v;
-            }
-        }
-        if let Ok(val) = env::var("DO_WDR_CACHE_TTL_DEFAULT") {
-            if let Ok(v) = val.parse() {
-                config.cache.ttl.default = v;
-            }
-        }
-
-        // Semantic cache config from env vars
-        if let Ok(val) = env::var("DO_WDR_SEMANTIC_CACHE__ENABLED") {
-            config.semantic_cache.enabled = val.parse().unwrap_or(false);
-        }
-        if let Ok(val) = env::var("DO_WDR_SEMANTIC_CACHE__PATH") {
-            config.semantic_cache.path = val;
-        }
-        if let Ok(val) = env::var("DO_WDR_SEMANTIC_CACHE__THRESHOLD") {
-            config.semantic_cache.threshold = val.parse().unwrap_or(0.85);
-        }
-        if let Ok(val) = env::var("DO_WDR_SEMANTIC_CACHE__MAX_ENTRIES") {
-            config.semantic_cache.max_entries = val.parse().unwrap_or(10000);
-        }
-
+        parsing::apply_env_overrides(&mut config);
         config
     }
 
-    /// Get API key for a provider
     #[allow(dead_code)]
     pub fn api_key(&self, provider: &str) -> Option<String> {
         let key_name = match provider {
@@ -637,12 +311,10 @@ impl Config {
         env::var(key_name).ok()
     }
 
-    /// Check if a provider should be skipped
     pub fn is_skipped(&self, provider: &str) -> bool {
         self.skip_providers.iter().any(|p| p == provider)
     }
 
-    /// Get the TTL for a given provider
     pub fn get_ttl(&self, provider: &str) -> u64 {
         match provider {
             "firecrawl" => self.cache.ttl.firecrawl,
@@ -675,7 +347,6 @@ mod tests {
 
     #[test]
     fn test_api_key_lookup() {
-        // Note: This test may fail if env vars are set
         let config = Config::default();
         assert!(config.api_key("unknown").is_none());
     }

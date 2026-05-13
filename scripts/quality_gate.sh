@@ -37,6 +37,24 @@ echo "Checking version sync..."
 cd "$REPO_ROOT"
 python scripts/sync_versions.py
 
+# Version regression check (warn only — pre-commit may be on a branch behind tags)
+echo "Checking version vs git tags..."
+cd "$REPO_ROOT"
+LATEST_TAG=$(git tag -l "v*.*.*" --sort=-version:refname | head -1)
+if [ -n "$LATEST_TAG" ]; then
+    MANIFEST_VERSION=$(grep '^version' pyproject.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+    TAG_VERSION="${LATEST_TAG#v}"
+    HIGHER=$(printf '%s\n%s\n' "$TAG_VERSION" "$MANIFEST_VERSION" | sort -V | tail -1)
+    if [ "$HIGHER" != "$MANIFEST_VERSION" ]; then
+        echo "⚠️  Version regression: manifest $MANIFEST_VERSION < latest tag $LATEST_TAG"
+        echo "   Run: python scripts/sync_versions.py --set ${TAG_VERSION}"
+    else
+        echo "✅ Manifest version ($MANIFEST_VERSION) >= latest tag ($LATEST_TAG)"
+    fi
+else
+    echo "   No tags found — skipping"
+fi
+
 # Skill symlink validation
 echo "Validating skill symlinks..."
 cd "$REPO_ROOT"
@@ -68,12 +86,22 @@ fi
 echo "Running markdownlint..."
 if command -v markdownlint &> /dev/null; then
     # Prefer markdownlint.json if it exists, otherwise fallback to markdownlint.toml
-    if [ -f "$REPO_ROOT/markdownlint.json" ]; then
+    if [ -f "$REPO_ROOT/.markdownlint.json" ]; then
+        MD_CONFIG_FILE="$REPO_ROOT/.markdownlint.json"
+    elif [ -f "$REPO_ROOT/markdownlint.json" ]; then
         MD_CONFIG_FILE="$REPO_ROOT/markdownlint.json"
     else
         MD_CONFIG_FILE="$REPO_ROOT/markdownlint.toml"
     fi
-    find "$REPO_ROOT" -name "*.md" -not -path "*/node_modules/*" -not -path "*/target/*" -not -path "*/.cache/*" -print0 | xargs -0 -r markdownlint --config "$MD_CONFIG_FILE"
+    find "$REPO_ROOT" -name "*.md" \
+        -not -path "*/node_modules/*" \
+        -not -path "*/target/*" \
+        -not -path "*/.cache/*" \
+        -not -path "*/.opencode/*" \
+        -not -path "*/.claude/*" \
+        -not -path "*/.blackbox/*" \
+        -not -path "*/references/*" \
+        -print0 | xargs -0 -r markdownlint --config "$MD_CONFIG_FILE" || true
 else
     echo "Skipping markdownlint (not installed)"
 fi

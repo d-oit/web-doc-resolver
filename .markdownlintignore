@@ -1,0 +1,13 @@
+# Third-party skill reference files (not maintained by this project)
+.agents/skills/*/references/**
+.opencode/**
+.claude/**
+.blackbox/**
+.blackboxcli/**
+
+# Auto-generated / external
+CHANGELOG.md
+cli/ui/node_modules/**
+cli/target/**
+web/node_modules/**
+.cache/**
