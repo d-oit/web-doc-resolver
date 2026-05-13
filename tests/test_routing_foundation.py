@@ -467,7 +467,6 @@ class TestQualityGate:
             patch("scripts.routing.plan_provider_order", return_value=["exa_mcp", "exa"]),
             patch("scripts.resolve._get_executor") as mock_executor,
         ):
-
             mock_cb.is_open.return_value = False
             mock_rm.get_p75_latency.return_value = 100
 
