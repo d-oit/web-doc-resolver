@@ -9,6 +9,7 @@ import json
 import logging
 import os
 import struct
+import threading
 import time
 from dataclasses import dataclass, field
 from typing import Any, cast
@@ -367,29 +368,27 @@ class SemanticCache:
     def _maybe_evict(self) -> None:
         """Evict oldest entries if cache exceeds max_entries limit."""
         try:
-            # Count entries
-            cursor = self._conn.execute("SELECT COUNT(*) as count FROM cache_entries")
-            count = cursor.fetchone()["count"]
+            with self._conn:
+                cursor = self._conn.execute("SELECT COUNT(*) as count FROM cache_entries")
+                count = cursor.fetchone()["count"]
 
-            if count > self.max_entries:
-                # Delete oldest entries (by last_accessed)
-                to_delete = count - self.max_entries
-                cursor = self._conn.execute(
-                    """
-                    SELECT id FROM cache_entries
-                    ORDER BY last_accessed ASC, access_count ASC
-                    LIMIT ?
-                """,
-                    (to_delete,),
-                )
-                ids_to_delete = [row["id"] for row in cursor.fetchall()]
+                if count > self.max_entries:
+                    to_delete = count - self.max_entries
+                    cursor = self._conn.execute(
+                        """
+                        SELECT id FROM cache_entries
+                        ORDER BY last_accessed ASC, access_count ASC
+                        LIMIT ?
+                    """,
+                        (to_delete,),
+                    )
+                    ids_to_delete = [row["id"] for row in cursor.fetchall()]
 
-                for entry_id in ids_to_delete:
-                    self._conn.execute("DELETE FROM vec_cache WHERE rowid = ?", (entry_id,))
-                    self._conn.execute("DELETE FROM cache_entries WHERE id = ?", (entry_id,))
+                    for entry_id in ids_to_delete:
+                        self._conn.execute("DELETE FROM vec_cache WHERE rowid = ?", (entry_id,))
+                        self._conn.execute("DELETE FROM cache_entries WHERE id = ?", (entry_id,))
 
-                self._conn.commit()
-                logger.info("Evicted %d old semantic cache entries", len(ids_to_delete))
+                    logger.info("Evicted %d old semantic cache entries", len(ids_to_delete))
 
         except Exception as e:
             logger.warning("Cache eviction failed: %s", e)
@@ -462,6 +461,7 @@ class SemanticCache:
 
 # Global singleton instance
 _semantic_cache_instance: SemanticCache | None = None
+_semantic_cache_lock = threading.Lock()
 
 
 def get_semantic_cache() -> SemanticCache | None:
@@ -474,21 +474,24 @@ def get_semantic_cache() -> SemanticCache | None:
     global _semantic_cache_instance
 
     if _semantic_cache_instance is None:
-        # Check if enabled via environment
-        enabled = os.environ.get("DO_WDR_SEMANTIC_CACHE", "1") == "1"
-        if not enabled:
-            logger.debug("Semantic cache disabled via DO_WDR_SEMANTIC_CACHE=0")
-            return None
+        with _semantic_cache_lock:
+            if _semantic_cache_instance is None:
+                enabled = os.environ.get("DO_WDR_SEMANTIC_CACHE", "1") == "1"
+                if not enabled:
+                    logger.debug("Semantic cache disabled via DO_WDR_SEMANTIC_CACHE=0")
+                    return None
 
-        try:
-            threshold = float(os.environ.get("DO_WDR_CACHE_THRESHOLD", "0.85"))
-            max_entries = int(os.environ.get("DO_WDR_CACHE_MAX_ENTRIES", "10000"))
-            _semantic_cache_instance = SemanticCache(threshold=threshold, max_entries=max_entries)
-            if not _semantic_cache_instance.enabled:
-                return None
-        except Exception as e:
-            logger.warning("Failed to initialize semantic cache: %s", e)
-            return None
+                try:
+                    threshold = float(os.environ.get("DO_WDR_CACHE_THRESHOLD", "0.85"))
+                    max_entries = int(os.environ.get("DO_WDR_CACHE_MAX_ENTRIES", "10000"))
+                    _semantic_cache_instance = SemanticCache(
+                        threshold=threshold, max_entries=max_entries
+                    )
+                    if not _semantic_cache_instance.enabled:
+                        return None
+                except Exception as e:
+                    logger.warning("Failed to initialize semantic cache: %s", e)
+                    return None
 
     return _semantic_cache_instance if _semantic_cache_instance.enabled else None
 
@@ -496,6 +499,7 @@ def get_semantic_cache() -> SemanticCache | None:
 def reset_semantic_cache() -> None:
     """Reset the global semantic cache instance (mainly for testing)."""
     global _semantic_cache_instance
-    if _semantic_cache_instance:
-        _semantic_cache_instance.close()
-    _semantic_cache_instance = None
+    with _semantic_cache_lock:
+        if _semantic_cache_instance:
+            _semantic_cache_instance.close()
+        _semantic_cache_instance = None

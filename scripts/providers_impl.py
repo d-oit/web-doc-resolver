@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import subprocess
+import threading
 import time
 
 from scripts.models import ResolvedResult
@@ -14,6 +15,7 @@ from scripts.utils import (
     _save_to_cache,
     get_config_data,
     get_session,
+    is_safe_url,
 )
 
 logger = logging.getLogger(__name__)
@@ -29,18 +31,26 @@ TAVILY_RESULTS = int(os.getenv("WEB_RESOLVER_TAVILY_RESULTS", _config.get("tavil
 DDG_RESULTS = int(os.getenv("WEB_RESOLVER_DDG_RESULTS", _config.get("ddg_results", 5)))
 
 _rate_limits: dict[str, float] = {}
+_rate_limits_lock = threading.Lock()
 
 
 def _is_rate_limited(provider: str) -> bool:
-    if provider in _rate_limits:
-        if time.time() < _rate_limits[provider]:
-            return True
-        del _rate_limits[provider]
+    with _rate_limits_lock:
+        if provider in _rate_limits:
+            if time.time() < _rate_limits[provider]:
+                return True
+            del _rate_limits[provider]
     return False
 
 
 def _set_rate_limit(provider: str, cooldown: int = 60):
-    _rate_limits[provider] = time.time() + cooldown
+    with _rate_limits_lock:
+        _rate_limits[provider] = time.time() + cooldown
+
+
+def _clear_rate_limits() -> None:
+    with _rate_limits_lock:
+        _rate_limits.clear()
 
 
 # Exported names for both internal use and tests
@@ -257,6 +267,9 @@ def resolve_with_firecrawl(url: str, max_chars: int = MAX_CHARS) -> ResolvedResu
 
 
 def resolve_with_mistral_browser(url: str, max_chars: int = MAX_CHARS) -> ResolvedResult | None:
+    if not is_safe_url(url):
+        logger.warning(f"SSRF: blocked URL {url}")
+        return None
     cached = _get_from_cache(url, "mistral_browser")
     if cached:
         return ResolvedResult(**cached)
