@@ -33,6 +33,7 @@ describe("extractViaJina", () => {
   it("fetches through Jina after validating both the target and proxy URL", async () => {
     mockValidateUrlForFetchAsync
       .mockResolvedValueOnce({ valid: true })
+      .mockResolvedValueOnce({ valid: true })
       .mockResolvedValueOnce({ valid: true });
     vi.mocked(global.fetch).mockResolvedValue(
       new Response("x".repeat(250), {
