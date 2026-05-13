@@ -36,7 +36,7 @@ class CircuitBreakerRegistry:
     def __init__(self, threshold: int = 3):
         self.breakers: dict[str, CircuitBreakerState] = {}
         self.default_threshold = threshold
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
     def get_breaker(self, provider: str) -> CircuitBreakerState:
         with self._lock:

@@ -71,7 +71,7 @@ depend on them for state synchronization.
 
 | Task | Files | Effort |
 |---|---|---|
-| P3 Log provider exceptions (not silent return None) | `scripts/providers_impl.py` | M |
+| P3 Log provider exceptions (not silent return None) | `scripts/providers_impl.py` | S ✅ |
 | P4 Replace requests.post with shared session | `scripts/synthesis.py` | M |
 | P5 Fix preflight_route loose pattern matching | `scripts/routing.py` | M |
 | P6 Remove unused NegativeCacheEntry | `scripts/cache_negative.py` | S |
@@ -98,6 +98,16 @@ depend on them for state synchronization.
 | C1-C10 Circular imports, dead code | Various | M |
 
 ---
+
+## Codacy Review Feedback (PR #364) — All Addressed ✅
+
+| Comment | File | Fix |
+|---------|------|-----|
+| HIGH: SemanticCache SQLite not thread-safe | `scripts/semantic_cache.py` | Added `check_same_thread=False` + `_conn_lock` |
+| MEDIUM: Lock→RLock mismatch in CircuitBreaker | `scripts/circuit_breaker.py` | Changed to `threading.RLock()` |
+| MEDIUM: Lock→RLock mismatch in RoutingMemory | `scripts/routing_memory.py` | Changed to `threading.RLock()`, deduplicated `get_domain_stats` |
+| MEDIUM: SSRF missing from Jina/Firecrawl | `scripts/providers_impl.py` | Added `is_safe_url()` checks |
+| Minor: Bare except in Mistral browser | `scripts/providers_impl.py` | Changed to `except Exception as e:` with logging |
 
 ## Execution Order
 

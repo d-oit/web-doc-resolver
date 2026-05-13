@@ -181,5 +181,8 @@
 ### ADR-012 Wave 1 (2026-05-13)
 - **`threading.Lock` is non-reentrant**: Calling `_get_cache()` (which acquires `_cache_lock`) from within `_get_from_cache()` (which also holds `_cache_lock`) causes a deadlock. Use `threading.RLock` for nested lock acquisition.
 - **Conftest needs lock-safe clearing**: After adding locks to RoutingMemory/CircuitBreakerRegistry, the conftest `autouse` fixture must call `.clear()` methods (which hold the lock) instead of directly accessing `.domain_stats.clear()` or `.breakers.clear()`.
+- **CircuitBreakerRegistry and RoutingMemory need RLock**: PR review flagged `threading.Lock` vs `threading.RLock`. Fixed: `rank_providers()` calls `get_domain_stats()` which re-enters the same lock — requires RLock for recursive acquisition.
+- **Semantic cache SQLite needs `check_same_thread=False`**: SQLite's default `check_same_thread=True` causes `ProgrammingError` when the connection is used across `ThreadPoolExecutor` threads. Fix: set `check_same_thread=False` + add `_conn_lock` for serialized access.
+- **SSRF validation must be consistent**: Codacy review flagged that Mistral browser got SSRF check but Jina and Firecrawl didn't. Fixed: added `is_safe_url()` to all URL-fetching providers.
 - **Monkey-patching is a necessary evil**: `resolve.py` lines 85-91 wire shared instances to `_url_resolve`/`_query_resolve`. Until ADR-014 creates `scripts/state.py`, these overwrites must remain — tests depend on them for state synchronization.
 - **Test suite runs in ~60s**: The full non-live suite runs in ~60 seconds. The `pre-commit` hook timeout was caused by a deadlock, not slow tests.
