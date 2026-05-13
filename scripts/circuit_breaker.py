@@ -4,7 +4,7 @@ Circuit breaker logic for the Web Doc Resolver.
 
 import threading
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 
 @dataclass
@@ -13,18 +13,18 @@ class CircuitBreakerState:
     open_until: datetime | None = None
 
     def is_open(self) -> bool:
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         open_until = self.open_until
         if open_until is None:
             return False
         if open_until.tzinfo is None:
-            open_until = open_until.replace(tzinfo=UTC)
+            open_until = open_until.replace(tzinfo=timezone.utc)
         return open_until > now
 
     def record_failure(self, threshold: int = 3, cooldown_seconds: int = 300) -> None:
         self.failures += 1
         if self.failures >= threshold:
-            self.open_until = datetime.now(UTC) + timedelta(seconds=cooldown_seconds)
+            self.open_until = datetime.now(timezone.utc) + timedelta(seconds=cooldown_seconds)
 
     def record_success(self) -> None:
         self.failures = 0

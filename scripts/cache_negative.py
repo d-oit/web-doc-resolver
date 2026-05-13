@@ -3,7 +3,7 @@ Negative caching logic for the Web Doc Resolver.
 """
 
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 
@@ -32,8 +32,8 @@ def should_skip_from_negative_cache(cache, key: str, provider: str) -> bool:
     try:
         dt = datetime.fromisoformat(expires_at)
         if dt.tzinfo is None:
-            dt = dt.replace(tzinfo=UTC)
-        return dt > datetime.now(UTC)
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt > datetime.now(timezone.utc)
     except Exception:
         return False
 
@@ -51,7 +51,7 @@ def write_negative_cache(
 
         ttl_seconds = get_ttl(provider)
 
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
     entry = {
         "key": key,
         "provider": provider,

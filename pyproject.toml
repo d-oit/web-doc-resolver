@@ -106,6 +106,7 @@ ignore = [
     "E501",  # line too long (handled by black)
     "B008",  # do not perform function calls in argument defaults
     "C901",  # too complex
+    "UP017",  # datetime.UTC alias (requires Python 3.11+; project supports 3.10)
 ]
 
 [tool.mypy]
