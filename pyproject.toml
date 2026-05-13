@@ -65,7 +65,7 @@ include = ["scripts*"]
 
 [tool.black]
 line-length = 100
-target-version = ["py310", "py311", "py312", "py313"]
+target-version = ["py310", "py311", "py312"]
 include = '\.pyi?$'
 exclude = '''
 /(
@@ -89,7 +89,7 @@ exclude = '''
 
 [tool.ruff]
 line-length = 100
-target-version = "py313"
+target-version = "py312"
 exclude = [".agents/skills/", ".blackbox/skills/", ".claude/skills/", ".opencode/skills/"]
 
 [tool.ruff.lint]

@@ -10,8 +10,8 @@ use defaults::*;
 mod defaults;
 mod parsing;
 
-pub use defaults::routing_profile_defaults;
 pub use defaults::RoutingProfileConfig;
+pub use defaults::routing_profile_defaults;
 
 #[derive(Error, Debug)]
 #[allow(dead_code)]

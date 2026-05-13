@@ -1,5 +1,5 @@
-use crate::ResolverError;
 use super::{CacheStats, SemanticCache, StdResult};
+use crate::ResolverError;
 
 #[cfg(feature = "semantic-cache")]
 use std::collections::HashMap;

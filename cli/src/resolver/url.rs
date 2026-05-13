@@ -471,4 +471,3 @@ impl Default for UrlCascade {
         Self::new()
     }
 }
-

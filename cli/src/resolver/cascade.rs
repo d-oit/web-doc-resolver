@@ -87,10 +87,7 @@ pub fn classify_error(err: &ResolverError) -> String {
 }
 
 /// Build resolution budget from config
-pub fn build_budget(
-    config: &Config,
-    profile_defaults: &RoutingProfileConfig,
-) -> ResolutionBudget {
+pub fn build_budget(config: &Config, profile_defaults: &RoutingProfileConfig) -> ResolutionBudget {
     ResolutionBudget {
         max_provider_attempts: config
             .max_provider_attempts

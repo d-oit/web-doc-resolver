@@ -1,7 +1,7 @@
+use super::{SemanticCache, StdResult};
 use crate::ResolverError;
 use crate::config::Config;
 use crate::types::ResolvedResult;
-use super::{SemanticCache, StdResult};
 
 #[cfg(feature = "semantic-cache")]
 use {

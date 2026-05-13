@@ -157,9 +157,7 @@ class TestNegativeCache:
 
     def test_should_skip_returns_false_for_expired_entry(self):
         cache = MagicMock()
-        cache.get.return_value = {
-            "expiry": (datetime.now(UTC) - timedelta(minutes=1)).timestamp()
-        }
+        cache.get.return_value = {"expiry": (datetime.now(UTC) - timedelta(minutes=1)).timestamp()}
         assert should_skip_from_negative_cache(cache, "query", "provider") is False
 
     def test_write_negative_cache(self):

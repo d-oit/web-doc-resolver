@@ -498,6 +498,7 @@ impl QueryCascade {
 }
 
 impl Default for QueryCascade {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
-
