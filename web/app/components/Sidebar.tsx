@@ -63,6 +63,7 @@ export default function Sidebar({
 }: SidebarProps) {
   return (
     <aside
+      id="sidebar-container"
       className={`
         fixed inset-y-0 left-0 z-50 w-72 bg-background border-r-2 border-border-muted transition-transform duration-300 lg:relative lg:translate-x-0
         ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
@@ -72,6 +73,8 @@ export default function Sidebar({
       <button
         data-testid="sidebar-toggle"
         onClick={() => setSidebarOpen(!sidebarOpen)}
+        aria-expanded={sidebarOpen}
+        aria-controls="sidebar-config-content"
         className="w-full p-4 flex items-center justify-between hover:bg-[#141414] transition-colors min-h-[44px]"
         aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
       >
@@ -93,7 +96,7 @@ export default function Sidebar({
       </button>
 
       {sidebarOpen && (
-        <div className="p-4 flex flex-col gap-8 overflow-y-auto max-h-[calc(100vh-44px)]">
+        <div id="sidebar-config-content" className="p-4 flex flex-col gap-8 overflow-y-auto max-h-[calc(100vh-44px)]">
           {/* Profile */}
           <div className="flex flex-col gap-2">
             <label className="text-[11px] text-text-muted">Profile</label>
@@ -201,12 +204,13 @@ export default function Sidebar({
               data-testid="api-keys-toggle"
               onClick={() => setApiKeysOpen(!apiKeysOpen)}
               aria-expanded={apiKeysOpen}
+              aria-controls="api-keys-panel"
               className="text-[11px] text-text-muted hover:text-foreground text-left min-h-[44px] py-2"
             >
               {apiKeysOpen ? "▼" : "▶"} API Keys
             </button>
             {apiKeysOpen && (
-              <div className="flex flex-col gap-3 pl-2">
+              <div id="api-keys-panel" className="flex flex-col gap-3 pl-2">
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
                     <label htmlFor="max-chars-range-api" className="text-[11px] text-text-muted">Max chars</label>
