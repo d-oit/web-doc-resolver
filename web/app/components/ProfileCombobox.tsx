@@ -37,36 +37,36 @@ export default function ProfileCombobox({ value, onChange, options }: ProfileCom
         className="w-full bg-[#141414] border-2 border-border-muted px-3 py-2 text-left flex items-center justify-between text-[12px] min-h-[44px] hover:border-border-strong focus:border-accent"
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-controls="profile-options-listbox"
         aria-label="Change search profile"
       >
         <span>{selectedOption?.label || "Select profile..."}</span>
         <span className="text-[10px] text-text-dim">{open ? "▲" : "▼"}</span>
       </button>
 
-      {open && (
-        <div
-          className="absolute z-10 w-full mt-1 bg-[#141414] border-2 border-border-muted shadow-xl"
-          role="listbox"
-        >
-          {options.map((option) => (
-            <button
-              key={option.id}
-              onClick={() => {
-                onChange(option.id);
-                setOpen(false);
-              }}
-              className={`w-full px-3 py-2 text-left hover:bg-accent hover:text-background transition-colors flex flex-col ${
-                option.id === value ? "bg-[#222] text-accent" : "text-foreground"
-              }`}
-              role="option"
-              aria-selected={option.id === value}
-            >
-              <span className="text-[12px] font-bold">{option.label}</span>
-              {option.description && <div className="text-[10px] text-text-muted">{option.description}</div>}
-            </button>
-          ))}
-        </div>
-      )}
+      <div
+        id="profile-options-listbox"
+        className={`absolute z-10 w-full mt-1 bg-[#141414] border-2 border-border-muted shadow-xl ${!open ? 'hidden' : ''}`}
+        role="listbox"
+      >
+        {options.map((option) => (
+          <button
+            key={option.id}
+            onClick={() => {
+              onChange(option.id);
+              setOpen(false);
+            }}
+            className={`w-full px-3 py-2 text-left hover:bg-accent hover:text-background transition-colors flex flex-col ${
+              option.id === value ? "bg-[#222] text-accent" : "text-foreground"
+            }`}
+            role="option"
+            aria-selected={option.id === value}
+          >
+            <span className="text-[12px] font-bold">{option.label}</span>
+            {option.description && <div className="text-[10px] text-text-muted">{option.description}</div>}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

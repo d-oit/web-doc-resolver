@@ -145,15 +145,13 @@ export default function MainContent({
             {isUrl ? "Resolving as URL" : "Searching"}
           </div>
         )}
-        {providerStatus && (
-          <div
-            className="text-[11px] text-accent mt-2 animate-pulse"
-            role="status"
-            aria-live="polite"
-          >
-            {providerStatus}
-          </div>
-        )}
+        <div
+          className="text-[11px] text-accent mt-2 animate-pulse min-h-[1em]"
+          role="status"
+          aria-live="polite"
+        >
+          {providerStatus || ""}
+        </div>
       </div>
 
       {/* Error */}
