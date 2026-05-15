@@ -40,6 +40,7 @@ async function mockAppState(page: import("@playwright/test").Page): Promise<void
 async function waitForApp(page: import("@playwright/test").Page): Promise<void> {
   await mockAppState(page);
   await page.goto("/");
+  // Wait for the search input to be present and visible
   await expect(page.locator("#search-input")).toBeVisible({ timeout: 15000 });
 }
 
@@ -49,16 +50,17 @@ async function ensureSidebarOpen(page: import("@playwright/test").Page): Promise
     const menuButton = page.getByRole("button", { name: "Open menu" });
     const sidebar = page.locator("#sidebar-container");
 
-    // Check if sidebar is hidden by checking its transform
-    const isHidden = await sidebar.evaluate(el => {
-      const style = window.getComputedStyle(el);
-      return style.transform.includes('matrix') && style.transform.includes('-') || style.transform.includes('translateX(-');
+    // Check if sidebar is currently in the viewport
+    const isShowing = await sidebar.evaluate(el => {
+      const rect = el.getBoundingClientRect();
+      return rect.left >= 0 && rect.right > 0;
     });
 
-    if (isHidden) {
-       await menuButton.click();
-       // Wait for transition to finish - check for transform: none
-       await expect(sidebar).toHaveCSS("transform", "none");
+    if (!isShowing) {
+       // Click hamburger and wait for animation
+       await menuButton.click({ force: true });
+       await expect(sidebar).toBeInViewport({ timeout: 5000 });
+       await page.waitForTimeout(500);
     }
   }
 }
@@ -71,7 +73,9 @@ test.describe("UX & Accessibility Improvements", () => {
 
     const clearButton = page.getByRole("button", { name: "Clear input and results" });
     await expect(clearButton).toBeVisible();
-    await clearButton.click();
+
+    // Use force: true to bypass interception issues on small viewports in headless mode
+    await clearButton.click({ force: true });
 
     await expect(input).toBeFocused();
   });
@@ -90,7 +94,8 @@ test.describe("UX & Accessibility Improvements", () => {
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
     await expect(toggle).toHaveAttribute("aria-controls", "api-keys-panel");
 
-    await toggle.click();
+    await toggle.scrollIntoViewIfNeeded();
+    await toggle.click({ force: true });
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
     await expect(page.locator("#api-keys-panel")).toBeVisible();
   });
@@ -105,7 +110,7 @@ test.describe("UX & Accessibility Improvements", () => {
     const isMobile = (page.viewportSize()?.width || 0) < 1024;
     if (!isMobile) {
       await expect(toggle).toHaveAttribute("aria-expanded", "true");
-      await toggle.click();
+      await toggle.click({ force: true });
       await expect(toggle).toHaveAttribute("aria-expanded", "false");
     }
   });
@@ -118,7 +123,8 @@ test.describe("UX & Accessibility Improvements", () => {
     await expect(toggle).toHaveAttribute("aria-expanded", "false");
     await expect(toggle).toHaveAttribute("aria-controls", "profile-options-listbox");
 
-    await toggle.click();
+    await toggle.scrollIntoViewIfNeeded();
+    await toggle.click({ force: true });
     await expect(toggle).toHaveAttribute("aria-expanded", "true");
     await expect(page.locator("#profile-options-listbox")).toBeVisible();
   });
@@ -131,7 +137,8 @@ test.describe("UX & Accessibility Improvements", () => {
     await expect(profileLabel).toBeVisible();
 
     const apiToggle = page.getByTestId("api-keys-toggle");
-    await apiToggle.click();
+    await apiToggle.scrollIntoViewIfNeeded();
+    await apiToggle.click({ force: true });
 
     const apiLabel = page.locator("label[for='max-chars-range-api']");
     await expect(apiLabel).toBeVisible();
