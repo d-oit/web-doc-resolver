@@ -114,10 +114,11 @@ export default function Sidebar({
             </span>
             <div className="flex flex-col gap-1 mt-1">
               <div className="flex items-center justify-between">
-                <label className="text-[9px] text-text-muted">Max chars</label>
+                <label htmlFor="max-chars-range-profile" className="text-[9px] text-text-muted">Max chars</label>
                 <span className="text-[9px] text-accent">{(maxChars / 1000).toFixed(0)}k</span>
               </div>
               <input
+                id="max-chars-range-profile"
                 type="range"
                 min="1000"
                 max="32000"
@@ -199,6 +200,7 @@ export default function Sidebar({
             <button
               data-testid="api-keys-toggle"
               onClick={() => setApiKeysOpen(!apiKeysOpen)}
+              aria-expanded={apiKeysOpen}
               className="text-[11px] text-text-muted hover:text-foreground text-left min-h-[44px] py-2"
             >
               {apiKeysOpen ? "▼" : "▶"} API Keys
@@ -207,10 +209,11 @@ export default function Sidebar({
               <div className="flex flex-col gap-3 pl-2">
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
-                    <label className="text-[11px] text-text-muted">Max chars</label>
+                    <label htmlFor="max-chars-range-api" className="text-[11px] text-text-muted">Max chars</label>
                     <span className="text-[9px] text-accent">{(maxChars / 1000).toFixed(0)}k</span>
                   </div>
                   <input
+                    id="max-chars-range-api"
                     type="range"
                     min="1000"
                     max="32000"
