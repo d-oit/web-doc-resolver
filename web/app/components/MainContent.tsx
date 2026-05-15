@@ -130,6 +130,7 @@ export default function MainContent({
                   setQualityScore(null);
                   setParsedResults([]);
                   setViewRaw(false);
+                  inputRef.current?.focus();
                 }}
                 aria-label="Clear input and results"
                 className="bg-transparent text-text-dim px-4 py-2 text-[13px] border-2 border-border-muted hover:border-accent hover:text-accent min-h-[44px]"
@@ -144,11 +145,13 @@ export default function MainContent({
             {isUrl ? "Resolving as URL" : "Searching"}
           </div>
         )}
-        {providerStatus && (
-          <div className="text-[11px] text-accent mt-2 animate-pulse">
-            {providerStatus}
-          </div>
-        )}
+        <div
+          className="text-[11px] text-accent mt-2 animate-pulse min-h-[1em]"
+          role="status"
+          aria-live="polite"
+        >
+          {providerStatus || ""}
+        </div>
       </div>
 
       {/* Error */}
