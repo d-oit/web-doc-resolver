@@ -80,6 +80,7 @@ exclude = '''
     | dist
     | __pycache__
     | web/node_modules
+    | \.cache
     | \.agents/skills
     | \.blackbox/skills
     | \.claude/skills
@@ -90,7 +91,7 @@ exclude = '''
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-exclude = [".agents/skills/", ".blackbox/skills/", ".claude/skills/", ".opencode/skills/"]
+exclude = [".cache/", ".agents/skills/", ".blackbox/skills/", ".claude/skills/", ".opencode/skills/"]
 
 [tool.ruff.lint]
 select = [
