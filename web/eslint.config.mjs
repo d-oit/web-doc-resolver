@@ -8,7 +8,7 @@ import tsPlugin from "@typescript-eslint/eslint-plugin";
 
 export default [
   {
-    ignores: [".next/*", "node_modules/*", "dist/*", ".vercel/output/**", "playwright-report/**", "test-results/**", "next-env.d.ts"],
+    ignores: [".next/*", "node_modules/*", "dist/*", ".vercel/output/**", "playwright-report/**", "test-results/**"],
   },
   js.configs.recommended,
   {
