@@ -334,70 +334,76 @@ def compact_content(content: str, max_chars: int) -> str:
     return "\n".join(compacted)[:max_chars]
 
 
+class EnhancedHTMLParser(HTMLParser):
+    _block_tags = {
+        "p",
+        "div",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "li",
+        "tr",
+        "pre",
+        "br",
+        "article",
+        "section",
+        "header",
+        "footer",
+        "nav",
+        "aside",
+    }
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.result: list[str] = []
+        self._skip_depth = 0
+
+    def handle_starttag(self, tag, attrs):
+        tag_lower = tag.lower()
+        if tag_lower in ("script", "style"):
+            self._skip_depth += 1
+        elif self._skip_depth == 0:
+            if tag_lower in self._block_tags:
+                if self.result and self.result[-1] != "\n":
+                    self.result.append("\n")
+            if tag_lower == "code":
+                self.result.append("`")
+            elif tag_lower == "pre":
+                self.result.append("\n```\n")
+
+    def handle_endtag(self, tag):
+        tag_lower = tag.lower()
+        if tag_lower in ("script", "style") and self._skip_depth > 0:
+            self._skip_depth -= 1
+        elif self._skip_depth == 0:
+            if tag_lower == "code":
+                self.result.append("`")
+            elif tag_lower == "pre":
+                self.result.append("\n```\n")
+            elif tag_lower in self._block_tags:
+                if self.result and self.result[-1] != "\n":
+                    self.result.append("\n")
+
+    def handle_data(self, data):
+        if self._skip_depth == 0:
+            self.result.append(data)
+
+
+_RE_SPACES = re.compile(r"[ \t]+")
+_RE_NEWLINES = re.compile(r"\n{3,}")
+
+
 def extract_text_from_html(html: str, base_url: str = "") -> str:
-    class EnhancedHTMLParser(HTMLParser):
-        def __init__(self) -> None:
-            super().__init__(convert_charrefs=True)
-            self.result: list[str] = []
-            self._skip_depth = 0
-            self._block_tags = {
-                "p",
-                "div",
-                "h1",
-                "h2",
-                "h3",
-                "h4",
-                "h5",
-                "h6",
-                "li",
-                "tr",
-                "pre",
-                "br",
-                "article",
-                "section",
-                "header",
-                "footer",
-                "nav",
-                "aside",
-            }
-
-        def handle_starttag(self, tag, attrs):
-            tag_lower = tag.lower()
-            if tag_lower in ("script", "style"):
-                self._skip_depth += 1
-            elif self._skip_depth == 0:
-                if tag_lower in self._block_tags:
-                    if self.result and self.result[-1] != "\n":
-                        self.result.append("\n")
-                if tag_lower == "code":
-                    self.result.append("`")
-                elif tag_lower == "pre":
-                    self.result.append("\n```\n")
-
-        def handle_endtag(self, tag):
-            tag_lower = tag.lower()
-            if tag_lower in ("script", "style") and self._skip_depth > 0:
-                self._skip_depth -= 1
-            elif self._skip_depth == 0:
-                if tag_lower == "code":
-                    self.result.append("`")
-                elif tag_lower == "pre":
-                    self.result.append("\n```\n")
-                elif tag_lower in self._block_tags:
-                    if self.result and self.result[-1] != "\n":
-                        self.result.append("\n")
-
-        def handle_data(self, data):
-            if self._skip_depth == 0:
-                self.result.append(data)
-
     stripper = EnhancedHTMLParser()
     stripper.feed(html)
     text = "".join(stripper.result)
     # Normalize word joiner and other problematic characters
     text = text.replace("\u2060", "")
-    text = re.sub(r"[ \t]+", " ", text)
-    text = re.sub(r"\n{3,}", "\n\n", text)
+    text = _RE_SPACES.sub(" ", text)
+    text = _RE_NEWLINES.sub("\n\n", text)
     return text.strip()
 
 
