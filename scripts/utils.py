@@ -346,50 +346,96 @@ class EnhancedHTMLParser(HTMLParser):
         "h6",
         "li",
         "tr",
-        "pre",
-        "br",
         "article",
         "section",
         "header",
         "footer",
         "nav",
         "aside",
+        "blockquote",
+        "ul",
+        "ol",
+        "table",
+        "hr",
     }
 
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.result: list[str] = []
         self._skip_depth = 0
+        self._in_pre = 0
 
     def handle_starttag(self, tag, attrs):
         tag_lower = tag.lower()
         if tag_lower in ("script", "style"):
             self._skip_depth += 1
         elif self._skip_depth == 0:
-            if tag_lower in self._block_tags:
-                if self.result and self.result[-1] != "\n":
-                    self.result.append("\n")
+            if tag_lower == "pre":
+                self._in_pre += 1
+                self.result.append("\n\n```\n")
+            elif tag_lower == "br":
+                self.result.append("\n")
+            elif tag_lower == "hr":
+                self.result.append("\n\n---\n\n")
+            elif tag_lower in (
+                "p",
+                "h1",
+                "h2",
+                "h3",
+                "h4",
+                "h5",
+                "h6",
+                "blockquote",
+                "ul",
+                "ol",
+                "table",
+            ):
+                self.result.append("\n\n")
+            elif tag_lower in self._block_tags:
+                self.result.append("\n")
+
             if tag_lower == "code":
                 self.result.append("`")
-            elif tag_lower == "pre":
-                self.result.append("\n```\n")
 
     def handle_endtag(self, tag):
         tag_lower = tag.lower()
         if tag_lower in ("script", "style") and self._skip_depth > 0:
             self._skip_depth -= 1
         elif self._skip_depth == 0:
-            if tag_lower == "code":
+            if tag_lower == "pre":
+                self._in_pre = max(0, self._in_pre - 1)
+                self.result.append("\n```\n\n")
+            elif tag_lower == "code":
                 self.result.append("`")
-            elif tag_lower == "pre":
-                self.result.append("\n```\n")
+            elif tag_lower in (
+                "p",
+                "h1",
+                "h2",
+                "h3",
+                "h4",
+                "h5",
+                "h6",
+                "blockquote",
+                "ul",
+                "ol",
+                "table",
+            ):
+                self.result.append("\n\n")
             elif tag_lower in self._block_tags:
-                if self.result and self.result[-1] != "\n":
-                    self.result.append("\n")
+                self.result.append("\n")
 
     def handle_data(self, data):
         if self._skip_depth == 0:
-            self.result.append(data)
+            if self._in_pre > 0:
+                self.result.append(data)
+            else:
+                normalized = _RE_SPACES.sub(" ", data)
+                if normalized:
+                    # Prevent double spaces across chunks
+                    if normalized.startswith(" ") and self.result and self.result[-1].endswith(" "):
+                        normalized = normalized[1:]
+                    if normalized:
+                        self.result.append(normalized)
 
 
 _RE_SPACES = re.compile(r"[ \t]+")
@@ -402,7 +448,7 @@ def extract_text_from_html(html: str, base_url: str = "") -> str:
     text = "".join(stripper.result)
     # Normalize word joiner and other problematic characters
     text = text.replace("\u2060", "")
-    text = _RE_SPACES.sub(" ", text)
+    # Note: _RE_SPACES is handled per-chunk in handle_data to preserve code blocks.
     text = _RE_NEWLINES.sub("\n\n", text)
     return text.strip()
 
