@@ -1,12 +1,14 @@
 import pytest
-from scripts.synthesis import deterministic_merge
-from scripts.quality import score_content
+
 from scripts.models import ResolvedResult
+from scripts.quality import score_content
+from scripts.synthesis import deterministic_merge
+
 
 def test_deterministic_merge_standards():
     results = [
         ResolvedResult(source="test", content="Some content here", url="https://example.com/1"),
-        ResolvedResult(source="test2", content="Other content here", url="https://example.com/2")
+        ResolvedResult(source="test2", content="Other content here", url="https://example.com/2"),
     ]
     output = deterministic_merge(results)
 
@@ -26,6 +28,7 @@ def test_deterministic_merge_standards():
     # Check Citations
     assert "[1] https://example.com/1" in output
     assert "[2] https://example.com/2" in output
+
 
 def test_quality_scoring_standards_bonus():
     # Compliant document
