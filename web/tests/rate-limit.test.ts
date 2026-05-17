@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from "vitest";
-import { checkRateLimit, clearRateLimits, getRateLimitStats, cleanupExpiredEntries } from "../lib/rate-limit";
+import { checkRateLimit, clearRateLimits, getRateLimitStats, cleanupExpiredEntries, getClientIdentifier } from "../lib/rate-limit";
 
 describe("rate limiting", () => {
   beforeEach(() => {
@@ -76,6 +76,31 @@ describe("rate limiting", () => {
 
       const stats = getRateLimitStats();
       expect(stats.totalEntries).toBe(0);
+    });
+  });
+
+  describe("getClientIdentifier", () => {
+    it("prioritizes x-forwarded-for over x-real-ip", () => {
+      const headers = new Headers({
+        "x-forwarded-for": "1.2.3.4, 5.6.7.8",
+        "x-real-ip": "9.9.9.9",
+      });
+      const request = { headers } as unknown as Request;
+      expect(getClientIdentifier(request)).toBe("1.2.3.4");
+    });
+
+    it("uses x-real-ip if x-forwarded-for is missing", () => {
+      const headers = new Headers({
+        "x-real-ip": "9.9.9.9",
+      });
+      const request = { headers } as unknown as Request;
+      expect(getClientIdentifier(request)).toBe("9.9.9.9");
+    });
+
+    it("returns 'unknown' if no IP headers are present", () => {
+      const headers = new Headers();
+      const request = { headers } as unknown as Request;
+      expect(getClientIdentifier(request)).toBe("unknown");
     });
   });
 });

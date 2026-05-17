@@ -206,7 +206,7 @@ function normalizeQueryProviders(providerIds: string[], keys: ProviderKeys): str
 
 export async function POST(request: NextRequest) {
   const identifier = getClientIdentifier(request);
-  const { allowed } = await checkRateLimit(identifier);
+  const { allowed } = checkRateLimit(identifier);
 
   if (!allowed) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
