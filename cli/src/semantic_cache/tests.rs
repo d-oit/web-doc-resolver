@@ -24,7 +24,7 @@ mod tests_semantic {
 }
 
 #[cfg(test)]
-mod tests {
+mod tests_impl {
     use super::super::*;
     use crate::Config;
     use crate::types::ResolvedResult;

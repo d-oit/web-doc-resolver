@@ -146,8 +146,7 @@ def deterministic_merge(results: list[ResolvedResult]) -> str:
         f"Deterministic merge of {len(results)} sources.\n\n"
         "[ANCHOR: TECHNICAL_DETAILS]\n"
         f"{body}\n\n"
-        "[ANCHOR: CITATIONS]\n"
-        + "\n".join(citations)
+        "[ANCHOR: CITATIONS]\n" + "\n".join(citations)
     )
 
 
