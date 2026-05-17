@@ -157,7 +157,7 @@ pub async fn synthesize_results(
         3. Adhere to strict 2026 formatting requirements:\n\
         - Use strict CommonMark for maximum downstream compatibility.\n\
         - Aggressively deduplicate redundant information across sources.\n\
-        - Citation Precision: Every claim MUST be followed by bracketed indices (e.g., [1][2]) matching the CITATIONS anchor.",
+        - Citation Precision: Every claim MUST be followed by bracketed indices (e.g., [1], [2]) matching the CITATIONS anchor.",
         chrono::Local::now().format("%Y-%m-%d")
     );
 

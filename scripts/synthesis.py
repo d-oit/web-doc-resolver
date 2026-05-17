@@ -114,6 +114,8 @@ def deterministic_merge(results: list[ResolvedResult]) -> str:
             f"Deterministic extraction from {results[0].source}.\n\n"
             "[ANCHOR: TECHNICAL_DETAILS]\n"
             f"{content}\n\n"
+            "[ANCHOR: COMPARISON]\n"
+            "Not applicable for single source extraction.\n\n"
             "[ANCHOR: CITATIONS]\n"
             f"[1] {results[0].url or 'N/A'}"
         )
@@ -146,6 +148,8 @@ def deterministic_merge(results: list[ResolvedResult]) -> str:
         f"Deterministic merge of {len(results)} sources.\n\n"
         "[ANCHOR: TECHNICAL_DETAILS]\n"
         f"{body}\n\n"
+        "[ANCHOR: COMPARISON]\n"
+        "Comparison not available in deterministic merge mode.\n\n"
         "[ANCHOR: CITATIONS]\n" + "\n".join(citations)
     )
 
@@ -191,7 +195,7 @@ def synthesize_results(query: str, results: list[ResolvedResult], api_key: str, 
         "3. Adhere to strict 2026 formatting requirements:\n"
         "- Use strict CommonMark for maximum downstream compatibility.\n"
         "- Aggressively deduplicate redundant information across sources.\n"
-        "- Citation Precision: Every claim MUST be followed by bracketed indices (e.g., [1][2]) matching the CITATIONS anchor."
+        "- Citation Precision: Every claim MUST be followed by bracketed indices (e.g., [1], [2]) matching the CITATIONS anchor."
     )
 
     user_prompt = f"Query: '{query}'\n\nContext:\n{context}"

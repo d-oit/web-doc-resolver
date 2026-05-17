@@ -42,7 +42,15 @@ def score_content(markdown: str, links: list[str] | None = None) -> QualityScore
 
     # 2026 Standard Checks
     has_frontmatter = text.startswith("---") and "relevance_score:" in text
-    has_anchors = "[ANCHOR: SUMMARY]" in text and "[ANCHOR: CITATIONS]" in text
+    has_anchors = all(
+        anchor in text
+        for anchor in [
+            "[ANCHOR: SUMMARY]",
+            "[ANCHOR: TECHNICAL_DETAILS]",
+            "[ANCHOR: COMPARISON]",
+            "[ANCHOR: CITATIONS]",
+        ]
+    )
 
     score = 1.0
     if too_short:
