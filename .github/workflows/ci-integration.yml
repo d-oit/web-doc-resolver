@@ -149,6 +149,54 @@ jobs:
           EXA_API_KEY: ""
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
 
+  serper-integration:
+    name: Serper Integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: |
+      github.actor != 'dependabot[bot]' &&
+      (github.event_name == 'push' ||
+       (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) ||
+       github.event_name == 'workflow_dispatch')
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install -e .
+
+      - name: Run Serper live tests
+        run: |
+          pytest -m live -s -v \
+            tests/test_live_api_integrations.py::test_live_serper_with_real_api_key
+        env:
+          SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        with:
+          toolchain: '1.85'
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+        with:
+          workspaces: cli
+
+      - name: Build Rust CLI
+        run: cd cli && cargo build --release
+
+      - name: Smoke test CLI (Serper)
+        run: ./cli/target/release/do-wdr resolve "Rust agent frameworks"
+        env:
+          SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+
   exa-integration:
     name: Exa Integration
     runs-on: ubuntu-latest
