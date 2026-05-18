@@ -24,6 +24,7 @@ from scripts.resolve import (  # noqa: E402
     resolve_with_jina,
     resolve_with_mistral_browser,
     resolve_with_mistral_websearch,
+    resolve_with_serper,
     resolve_with_tavily,
 )
 
@@ -146,5 +147,17 @@ def test_live_mistral_websearch_with_real_api_key():
     if result is None:
         pytest.skip("Mistral websearch returned None - check MISTRAL_API_KEY and quota")
     assert result.source == "mistral-websearch"
+    assert isinstance(result.content, str)
+    assert len(result.content.strip()) > 0
+
+
+def test_live_serper_with_real_api_key():
+    _require_env("SERPER_API_KEY")
+    query = f"Rust agent frameworks {uuid.uuid4().hex[:8]}"
+    _clear_cached_result(query, "serper", rate_limit_key="serper")
+    result = resolve_with_serper(query)
+    if result is None:
+        pytest.skip("Serper returned None - check SERPER_API_KEY and quota")
+    assert result.source == "serper"
     assert isinstance(result.content, str)
     assert len(result.content.strip()) > 0
