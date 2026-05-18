@@ -40,6 +40,18 @@ def score_content(markdown: str, links: list[str] | None = None) -> QualityScore
     noise_count = sum(text_lower.count(signal) for signal in noisy_signals)
     noisy = noise_count > 6
 
+    # 2026 Standard Checks
+    has_frontmatter = text.startswith("---") and "relevance_score:" in text
+    has_anchors = all(
+        anchor in text
+        for anchor in [
+            "[ANCHOR: SUMMARY]",
+            "[ANCHOR: TECHNICAL_DETAILS]",
+            "[ANCHOR: COMPARISON]",
+            "[ANCHOR: CITATIONS]",
+        ]
+    )
+
     score = 1.0
     if too_short:
         score -= 0.35
@@ -50,8 +62,14 @@ def score_content(markdown: str, links: list[str] | None = None) -> QualityScore
     if noisy:
         score -= 0.20
 
+    # Bonus for 2026 standards
+    if has_frontmatter:
+        score += 0.05
+    if has_anchors:
+        score += 0.05
+
     # Ensure range
-    score = max(0.0, score)
+    score = max(0.0, min(1.0, score))
 
     # Threshold for acceptance as per #59: 0.65 and not too_short
     acceptable = score >= 0.65 and not too_short
