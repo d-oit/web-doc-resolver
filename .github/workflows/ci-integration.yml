@@ -193,7 +193,7 @@ jobs:
         run: cd cli && cargo build --release
 
       - name: Smoke test CLI (Serper)
-        run: ./cli/target/release/do-wdr "Rust agent frameworks" --log-level INFO
+        run: ./cli/target/release/do-wdr resolve "Rust agent frameworks"
         env:
           SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
 
