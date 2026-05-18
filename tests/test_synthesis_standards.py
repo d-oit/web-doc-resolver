@@ -59,10 +59,10 @@ Comparison here.
     # 1.0 + 0.05 (fm) + 0.05 (anchors) = 1.1 -> clamped to 1.0
     assert score_obj.score == 1.0
 
-    # No links (-0.15)
+    # No links (-0.10)
     score_obj_no_links = score_content(compliant_doc, [])
-    # 1.0 - 0.15 (no links) + 0.05 (fm) + 0.05 (anchors) = 0.95
-    assert score_obj_no_links.score == pytest.approx(0.95)
+    # 1.0 - 0.10 (no links) + 0.05 (fm) + 0.05 (anchors) = 1.0 -> clamped to 1.0
+    assert score_obj_no_links.score == 1.0
 
     missing_anchors_doc = """---
 relevance_score: 0.9
@@ -71,5 +71,5 @@ Just some text.
 """
     missing_anchors_doc += "\n" + "\n".join(lines)
     score_missing_no_links = score_content(missing_anchors_doc, [])
-    # 1.0 - 0.15 (no links) + 0.05 (fm) = 0.9
-    assert score_missing_no_links.score == pytest.approx(0.9)
+    # 1.0 - 0.10 (no links) + 0.05 (fm) = 0.95
+    assert score_missing_no_links.score == pytest.approx(0.95)

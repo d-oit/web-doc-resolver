@@ -104,6 +104,11 @@
 | #359-#361 | Template workflows, gitleaks SHA-pins, .gitattributes | ✅ |
 | #364 | ADR-012 Wave 1: thread safety, SSRF, provider fixes | ✅ |
 | #365 | PR #365: GOAP Wave 2-7 plan + N5/N12 fixes + SSRF gaps | ✅ |
+| #371 | Synthesis 2026 standards alignment — 4-anchor quality scoring, COMPARISON anchor | ✅ |
+| #372 | Rate limiting for resolve endpoint — token bucket, client IP identification | ✅ |
+| #374 | Cargo-deps: bump tokio 1.52.1→1.52.3 | ✅ |
+| #378 | Semantic cache optimization — redundancy pruning, quality heuristics, 4-anchor all() | ✅ |
+| #379 | TypeScript 6.0.3 + ESLint 10 upgrade — `.npmrc`, CSS type decl, Vercel fix | ✅ |
 
 ### 7. Newly Discovered Issues (2026-05-13 Audit)
 
@@ -250,7 +255,7 @@ were already deleted before this audit and confirmed not present.
 
 ---
 
-*Last updated: 2026-05-13. ADR-012 Wave 1 ✅. ADR-013 Wave 1b ✅. ADR-015 (Nightly Bridge) ✅ PR #366 merged. Next: Waves 2-7. See [16-GOAP-WAVE2-6.md](16-GOAP-WAVE2-6.md).*
+*Last updated: 2026-05-18. ADR-012 Wave 1 ✅. ADR-013 Wave 1b ✅. ADR-015 (Nightly Bridge) ✅. GOAP PR Orchestration ✅ (9 PRs). See [18-GOAP-PR-ORCHESTRATION.md](18-GOAP-PR-ORCHESTRATION.md).*
 
 ### ADR-015 — Nightly Bridge Push → PR (2026-05-13)
 - **Root cause**: `nightly-bridge.yml` workflow pushed directly to `main`, violating branch protection rules (GH013: requires PR + 4/4 status checks).
@@ -296,3 +301,10 @@ were already deleted before this audit and confirmed not present.
   2. CI `validate-version` job checks manifest >= latest git tag on every PR — old branches will fail CI before merge
   3. Quality gate warns on version regression locally pre-commit, preventing accidental commits
 - **Agent instruction**: When creating a release PR or merging old branches, first run `LATEST_TAG=$(git tag -l "v*.*.*" --sort=-version:refname | head -1) && python scripts/sync_versions.py --set "${LATEST_TAG#v}"`
+
+### GOAP PR Orchestration (2026-05-18)
+- **Vercel builds fail without `.npmrc`**: `eslint-config-next@15.5.18` has peer dep conflicts with ESLint 10 — `npm ci` without `--legacy-peer-deps` fails. Vercel doesn't pass `--legacy-peer-deps`, but adding `legacy-peer-deps=true` to `web/.npmrc` resolves this globally.
+- **Codacy false positive rate is high**: Out of 4 Codacy reviews, 3 contained factual errors (claiming TS 6.0.3 doesn't exist, claiming `await` needed on sync function, claiming import `ddgs` is wrong). Validate before acting on Codacy feedback.
+- **`checkRateLimit` is deliberately sync**: The in-memory rate limiter uses `Map` operations (microseconds) — no async needed. Async IP rate limiters (Redis-based) would need `await`, but the PR's simple in-memory implementation is correct.
+- **`next-env.d.ts` is auto-generated**: Always use `/ <reference` syntax, never `import`. Next.js regenerates this file on every build, reverting any manual edits.
+- **Dependabot PRs for major version bumps (Next 15→16) need manual testing**: Close and let Dependabot regenerate against the updated main after feature PRs merge.

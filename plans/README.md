@@ -8,8 +8,8 @@
 
 ## Release Readiness: v0.3.4
 
-**Current version**: `0.3.1` (manifest) — GitHub latest: `v0.3.3` (tag/manifest drift from PR #270 regression)
-**Commits since v0.3.1**: 234
+**Current version**: `0.3.4` (manifest) — GitHub latest: `v0.3.3` (tag/manifest drift from PR #270 regression)
+**Commits since v0.3.1**: 240+
 **Quality gate**: PASS (exit 0) — ~3262 markdownlint warnings (non-blocking)
 **CI**: All workflows passing on `main`
 
@@ -105,8 +105,9 @@ Commit `c283dfa` (PR #270) merged an old branch on top of v0.3.3 release, revert
 | 10 | [PR #341 Fixes](10-pr341-quality-gate-fixes.md) | Quality gate merge, scope-creep extraction | Merged, prewarm extracted |
 | 11 | [Cache Pre-warming](11-cache-prewarming.md) | CLI + web prewarm (Scope creep extraction) | PENDING |
 | 15 | [Next Phase](15-GOAP-NEXT-PHASE.md) | Wave 2-6 + AUDIT P0/P1 items | Superseded (see 16) |
-| 16 | [GOAP Waves 2-6](16-GOAP-WAVE2-6.md) | CI, constants, quality, splits, tests, parity | Active plan |
-| 17 | [Nightly Bridge PR](17-NIGHTLY-BRIDGE-PR.md) | ADR-015 + GOAP: nightly push→PR fix | Active plan |
+| 16 | [GOAP Waves 2-6](16-GOAP-WAVE2-6.md) | CI, constants, quality, splits, tests, parity | Superseded (see 18) |
+| 17 | [Nightly Bridge PR](17-NIGHTLY-BRIDGE-PR.md) | ADR-015 + GOAP: nightly push→PR fix | ✅ Completed |
+| 18 | [GOAP PR Orchestration](18-GOAP-PR-ORCHESTRATION.md) | PR cleanup, CI fixes, 9 PRs merged/closed | Active plan |
 
 ## Executed Plans (Completed)
 
@@ -116,3 +117,4 @@ Commit `c283dfa` (PR #270) merged an old branch on top of v0.3.3 release, revert
 | [ESLINT_CONFIG_UPDATE.md](ESLINT_CONFIG_UPDATE.md) | ESLint 2026 config |
 | [GOAP_FOLLOWUP.md](GOAP_FOLLOWUP.md) | ADR-012/013/014 wave tracking |
 | [17-NIGHTLY-BRIDGE-PR.md](17-NIGHTLY-BRIDGE-PR.md) | ADR-015 + GOAP: nightly push→PR fix |
+| [18-GOAP-PR-ORCHESTRATION.md](18-GOAP-PR-ORCHESTRATION.md) | GOAP orchestration: 9 PRs merged/closed with CI fixes |
