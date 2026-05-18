@@ -75,7 +75,7 @@ class TestQualityScoring:
 
     def test_empty_content(self):
         res = self._score_content("")
-        assert res.score == 0.5  # 1.0 - 0.35 (too_short) - 0.15 (missing_links)
+        assert res.score == 0.65  # 1.0 - 0.25 (too_short) - 0.10 (missing_links)
         assert res.acceptable is False
 
     def test_non_string_input(self):
