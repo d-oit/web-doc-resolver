@@ -374,7 +374,7 @@ class TestCacheBehavior:
 
 
 class TestSkillSymlink:
-    """Test that skill symlinks in .blackbox/skills/, .opencode/skills/ point to .agents/skills/."""
+    """Test that skill symlinks in .blackbox/skills/, .claude/skills/ point to .agents/skills/."""
 
     def get_skill_locations(self):
         """Get all skill directory symlink locations to test."""
@@ -383,7 +383,6 @@ class TestSkillSymlink:
         return [
             (root_dir / ".blackbox" / "skills", ".blackbox/skills", canonical),
             (root_dir / ".claude" / "skills", ".claude/skills", canonical),
-            (root_dir / ".opencode" / "skills", ".opencode/skills", canonical),
         ]
 
     def test_all_skill_symlinks_exist(self):

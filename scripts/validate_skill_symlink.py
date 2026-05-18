@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate that skill symlinks in .blackbox/skills/, .claude/skills/, .opencode/skills/ point to .agents/skills/."""
+"""Validate that skill symlinks in .blackbox/skills/, .claude/skills/ point to .agents/skills/."""
 
 import sys
 from pathlib import Path
@@ -14,7 +14,7 @@ def validate_skill_symlinks():
         print(f"❌ Canonical skills directory does not exist: {canonical_skills}")
         sys.exit(1)
 
-    symlink_dirs = [".blackbox", ".claude", ".opencode"]
+    symlink_dirs = [".blackbox", ".claude"]
     all_valid = True
     total_checked = 0
 
