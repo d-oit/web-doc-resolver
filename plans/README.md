@@ -107,7 +107,8 @@ Commit `c283dfa` (PR #270) merged an old branch on top of v0.3.3 release, revert
 | 15 | [Next Phase](15-GOAP-NEXT-PHASE.md) | Wave 2-6 + AUDIT P0/P1 items | Superseded (see 16) |
 | 16 | [GOAP Waves 2-6](16-GOAP-WAVE2-6.md) | CI, constants, quality, splits, tests, parity | Superseded (see 18) |
 | 17 | [Nightly Bridge PR](17-NIGHTLY-BRIDGE-PR.md) | ADR-015 + GOAP: nightly push→PR fix | ✅ Completed |
-| 18 | [GOAP PR Orchestration](18-GOAP-PR-ORCHESTRATION.md) | PR cleanup, CI fixes, 9 PRs merged/closed | Active plan |
+| 18 | [GOAP PR Orchestration](18-GOAP-PR-ORCHESTRATION.md) | PR cleanup, CI fixes, 9 PRs merged/closed | ✅ Completed |
+| 19 | [CI Serper Integration](19-ci-serper-integration.md) | Serper CI job, CLI smoke test, DB coverage, .opencode cleanup, llms_txt fix | Active plan |
 
 ## Executed Plans (Completed)
 
@@ -118,3 +119,4 @@ Commit `c283dfa` (PR #270) merged an old branch on top of v0.3.3 release, revert
 | [GOAP_FOLLOWUP.md](GOAP_FOLLOWUP.md) | ADR-012/013/014 wave tracking |
 | [17-NIGHTLY-BRIDGE-PR.md](17-NIGHTLY-BRIDGE-PR.md) | ADR-015 + GOAP: nightly push→PR fix |
 | [18-GOAP-PR-ORCHESTRATION.md](18-GOAP-PR-ORCHESTRATION.md) | GOAP orchestration: 9 PRs merged/closed with CI fixes |
+| [19-ci-serper-integration.md](19-ci-serper-integration.md) | Serper CI job, CLI smoke test, DB coverage, .opencode cleanup, llms_txt fix |
