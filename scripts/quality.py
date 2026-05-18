@@ -68,12 +68,6 @@ def score_content(markdown: str, links: list[str] | None = None) -> QualityScore
     if has_anchors:
         score += 0.05
 
-    # Bonus for 2026 standards
-    if has_frontmatter:
-        score += 0.05
-    if has_anchors:
-        score += 0.05
-
     # Ensure range
     score = max(0.0, min(1.0, score))
 

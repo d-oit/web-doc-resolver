@@ -110,7 +110,7 @@ python scripts/sync_versions.py --set "${LATEST_TAG#v}"
 - **Reference format**: `` `references/filename.md` - Description ``
 - Shell: `shellcheck` (severity=error); Markdown: `markdownlint`;
   Diagrams: `mermaid`
-- **Web dependencies**: Use `npm ci --legacy-peer-deps` (ESLint 10 peer conflict)
+- **Web dependencies**: Use `npm ci --legacy-peer-deps` (see `.npmrc` for Vercel)
 
 ## Repository Structure
 
@@ -219,12 +219,43 @@ Detailed technical reference material is located in `agents-docs/`.
 ## Accumulated Learnings
 
 See [`plans/AUDIT.md` → Learnings](plans/AUDIT.md#learnings-captured-2026-05-12) for
-project-specific patterns (rate limiter design, CI flakiness fixes, config merge
-best practices).
+historic project patterns (rate limiter design, CI flakiness fixes, config merge).
 
 See `agents-docs/` for detailed reference documentation.
 
-## Learnings from TypeScript 6.0.3 Upgrade
-- TypeScript 6.0.3 introduces stricter checks for side-effect imports (e.g., `import "./globals.css"`). This requires an explicit module declaration in a `.d.ts` file if Next.js auto-generation doesn't pick it up immediately during build.
-- ESLint 10.3.0 has peer dependency conflicts with `eslint-config-next@15.5.18` because the latter's plugins still expect ESLint 9. Using `--legacy-peer-deps` is currently the only stable workaround.
-- The `duckduckgo_search` Python package has been renamed to `ddgs`. All imports and mocks must be updated accordingly.
+### GOAP PR Orchestration (2026-05-18)
+- **Vercel + legacy-peer-deps**: Vercel doesn't pass `--legacy-peer-deps` at build
+  time. Add `legacy-peer-deps=true` to `web/.npmrc` to fix ESLint 10 peer conflicts
+  on Vercel deployments.
+- **Codacy false positives are common**: Validate Codacy review claims before acting.
+  3/4 recent reviews contained factual errors (TS 6.0.3 "doesn't exist", sync function
+  needs "await", correct `ddgs` import flagged as wrong).
+- **`next-env.d.ts` is auto-generated**: Always use `/// <reference` syntax, never
+  `import`. Next.js regenerates this file on every build, reverting manual edits.
+- **Dependabot major bumps (Next 15→16)**: Close and let dependabot regenerate
+  against updated main after feature PRs merge; major bumps need manual testing.
+- **`checkRateLimit` is sync**: In-memory rate limiters using `Map` operations
+  are deliberately sync — no `await` needed. Only async if Redis-backed.
+
+### TypeScript 6.0.3 / ESLint 10 Upgrade
+- **CSS side-effect imports**: TS 6.0.3 blocks `import "./globals.css"` without
+  a module declaration. Add `web/app/css.d.ts` with `declare module "*.css"`.
+- **ESLint 10 + eslint-config-next**: Peer dep conflict with `@next/eslint-plugin-next`.
+  Use `npm ci --legacy-peer-deps` (set in `web/.npmrc` for Vercel).
+- **ddgs rename**: `duckduckgo-search` CLI/pkg renamed to `ddgs`. Import: `from ddgs import DDGS`.
+  Update all `from duckduckgo_search import DDGS` references + test patches.
+- **tsconfig jsx**: Next.js 15 requires `"jsx": "preserve"` — Next.js overrides
+  this on every build anyway.
+
+### Cross-Platform Parity
+- **Rust `--profile` is wired**: `main.rs:68-84` parses profile string and applies
+  budget presets. Was incorrectly flagged as missing in earlier audits.
+- **Mobile/tablet Playwright already in CI**: `ci-ui.yml` runs 3 projects
+  (desktop, mobile, tablet). Check current CI before flagging gaps.
+
+### Rate Limiter / Quality Scoring
+- **Token bucket**: Clamp `capacity` to `max(1.0, ·)` to prevent infinite acquire loops.
+- **Quality anchor validation**: Use `all()` with all 4 anchors (SUMMARY,
+  TECHNICAL_DETAILS, COMPARISON, CITATIONS) — not `any()` with a subset.
+- **Penalty tuning**: Tech docs need more lenient penalties (0.25/0.10/0.15/0.10
+  vs legacy 0.35/0.15/0.25/0.20) and duplicate threshold at `//3` not `//2`.
