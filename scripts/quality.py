@@ -32,8 +32,8 @@ def score_content(markdown: str, links: list[str] | None = None) -> QualityScore
     duplicate_heavy = False
     if num_lines > 0:
         unique_lines = len({line.strip() for line in lines if line.strip()})
-        # If fewer than 5 unique lines OR unique lines are less than half of total lines
-        duplicate_heavy = unique_lines < max(5, num_lines // 2)
+        # If fewer than 5 unique lines OR unique lines are less than 1/3 of total lines
+        duplicate_heavy = unique_lines < max(5, num_lines // 3)
 
     noisy_signals = ["cookie", "subscribe", "javascript", "log in", "sign up"]
     text_lower = text.lower()
@@ -54,13 +54,19 @@ def score_content(markdown: str, links: list[str] | None = None) -> QualityScore
 
     score = 1.0
     if too_short:
-        score -= 0.35
+        score -= 0.25  # Reduced from 0.35
     if missing_links:
-        score -= 0.15
+        score -= 0.10  # Reduced from 0.15
     if duplicate_heavy:
-        score -= 0.25
+        score -= 0.15  # Reduced from 0.25
     if noisy:
-        score -= 0.20
+        score -= 0.10  # Reduced from 0.20
+
+    # Bonus for 2026 standards
+    if has_frontmatter:
+        score += 0.05
+    if has_anchors:
+        score += 0.05
 
     # Bonus for 2026 standards
     if has_frontmatter:
