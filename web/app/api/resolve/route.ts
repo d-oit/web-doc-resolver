@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ResolutionBudget, planProviderOrder, detectJsHeavy, isPaidProvider } from "@/lib/routing";
 import { CircuitBreakerRegistry } from "@/lib/circuit-breaker";
 import { scoreContent, QualityScore } from "@/lib/quality";
+import { checkRateLimit, getClientIdentifier } from "@/lib/rate-limit";
 import * as cache from "@/lib/cache";
 import { save as saveRecord } from "@/lib/records";
 import { Logger } from "@/lib/log";
@@ -204,6 +205,13 @@ function normalizeQueryProviders(providerIds: string[], keys: ProviderKeys): str
 }
 
 export async function POST(request: NextRequest) {
+  const identifier = getClientIdentifier(request);
+  const { allowed } = checkRateLimit(identifier);
+
+  if (!allowed) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   const log = new Logger();
   try {
     const body = await request.json();
