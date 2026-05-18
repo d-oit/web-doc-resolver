@@ -68,7 +68,7 @@ python scripts/validate_docs.py
 # Privacy check - no emails in codebase
 echo "Checking for email addresses..."
 EMAIL_PATTERN='[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
-EXCLUDE_PATTERN='example\.com|example\.org|example\.net|test\.com|localhost|\.git/|node_modules/|target/|\.claude/|\.opencode/|\.blackbox/|\.agents/skills/'
+EXCLUDE_PATTERN='example\.com|example\.org|example\.net|test\.com|localhost|\.git/|node_modules/|target/|\.claude/|\.blackbox/|\.agents/skills/'
 if grep -rE "$EMAIL_PATTERN" --include="*.py" --include="*.toml" --include="*.yaml" --include="*.json" --include="*.md" . 2>/dev/null | grep -vE "$EXCLUDE_PATTERN"; then
     echo "ERROR: Email address detected in codebase"
     exit 1
@@ -97,7 +97,6 @@ if command -v markdownlint &> /dev/null; then
         -not -path "*/node_modules/*" \
         -not -path "*/target/*" \
         -not -path "*/.cache/*" \
-        -not -path "*/.opencode/*" \
         -not -path "*/.claude/*" \
         -not -path "*/.blackbox/*" \
         -not -path "*/references/*" \

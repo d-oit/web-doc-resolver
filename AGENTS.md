@@ -61,9 +61,10 @@ python scripts/sync_versions.py --set 1.2.0  # set specific version everywhere
 Use the release script — it calls `sync_versions.py` internally:
 
 ```bash
-./scripts/release.sh patch   # 0.3.3 → 0.3.4
-./scripts/release.sh minor   # 0.3.3 → 0.4.0
-./scripts/release.sh major   # 0.3.3 → 1.0.0
+./scripts/release.sh patch        # 0.3.3 → 0.3.4 (interactive)
+./scripts/release.sh patch --yes  # non-interactive (AI agents / automation)
+./scripts/release.sh minor        # 0.3.3 → 0.4.0
+./scripts/release.sh major        # 0.3.3 → 1.0.0
 ```
 
 ### Guard Against Version Regression

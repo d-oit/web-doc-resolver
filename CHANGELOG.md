@@ -1,25 +1,32 @@
 ## [0.3.5] - 2026-05-18
 
-- fix: eliminate double call to fetch_llms_txt in resolve_direct lambda (0f54c2f)
-- docs: add plan 19 for CI serper integration and cleanup (dc46799)
-- chore: remove .opencode/skills symlink, fix llms_txt signature (ca52f96)
-- ci(integration): add serper CI job with CLI smoke test and semantic cache coverage (0614ffb)
-- fix(ci): use correct Rust CLI subcommand for serper smoke test (a41f239)
-- ci(integration): add serper CI job with CLI smoke test and semantic cache DB coverage (0a39c37)
-- docs: compact learnings and update plans after GOAP orchestration (8a6c265)
-- build(web): upgrade to TypeScript 6.0.3 and ESLint 10 (17aed55)
-- perf(semantic): optimize cache pruning and documentation quality scoring (ffd11b1)
-- feat(synthesis): align with 2026 LLM-readable-doc standards (b4552ad)
-- fix(security): implement rate limiting for resolve endpoint (8840b91)
-- build(deps): bump tokio in /cli in the cargo-deps group (dac4c03)
-- chore(nightly): automated format and fixup (f9af40a)
-- perf(scripts): optimize and harden HTML extraction with tests (1eba571)
-- perf(scripts): optimize extract_text_from_html by lifting class and compiling regex (f32be97)
-- feat(ux): enhance accessibility and address review feedback (ddce6fa)
-- feat(ux): enhance accessibility and address review feedback (7ce16dd)
-- feat(ux): enhance accessibility and address review feedback (84d6714)
-- feat(ux): enhance search interaction focus and accessibility (76386e6)
-- feat(ux): enhance search interaction focus and accessibility (7200399)
+### Added
+
+- **Synthesis**: Align output format with 2026 LLM-readable-doc standards
+- **CI**: Serper integration job with CLI smoke test and semantic cache DB coverage
+
+### Changed
+
+- **Web**: Upgrade to TypeScript 6.0.3 and ESLint 10
+- **Web**: Improve accessibility — focus management, keyboard navigation, and screen reader support across search and results
+- **Performance**: Optimize semantic cache pruning and documentation quality scoring heuristics
+- **Performance**: Optimize HTML extraction with compiled regex and lifted class patterns
+- **Docs**: Compact accumulated learnings and update plans after GOAP orchestration
+
+### Fixed
+
+- **Resolver**: Eliminate double call to `fetch_llms_txt` in `resolve_direct` lambda
+- **Security**: Implement rate limiting for the resolve endpoint
+- **CI**: Correct Rust CLI subcommand for serper smoke test
+- **Resolver**: Fix `llms_txt` signature mismatch in `resolve_direct`
+
+### Removed
+
+- **Config**: Delete `.opencode/skills` symlink (opencode reads `.agents/skills/` directly — permanent)
+
+### Dependencies
+
+- Bump `tokio` in `/cli` (`cargo-deps` group)
 
 # Changelog
 

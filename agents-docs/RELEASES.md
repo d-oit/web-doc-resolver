@@ -39,25 +39,29 @@ It calls `sync_versions.py --set` internally, so all 4 files stay in sync:
 ### Patch release (0.1.0 → 0.1.1)
 
 ```bash
-./scripts/release.sh patch
+./scripts/release.sh patch          # interactive
+./scripts/release.sh patch --yes    # non-interactive (AI agents / automation)
 ```
 
 ### Minor release (0.1.1 → 0.2.0)
 
 ```bash
 ./scripts/release.sh minor
+./scripts/release.sh minor --yes
 ```
 
 ### Major release (0.2.0 → 1.0.0)
 
 ```bash
 ./scripts/release.sh major
+./scripts/release.sh major --yes
 ```
 
 ### Specific version
 
 ```bash
 ./scripts/release.sh 1.2.3
+./scripts/release.sh 1.2.3 --yes
 ```
 
 ## Changelog Generation
