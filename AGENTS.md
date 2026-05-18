@@ -223,3 +223,8 @@ project-specific patterns (rate limiter design, CI flakiness fixes, config merge
 best practices).
 
 See `agents-docs/` for detailed reference documentation.
+
+## Learnings from TypeScript 6.0.3 Upgrade
+- TypeScript 6.0.3 introduces stricter checks for side-effect imports (e.g., `import "./globals.css"`). This requires an explicit module declaration in a `.d.ts` file if Next.js auto-generation doesn't pick it up immediately during build.
+- ESLint 10.3.0 has peer dependency conflicts with `eslint-config-next@15.5.18` because the latter's plugins still expect ESLint 9. Using `--legacy-peer-deps` is currently the only stable workaround.
+- The `duckduckgo_search` Python package has been renamed to `ddgs`. All imports and mocks must be updated accordingly.
