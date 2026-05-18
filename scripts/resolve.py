@@ -187,7 +187,11 @@ def resolve_direct(
         ProviderType.MISTRAL_BROWSER: resolve_with_mistral_browser,
         ProviderType.MISTRAL_WEBSEARCH: resolve_with_mistral_websearch,
         ProviderType.DIRECT_FETCH: fetch_url_content,
-        ProviderType.LLMS_TXT: fetch_llms_txt,
+        ProviderType.LLMS_TXT: lambda url, mc: (
+            ResolvedResult(source="llms_txt", content=res, url=url)
+            if (res := fetch_llms_txt(url))
+            else None
+        ),
         ProviderType.SERPER: resolve_with_serper,
         ProviderType.DOCLING: resolve_with_docling,
         ProviderType.OCR: resolve_with_ocr,
