@@ -102,8 +102,50 @@ fn decode_entities(text: &str) -> String {
         .replace("&#x27;", "'")
         .replace("&#39;", "'")
         .replace("&nbsp;", " ")
+        .replace("&#8288;", "") // word joiner
         .replace("&amp;", "&") // Ampersand last to avoid double-unescaping
         .replace("\u{2060}", "") // Remove word joiner
+}
+
+/// Get an attribute value from a tag string
+fn get_attribute(tag_content: &str, attr_name: &str) -> Option<String> {
+    let lower = tag_content.to_lowercase();
+    let pattern = format!("{}=", attr_name);
+    if let Some(start) = lower.find(&pattern) {
+        let value_part = &tag_content[start + pattern.len()..];
+        if value_part.starts_with('"') {
+            if let Some(end) = value_part[1..].find('"') {
+                return Some(value_part[1..1 + end].to_string());
+            }
+        } else if value_part.starts_with('\'') {
+            if let Some(end) = value_part[1..].find('\'') {
+                return Some(value_part[1..1 + end].to_string());
+            }
+        } else {
+            // Unquoted attribute
+            let end = value_part
+                .find(|c: char| c.is_whitespace() || c == '/' || c == '>')
+                .unwrap_or(value_part.len());
+            return Some(value_part[..end].to_string());
+        }
+    }
+    None
+}
+
+/// Parse language hint from class attribute
+fn parse_language_hint(class_attr: &str) -> Option<String> {
+    for part in class_attr.split_whitespace() {
+        if let Some(lang) = part.strip_prefix("language-") {
+            return Some(lang.to_string());
+        }
+        if let Some(lang) = part.strip_prefix("lang-") {
+            return Some(lang.to_string());
+        }
+        if part == "rust" {
+            return Some("rust".to_string());
+        }
+    }
+    None
 }
 
 /// Strip HTML tags and convert to plain text with basic formatting
@@ -112,6 +154,7 @@ fn strip_html(html: &str) -> String {
     let mut in_tag = false;
     let mut current_tag = String::new();
     let mut skip_content_depth: usize = 0;
+    let mut in_pre = false;
 
     let block_tags: HashSet<&str> = [
         "p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "li", "tr", "pre", "br", "article",
@@ -138,7 +181,7 @@ fn strip_html(html: &str) -> String {
             if tag_name == "script" || tag_name == "style" {
                 if is_closing {
                     skip_content_depth = skip_content_depth.saturating_sub(1);
-                } else {
+                } else if !tag_lower.ends_with('/') {
                     skip_content_depth += 1;
                 }
             } else if skip_content_depth == 0 {
@@ -151,16 +194,38 @@ fn strip_html(html: &str) -> String {
                         result.push('\n');
                     }
                     if tag_name == "code" {
-                        result.push('`');
+                        if !in_pre {
+                            result.push('`');
+                        }
                     } else if tag_name == "pre" {
-                        result.push_str("\n```\n");
+                        in_pre = true;
+                        let lang = get_attribute(&current_tag, "class")
+                            .and_then(|c| parse_language_hint(&c))
+                            .unwrap_or_default();
+                        result.push_str("\n```");
+                        result.push_str(&lang);
+                        result.push('\n');
+                    } else if tag_name == "img" {
+                        if let Some(alt) = get_attribute(&current_tag, "alt") {
+                            if !alt.is_empty() {
+                                result.push(' ');
+                                result.push_str(&alt);
+                                result.push(' ');
+                            }
+                        }
                     }
                 } else {
                     // Closing tags
                     if tag_name == "code" {
-                        result.push('`');
+                        if !in_pre {
+                            result.push('`');
+                        }
                     } else if tag_name == "pre" {
-                        result.push_str("\n```\n");
+                        in_pre = false;
+                        if !result.ends_with('\n') {
+                            result.push('\n');
+                        }
+                        result.push_str("```\n");
                     } else if block_tags.contains(tag_name)
                         && !result.is_empty()
                         && !result.ends_with('\n')
@@ -226,5 +291,20 @@ mod tests {
         assert!(result.contains("`fn main()`"));
         assert!(result.contains("```"));
         assert!(result.contains("println!(\"Hi\");"));
+    }
+
+    #[test]
+    fn test_code_blocks_with_lang() {
+        let html = "<pre class=\"language-rust\"><code>fn main() {}</code></pre>";
+        let result = strip_html(html);
+        assert!(result.contains("```rust"));
+        assert!(!result.contains("`` ` ``")); // Ensure no double backticks
+    }
+
+    #[test]
+    fn test_img_alt() {
+        let html = "<img src=\"math.svg\" alt=\"x^2 + y^2 = z^2\">";
+        let result = strip_html(html);
+        assert!(result.contains("x^2 + y^2 = z^2"));
     }
 }
