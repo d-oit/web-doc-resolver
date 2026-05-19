@@ -181,7 +181,7 @@ fn strip_html(html: &str) -> String {
             if tag_name == "script" || tag_name == "style" {
                 if is_closing {
                     skip_content_depth = skip_content_depth.saturating_sub(1);
-                } else if !tag_lower.ends_with('/') {
+                } else if !tag_lower.trim().ends_with('/') {
                     skip_content_depth += 1;
                 }
             } else if skip_content_depth == 0 {
