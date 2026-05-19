@@ -113,13 +113,13 @@ fn get_attribute(tag_content: &str, attr_name: &str) -> Option<String> {
     let pattern = format!("{}=", attr_name);
     if let Some(start) = lower.find(&pattern) {
         let value_part = &tag_content[start + pattern.len()..];
-        if value_part.starts_with('"') {
-            if let Some(end) = value_part[1..].find('"') {
-                return Some(value_part[1..1 + end].to_string());
+        if let Some(stripped) = value_part.strip_prefix('"') {
+            if let Some(end) = stripped.find('"') {
+                return Some(stripped[..end].to_string());
             }
-        } else if value_part.starts_with('\'') {
-            if let Some(end) = value_part[1..].find('\'') {
-                return Some(value_part[1..1 + end].to_string());
+        } else if let Some(stripped) = value_part.strip_prefix('\'') {
+            if let Some(end) = stripped.find('\'') {
+                return Some(stripped[..end].to_string());
             }
         } else {
             // Unquoted attribute
