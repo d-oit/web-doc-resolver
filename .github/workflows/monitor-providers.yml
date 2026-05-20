@@ -1,0 +1,52 @@
+name: Monitor Providers
+
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Weekly on Sundays at midnight
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  monitor:
+    name: Check Provider Connectivity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install requests
+
+      - name: Run monitor script
+        env:
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
+          SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+          EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
+        run: python scripts/monitor_providers.py
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v7.0.5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: deprioritize failing providers"
+          title: "Provider Alert: Automated Routing Adjustment"
+          body: |
+            The weekly provider check detected instability in one or more search/scrape APIs.
+
+            This PR:
+            1. Deprioritizes failing providers in `scripts/routing.py`.
+            2. Logs the failure in `agents-docs/ISSUES.md`.
+
+            Please review the changes and verify if the API keys need rotation or if the provider is experiencing a service outage.
+          branch: automated/provider-alert
+          delete-branch: true
