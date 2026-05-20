@@ -4,6 +4,7 @@ import os
 import re
 import sys
 from datetime import datetime
+from enum import Enum
 
 import requests
 
@@ -19,6 +20,12 @@ TEST_URL = "https://docs.python.org/3/"
 TEST_QUERY = "Latest Python 3.13 features"
 ISSUES_FILE = "agents-docs/ISSUES.md"
 ROUTING_FILE = "scripts/routing.py"
+
+
+class CheckResult(Enum):
+    HEALTHY = "healthy"
+    FAILED = "failed"
+    SKIPPED = "skipped"
 
 
 def update_routing_priority(provider_name: str):
@@ -58,19 +65,21 @@ def update_routing_priority(provider_name: str):
             providers.remove(provider_name)
             providers.append(provider_name)
 
-            # Reconstruct the list string. Keep it on one line for simplicity as per repo style.
-            new_providers_str = ", ".join([f'"{p}"' for p in providers])
+            # Reconstruct the list string, trying to maintain one-line vs multi-line
+            if "\n" in providers_raw:
+                # Naive multi-line reconstruction: use same indentation if possible
+                indent_match = re.search(r"\n(\s+)", providers_raw)
+                indent = indent_match.group(1) if indent_match else "        "
+                new_providers_str = (
+                    "\n" + indent + (",\n" + indent).join([f'"{p}"' for p in providers]) + ",\n    "
+                )
+            else:
+                new_providers_str = ", ".join([f'"{p}"' for p in providers])
 
             new_match_str = f"{prefix}{new_providers_str}{suffix}"
             new_content = new_content[: match.start()] + new_match_str + new_content[match.end() :]
 
     if found_any:
-        # Also update the comment date if possible
-        date_match = re.search(r"#.*Alert (\d{4}-\d{2}-\d{2})", new_content)
-        if date_match:
-            today = datetime.now().strftime("%Y-%m-%d")
-            new_content = new_content.replace(date_match.group(1), today)
-
         with open(ROUTING_FILE, "w") as f:
             f.write(new_content)
         logger.info(f"Deprioritized {provider_name} in {ROUTING_FILE}")
@@ -132,6 +141,7 @@ def log_issue(provider_name: str, issue_desc: str):
     date_str = datetime.now().strftime("%Y-%m-%d")
 
     # Check if this alert already exists in ISSUES.md to avoid duplicates
+    should_append = True
     if os.path.exists(ISSUES_FILE):
         with open(ISSUES_FILE) as f:
             existing_content = f.read()
@@ -140,10 +150,12 @@ def log_issue(provider_name: str, issue_desc: str):
                 and date_str in existing_content
             ):
                 logger.info(
-                    f"Issue for {provider_name} already logged today in {ISSUES_FILE}, skipping."
+                    f"Issue for {provider_name} already logged today in {ISSUES_FILE}, skipping local log."
                 )
-            else:
-                alert_text = f"""
+                should_append = False
+
+    if should_append:
+        alert_text = f"""
 # Provider Alert: {provider_name} unstable
 
 - **Date**: {date_str}
@@ -151,33 +163,33 @@ def log_issue(provider_name: str, issue_desc: str):
 - **Action Taken**: Deprioritized {provider_name} in the routing logic.
 - **Status**: Monitoring for stability.
 """
-                with open(ISSUES_FILE, "a") as f:
-                    f.write(alert_text)
-                logger.info(f"Logged issue for {provider_name} in {ISSUES_FILE}")
+        with open(ISSUES_FILE, "a") as f:
+            f.write(alert_text)
+        logger.info(f"Logged issue for {provider_name} in {ISSUES_FILE}")
 
     open_github_issue(provider_name, issue_desc)
 
 
-def check_jina():
+def check_jina() -> tuple[CheckResult, str | None]:
     logger.info("Checking Jina...")
     url = f"https://r.jina.ai/{TEST_URL}"
     try:
         session = get_session()
         resp = session.get(url, headers={"Accept": "text/markdown"}, timeout=15)
         if resp.status_code != 200:
-            return False, f"Status code {resp.status_code}"
+            return CheckResult.FAILED, f"Status code {resp.status_code}"
         if not resp.text.strip():
-            return False, "Empty response content"
-        return True, None
+            return CheckResult.FAILED, "Empty response content"
+        return CheckResult.HEALTHY, None
     except Exception as e:
-        return False, str(e)
+        return CheckResult.FAILED, str(e)
 
 
-def check_firecrawl():
+def check_firecrawl() -> tuple[CheckResult, str | None]:
     logger.info("Checking Firecrawl...")
     api_key = os.getenv("FIRECRAWL_API_KEY")
     if not api_key:
-        return True, "Skipped: No API Key"
+        return CheckResult.SKIPPED, "No API Key"
     try:
         session = get_session()
         resp = session.post(
@@ -187,21 +199,20 @@ def check_firecrawl():
             timeout=20,
         )
         if resp.status_code != 200:
-        if resp.status_code != 200:
-            return False, f"Status code {resp.status_code}: {resp.text[:200]}"
+            return CheckResult.FAILED, f"Status code {resp.status_code}: {resp.text}"
         data = resp.json()
         if "data" not in data or "markdown" not in data["data"]:
-            return False, "Response schema changed: 'data.markdown' missing"
-        return True, None
+            return CheckResult.FAILED, "Response schema changed: 'data.markdown' missing"
+        return CheckResult.HEALTHY, None
     except Exception as e:
-        return False, str(e)
+        return CheckResult.FAILED, str(e)
 
 
-def check_tavily():
+def check_tavily() -> tuple[CheckResult, str | None]:
     logger.info("Checking Tavily...")
     api_key = os.getenv("TAVILY_API_KEY")
     if not api_key:
-        return True, "Skipped: No API Key"
+        return CheckResult.SKIPPED, "No API Key"
     try:
         session = get_session()
         resp = session.post(
@@ -210,20 +221,20 @@ def check_tavily():
             timeout=15,
         )
         if resp.status_code != 200:
-            return False, f"Status code {resp.status_code}: {resp.text}"
+            return CheckResult.FAILED, f"Status code {resp.status_code}: {resp.text}"
         data = resp.json()
         if "results" not in data:
-            return False, "Response schema changed: 'results' missing"
-        return True, None
+            return CheckResult.FAILED, "Response schema changed: 'results' missing"
+        return CheckResult.HEALTHY, None
     except Exception as e:
-        return False, str(e)
+        return CheckResult.FAILED, str(e)
 
 
-def check_serper():
+def check_serper() -> tuple[CheckResult, str | None]:
     logger.info("Checking Serper...")
     api_key = os.getenv("SERPER_API_KEY")
     if not api_key:
-        return True, "Skipped: No API Key"
+        return CheckResult.SKIPPED, "No API Key"
     try:
         session = get_session()
         resp = session.post(
@@ -233,20 +244,20 @@ def check_serper():
             timeout=15,
         )
         if resp.status_code != 200:
-            return False, f"Status code {resp.status_code}: {resp.text}"
+            return CheckResult.FAILED, f"Status code {resp.status_code}: {resp.text}"
         data = resp.json()
         if "organic" not in data:
-            return False, "Response schema changed: 'organic' missing"
-        return True, None
+            return CheckResult.FAILED, "Response schema changed: 'organic' missing"
+        return CheckResult.HEALTHY, None
     except Exception as e:
-        return False, str(e)
+        return CheckResult.FAILED, str(e)
 
 
-def check_exa():
+def check_exa() -> tuple[CheckResult, str | None]:
     logger.info("Checking Exa...")
     api_key = os.getenv("EXA_API_KEY")
     if not api_key:
-        return True, "Skipped: No API Key"
+        return CheckResult.SKIPPED, "No API Key"
     try:
         session = get_session()
         resp = session.post(
@@ -256,13 +267,13 @@ def check_exa():
             timeout=15,
         )
         if resp.status_code != 200:
-            return False, f"Status code {resp.status_code}: {resp.text}"
+            return CheckResult.FAILED, f"Status code {resp.status_code}: {resp.text}"
         data = resp.json()
         if "results" not in data:
-            return False, "Response schema changed: 'results' missing"
-        return True, None
+            return CheckResult.FAILED, "Response schema changed: 'results' missing"
+        return CheckResult.HEALTHY, None
     except Exception as e:
-        return False, str(e)
+        return CheckResult.FAILED, str(e)
 
 
 def main():
@@ -278,15 +289,17 @@ def main():
     failing_providers = []
 
     for name, check_func in checks.items():
-        success, error = check_func()
-        if not success:
+        result, error = check_func()
+        if result == CheckResult.FAILED:
             logger.error(f"{name} failed: {error}")
             failing_providers.append((name, error))
+        elif result == CheckResult.SKIPPED:
+            logger.warning(f"{name} skipped: {error}")
         else:
             logger.info(f"{name} is healthy")
 
     if not failing_providers:
-        logger.info("All providers are healthy.")
+        logger.info("No provider failures detected.")
         return
 
     for name, error in failing_providers:
