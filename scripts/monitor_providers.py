@@ -187,7 +187,8 @@ def check_firecrawl():
             timeout=20,
         )
         if resp.status_code != 200:
-            return False, f"Status code {resp.status_code}: {resp.text}"
+        if resp.status_code != 200:
+            return False, f"Status code {resp.status_code}: {resp.text[:200]}"
         data = resp.json()
         if "data" not in data or "markdown" not in data["data"]:
             return False, "Response schema changed: 'data.markdown' missing"
