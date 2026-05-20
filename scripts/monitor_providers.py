@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import json
 import logging
 import os
 import re
@@ -21,17 +20,18 @@ TEST_QUERY = "Latest Python 3.13 features"
 ISSUES_FILE = "agents-docs/ISSUES.md"
 ROUTING_FILE = "scripts/routing.py"
 
+
 def update_routing_priority(provider_name: str):
     """Move failing provider to the end of the routing list in routing.py."""
     if not os.path.exists(ROUTING_FILE):
         logger.error(f"{ROUTING_FILE} not found")
         return
 
-    with open(ROUTING_FILE, "r") as f:
+    with open(ROUTING_FILE) as f:
         content = f.read()
 
-    # Find ALL base = [...] lists
-    matches = list(re.finditer(r'(base\s*=\s*\[)([^\]]+)(\])', content))
+    # Find ALL base = [...] lists, potentially multi-line
+    matches = list(re.finditer(r'(base\s*=\s*\[)([^\]]+)(\])', content, re.DOTALL))
     if not matches:
         logger.error("Could not find any provider base list in routing.py")
         return
@@ -42,18 +42,32 @@ def update_routing_priority(provider_name: str):
     # Process in reverse to keep offsets valid
     for match in reversed(matches):
         prefix, providers_raw, suffix = match.groups()
-        providers = [p.strip().strip('"').strip("'") for p in providers_raw.split(",") if p.strip()]
+        # Clean up and split, preserving formatting hints (like indentation)
+        providers = []
+        for p in providers_raw.split(","):
+            p_strip = p.strip().strip('"').strip("'")
+            if p_strip:
+                providers.append(p_strip)
 
         if provider_name in providers:
             found_any = True
             providers.remove(provider_name)
+
+            # Find the best place to insert: before duckduckgo, or at the end
             if "duckduckgo" in providers:
                 idx = providers.index("duckduckgo")
                 providers.insert(idx, provider_name)
             else:
                 providers.append(provider_name)
 
-            new_providers_str = ", ".join([f'"{p}"' for p in providers])
+            # Reconstruct the list string, trying to keep it clean
+            if "\n" in providers_raw:
+                # If it was multi-line, try to keep it multi-line
+                # This is a bit complex with regex, so we use a simpler approach
+                new_providers_str = "\n                " + ",\n                ".join([f'"{p}"' for p in providers]) + ",\n            "
+            else:
+                new_providers_str = ", ".join([f'"{p}"' for p in providers])
+
             new_match_str = f"{prefix}{new_providers_str}{suffix}"
             new_content = new_content[:match.start()] + new_match_str + new_content[match.end():]
 
@@ -70,19 +84,62 @@ def update_routing_priority(provider_name: str):
     else:
         logger.warning(f"Provider {provider_name} not in any routing list")
 
+
+def open_github_issue(provider_name: str, issue_desc: str):
+    """Open an issue on GitHub if running in CI."""
+    token = os.getenv("GITHUB_TOKEN")
+    repo = os.getenv("GITHUB_REPOSITORY")
+    if not token or not repo:
+        logger.info("Not running in GitHub Actions or GITHUB_TOKEN not set, skipping actual issue creation.")
+        return
+
+    title = f"Provider Alert: {provider_name} unstable"
+    body = f"""
+### Provider Instability Detected
+
+- **Provider**: {provider_name}
+- **Date**: {datetime.now().strftime("%Y-%m-%d")}
+- **Error**: {issue_desc}
+
+Automated routing has deprioritized this provider. Please check connectivity or API key status.
+"""
+
+    url = f"https://api.github.com/repos/{repo}/issues"
+    headers = {
+        "Authorization": f"token {token}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    data = {
+        "title": title,
+        "body": body,
+        "labels": ["provider-alert", "automated"]
+    }
+
+    try:
+        resp = requests.post(url, headers=headers, json=data, timeout=10)
+        if resp.status_code == 201:
+            logger.info(f"Successfully opened GitHub issue: {title}")
+        else:
+            logger.error(f"Failed to open GitHub issue: {resp.status_code} {resp.text}")
+    except Exception as e:
+        logger.error(f"Error opening GitHub issue: {e}")
+
+
 def log_issue(provider_name: str, issue_desc: str):
-    """Log the alert in ISSUES.md."""
+    """Log the alert in ISSUES.md and open GitHub issue."""
     date_str = datetime.now().strftime("%Y-%m-%d")
 
-    # Check if this alert already exists to avoid duplicates
+    # Check if this alert already exists in ISSUES.md to avoid duplicates
     if os.path.exists(ISSUES_FILE):
-        with open(ISSUES_FILE, "r") as f:
+        with open(ISSUES_FILE) as f:
             existing_content = f.read()
-            if f"# Provider Alert: {provider_name} unstable" in existing_content and date_str in existing_content:
-                 logger.info(f"Issue for {provider_name} already logged today, skipping.")
-                 return
-
-    alert_text = f"""
+            if (
+                f"# Provider Alert: {provider_name} unstable" in existing_content
+                and date_str in existing_content
+            ):
+                logger.info(f"Issue for {provider_name} already logged today in {ISSUES_FILE}, skipping.")
+            else:
+                alert_text = f"""
 # Provider Alert: {provider_name} unstable
 
 - **Date**: {date_str}
@@ -90,9 +147,12 @@ def log_issue(provider_name: str, issue_desc: str):
 - **Action Taken**: Deprioritized {provider_name} in the routing logic.
 - **Status**: Monitoring for stability.
 """
-    with open(ISSUES_FILE, "a") as f:
-        f.write(alert_text)
-    logger.info(f"Logged issue for {provider_name} in {ISSUES_FILE}")
+                with open(ISSUES_FILE, "a") as f:
+                    f.write(alert_text)
+                logger.info(f"Logged issue for {provider_name} in {ISSUES_FILE}")
+
+    open_github_issue(provider_name, issue_desc)
+
 
 def check_jina():
     logger.info("Checking Jina...")
@@ -108,12 +168,15 @@ def check_jina():
     except Exception as e:
         return False, str(e)
 
+
 def check_firecrawl():
     logger.info("Checking Firecrawl...")
     api_key = os.getenv("FIRECRAWL_API_KEY")
-    if not api_key: return True, "Skipped: No API Key"
+    if not api_key:
+        return True, "Skipped: No API Key"
     try:
-        resp = requests.post(
+        session = get_session()
+        resp = session.post(
             "https://api.firecrawl.dev/v1/scrape",
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
             json={"url": TEST_URL, "formats": ["markdown"]},
@@ -128,12 +191,15 @@ def check_firecrawl():
     except Exception as e:
         return False, str(e)
 
+
 def check_tavily():
     logger.info("Checking Tavily...")
     api_key = os.getenv("TAVILY_API_KEY")
-    if not api_key: return True, "Skipped: No API Key"
+    if not api_key:
+        return True, "Skipped: No API Key"
     try:
-        resp = requests.post(
+        session = get_session()
+        resp = session.post(
             "https://api.tavily.com/search",
             json={"api_key": api_key, "query": TEST_QUERY, "max_results": 1},
             timeout=15,
@@ -147,12 +213,15 @@ def check_tavily():
     except Exception as e:
         return False, str(e)
 
+
 def check_serper():
     logger.info("Checking Serper...")
     api_key = os.getenv("SERPER_API_KEY")
-    if not api_key: return True, "Skipped: No API Key"
+    if not api_key:
+        return True, "Skipped: No API Key"
     try:
-        resp = requests.post(
+        session = get_session()
+        resp = session.post(
             "https://google.serper.dev/search",
             headers={"X-API-KEY": api_key, "Content-Type": "application/json"},
             json={"q": TEST_QUERY, "num": 1},
@@ -167,12 +236,38 @@ def check_serper():
     except Exception as e:
         return False, str(e)
 
+
+def check_exa():
+    logger.info("Checking Exa...")
+    api_key = os.getenv("EXA_API_KEY")
+    if not api_key:
+        return True, "Skipped: No API Key"
+    try:
+        session = get_session()
+        resp = session.post(
+            "https://api.exa.ai/search",
+            headers={"x-api-key": api_key, "Content-Type": "application/json"},
+            json={"query": TEST_QUERY, "numResults": 1},
+            timeout=15,
+        )
+        if resp.status_code != 200:
+            return False, f"Status code {resp.status_code}: {resp.text}"
+        data = resp.json()
+        if "results" not in data:
+            return False, "Response schema changed: 'results' missing"
+        return True, None
+    except Exception as e:
+        return False, str(e)
+
+
 def main():
     checks = {
         "jina": check_jina,
         "firecrawl": check_firecrawl,
         "tavily": check_tavily,
         "serper": check_serper,
+        "exa": check_exa,
+        "exa_mcp": check_exa,
     }
 
     failing_providers = []
@@ -192,6 +287,7 @@ def main():
     for name, error in failing_providers:
         update_routing_priority(name)
         log_issue(name, error)
+
 
 if __name__ == "__main__":
     main()
