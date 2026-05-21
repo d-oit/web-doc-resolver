@@ -10,6 +10,13 @@ export interface ProviderResult {
 }
 
 const SPLIT_REGEX = /\n-{3,}\n+/g;
+const PLACEHOLDER_VALUES = new Set(["n/a", "na", "unknown", "none", "-", "–", ""]);
+
+function sanitizeMeta(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  return PLACEHOLDER_VALUES.has(trimmed.toLowerCase()) ? undefined : trimmed || undefined;
+}
 
 function extractFirstUrlCandidate(input: string): string | undefined {
   const fromParen = input.match(/https?:\/\/[^)\s]+/);
@@ -70,11 +77,11 @@ function parseBlock(block: string, index: number): ProviderResult | null {
       continue;
     }
     if (lower.startsWith("author:")) {
-      author = line.split(/author:/i)[1]?.trim();
+      author = sanitizeMeta(line.split(/author:/i)[1]);
       continue;
     }
     if (lower.startsWith("published:")) {
-      published = line.split(/published:/i)[1]?.trim();
+      published = sanitizeMeta(line.split(/published:/i)[1]);
       continue;
     }
     if (lower.startsWith("highlights:")) {
