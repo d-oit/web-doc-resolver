@@ -43,36 +43,36 @@ async function waitForApp(page: import("@playwright/test").Page): Promise<void> 
 }
 
 test.describe("Metadata Display", () => {
-  test("hides 'By N/A' and 'N/A' when metadata is missing or placeholder", async ({ page }) => {
+  test("suppresses placeholder metadata independently", async ({ page }) => {
     await page.route("**/api/resolve", (route) =>
       route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify({
           markdown: `
-Title: Result with N/A metadata
-URL: https://example.com/na
-Author: N/A
-Published: N/A
+Title: Result with placeholder author
+URL: https://example.com/1
+Author: unknown
+Published: 2023-05-01
 
 Highlights:
-This result should have hidden metadata line.
+Author should be suppressed, but date should show.
 ---
-Title: Result with empty metadata
-URL: https://example.com/empty
-Author:
-Published:
-
-Highlights:
-This result should also have hidden metadata line.
----
-Title: Result with valid metadata
-URL: https://example.com/valid
+Title: Result with placeholder date
+URL: https://example.com/2
 Author: Jane Doe
-Published: 2023-01-01
+Published: -
 
 Highlights:
-This result should show metadata.
+Date should be suppressed, but author should show.
+---
+Title: Result with all placeholders
+URL: https://example.com/3
+Author: NA
+Published: –
+
+Highlights:
+Both should be suppressed.
 `,
         }),
       })
@@ -83,27 +83,24 @@ This result should show metadata.
     await input.fill("test query");
     await page.getByRole("button", { name: "Fetch" }).click();
 
-    // Check first result (N/A)
-    const result1 = page.locator('article').filter({ hasText: 'Result with N/A metadata' });
+    // 4. ResultCard component suppresses author section when the value is a placeholder
+    const result1 = page.locator('article').filter({ hasText: 'Result with placeholder author' });
     await expect(result1).toBeVisible();
-    // The metadata div should be empty (or not have the spans)
-    const meta1 = result1.locator('header > div.flex.gap-3');
-    await expect(meta1.locator('span')).toHaveCount(0);
+    await expect(result1.locator('text=By')).not.toBeVisible();
+    await expect(result1.locator('text=2023-05-01')).toBeVisible();
 
-    // Check second result (empty)
-    const result2 = page.locator('article').filter({ hasText: 'Result with empty metadata' });
+    // 5. ResultCard component suppresses publication date when the value is a placeholder
+    const result2 = page.locator('article').filter({ hasText: 'Result with placeholder date' });
     await expect(result2).toBeVisible();
-    const meta2 = result2.locator('header > div.flex.gap-3');
-    await expect(meta2.locator('span')).toHaveCount(0);
+    await expect(result2.locator('text=By Jane Doe')).toBeVisible();
+    await expect(result2.locator('text=-')).not.toBeVisible();
 
-    // Check third result (valid)
-    const result3 = page.locator('article').filter({ hasText: 'Result with valid metadata' });
+    const result3 = page.locator('article').filter({ hasText: 'Result with all placeholders' });
     await expect(result3).toBeVisible();
-    const meta3 = result3.locator('header > div.flex.gap-3');
-    await expect(meta3.locator('span')).toHaveCount(2);
-    await expect(meta3.locator('text=By Jane Doe')).toBeVisible();
-    await expect(meta3.locator('text=2023-01-01')).toBeVisible();
+    await expect(result3.locator('text=By')).not.toBeVisible();
+    await expect(result3.locator('text=–')).not.toBeVisible();
 
-    await page.screenshot({ path: 'metadata-fix-verification.png' });
+    // Check that the metadata container itself has no visible spans
+    await expect(result3.locator('header > div.flex.gap-3 span')).toHaveCount(0);
   });
 });

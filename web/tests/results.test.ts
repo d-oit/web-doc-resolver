@@ -3,7 +3,10 @@ import { parseProviderResults } from "../lib/results";
 
 describe("parseProviderResults with metadata", () => {
   it("should return undefined for various placeholder authors", () => {
-    const placeholders = ["N/A", "na", "unknown", "none", "-", "–", "", "  "];
+    // 1. Parser correctly identifies and normalizes 'N/A' (case-insensitive) to undefined
+    // 2. Parser correctly normalizes dash placeholders ('-', '–') to undefined
+    // 3. Parser treats whitespace-only metadata strings as undefined
+    const placeholders = ["N/A", "n/a", "na", "NA", "unknown", "none", "-", "–", "", "  ", "\t\n"];
     placeholders.forEach((placeholder) => {
       const markdown = `
 Title: Test Result
@@ -20,7 +23,7 @@ Test snippet
   });
 
   it("should return undefined for various placeholder published dates", () => {
-    const placeholders = ["N/A", "na", "unknown", "none", "-", "–", "", "  "];
+    const placeholders = ["N/A", "n/a", "na", "NA", "unknown", "none", "-", "–", "", "  ", "\t\n"];
     placeholders.forEach((placeholder) => {
       const markdown = `
 Title: Test Result
