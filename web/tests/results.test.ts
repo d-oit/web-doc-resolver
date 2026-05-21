@@ -15,7 +15,7 @@ Highlights:
 Test snippet
 `;
       const results = parseProviderResults(markdown);
-      expect(results[0].author, `Failed for placeholder: "${placeholder}"`).toBeUndefined();
+      expect(results[0]?.author, `Failed for placeholder: "${placeholder}"`).toBeUndefined();
     });
   });
 
@@ -32,7 +32,7 @@ Highlights:
 Test snippet
 `;
       const results = parseProviderResults(markdown);
-      expect(results[0].published, `Failed for placeholder: "${placeholder}"`).toBeUndefined();
+      expect(results[0]?.published, `Failed for placeholder: "${placeholder}"`).toBeUndefined();
     });
   });
 
@@ -47,7 +47,7 @@ Highlights:
 Test snippet
 `;
     const results = parseProviderResults(markdown);
-    expect(results[0].author).toBe("John Doe");
-    expect(results[0].published).toBe("2023-01-01");
+    expect(results[0]?.author).toBe("John Doe");
+    expect(results[0]?.published).toBe("2023-01-01");
   });
 });
