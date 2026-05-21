@@ -3,6 +3,8 @@
 import { useState } from "react";
 import type { ProviderResult } from "@/lib/results";
 
+const PLACEHOLDER_REGEX = /^(n\/a|na|unknown|none|-|–)$/i;
+
 interface ResultCardProps {
   result: ProviderResult;
   onCopy: (value: string) => Promise<void> | void;
@@ -42,8 +44,12 @@ export default function ResultCard({ result, onCopy, onHelpfulToggle, helpful }:
           <div className="text-[10px] text-text-dim break-all">{result.normalizedUrl}</div>
         )}
         <div className="text-[10px] text-text-dim flex gap-3 flex-wrap">
-          {result.author && <span>By {result.author}</span>}
-          {result.published && <span>{result.published}</span>}
+          {result.author && !PLACEHOLDER_REGEX.test(result.author.trim()) && (
+            <span>By {result.author}</span>
+          )}
+          {result.published && !PLACEHOLDER_REGEX.test(result.published.trim()) && (
+            <span>{result.published}</span>
+          )}
         </div>
       </header>
       <p className="text-[12px] text-foreground whitespace-pre-wrap leading-relaxed">{result.snippet}</p>
