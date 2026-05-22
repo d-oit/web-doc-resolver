@@ -1,3 +1,27 @@
+## [0.3.6] - 2026-05-22
+
+### Added
+
+- **Synthesis**: align with 2026 LLM-readable-doc standards
+- **Web**: enhance accessibility and address review feedback
+- **Web**: enhance search interaction focus and accessibility
+
+### Changed
+
+- **CI**: add serper CI job with CLI smoke test and semantic cache coverage
+- **Docs**: compact learnings and update plans after GOAP orchestration
+- **Web**: upgrade to TypeScript 6.0.3 and ESLint 10
+- **Performance**: optimize cache pruning and documentation quality scoring
+- **Scripts**: optimize and harden HTML extraction with tests
+- **Scripts**: optimize extract_text_from_html by lifting class and compiling regex
+
+### Fixed
+
+- **Security**: implement rate limiting for resolve endpoint
+
+### Dependencies
+
+- bump tokio in /cli in the cargo-deps group
 ## [0.3.5] - 2026-05-18
 
 ### Added

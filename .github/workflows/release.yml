@@ -149,29 +149,37 @@ jobs:
       - name: List assets
         run: ls -la dist
 
+      - name: Extract changelog section
+        id: changelog
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v ver="$VERSION" '
+            $0 ~ "^## \\[" ver "\\]" { found=1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > /tmp/release_body.md
+
+          echo "" >> /tmp/release_body.md
+          echo "### Install" >> /tmp/release_body.md
+          echo '```bash' >> /tmp/release_body.md
+          echo "curl -L https://github.com/d-oit/do-web-doc-resolver/releases/download/${{ steps.version.outputs.VERSION }}/do-wdr-linux-x86_64 -o do-wdr" >> /tmp/release_body.md
+          echo "chmod +x do-wdr" >> /tmp/release_body.md
+          echo '```' >> /tmp/release_body.md
+          echo "" >> /tmp/release_body.md
+          echo "### Binaries" >> /tmp/release_body.md
+          echo "- \`do-wdr-linux-x86_64\` — Linux x86_64" >> /tmp/release_body.md
+          echo "- \`do-wdr-macos-aarch64\` — macOS Apple Silicon" >> /tmp/release_body.md
+          echo "- \`do-wdr-windows-x86_64.exe\` — Windows x86_64" >> /tmp/release_body.md
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
           tag_name: ${{ steps.version.outputs.VERSION }}
           name: Release ${{ steps.version.outputs.VERSION }}
+          body_path: /tmp/release_body.md
           generate_release_notes: true
           make_latest: true
           files: |
             dist/do-wdr-linux-x86_64
             dist/do-wdr-macos-aarch64
             dist/do-wdr-windows-x86_64.exe
-          body: |
-            ## do-web-doc-resolver ${{ steps.version.outputs.VERSION }}
-
-            ### Install
-            ```bash
-            curl -L https://github.com/d-oit/do-web-doc-resolver/releases/download/${{ steps.version.outputs.VERSION }}/do-wdr-linux-x86_64 -o do-wdr
-            chmod +x do-wdr
-            ```
-
-            ### Binaries
-            - `do-wdr-linux-x86_64` — Linux x86_64
-            - `do-wdr-macos-aarch64` — macOS Apple Silicon
-            - `do-wdr-windows-x86_64.exe` — Windows x86_64
-
-            > Binaries include [build provenance attestations](https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds) for supply-chain security.
