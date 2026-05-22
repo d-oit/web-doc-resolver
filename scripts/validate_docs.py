@@ -11,6 +11,7 @@ from pathlib import Path
 # Add project root to sys.path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
+from scripts.doc_models import Report, read_file
 from scripts.doc_validator import (
     check_cargo_features,
     check_cross_docs,
@@ -27,7 +28,6 @@ from scripts.doc_validator import (
     fix_repo_trees,
     fix_rust_architecture,
 )
-from scripts.doc_models import Report, read_file
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 

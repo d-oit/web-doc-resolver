@@ -12,7 +12,6 @@ from scripts.monitor_providers import (
 
 
 class TestMonitorProviders(unittest.TestCase):
-
     @patch("os.path.exists", return_value=True)
     @patch("builtins.open", new_callable=mock_open, read_data='base = ["jina", "duckduckgo"]')
     def test_update_routing_priority_basic(self, mock_file, mock_exists):
