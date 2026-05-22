@@ -15,7 +15,7 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from html.parser import HTMLParser
 from typing import Any
-from urllib.parse import urljoin, urlparse
+from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -232,10 +232,17 @@ def is_safe_url(url: str) -> bool:
 
 
 def is_url(input_str: str) -> bool:
-    if not input_str or not input_str.strip():
+    if not input_str:
+        return False
+    trimmed = input_str.strip()
+    if not trimmed:
+        return False
+    # Fast path: must start with http (case-insensitive check without full lower() allocation)
+    prefix = trimmed[:8].lower()
+    if not prefix.startswith(("http://", "https://")):
         return False
     try:
-        result = urlparse(input_str)
+        result = urlparse(trimmed)
         return all([result.scheme in {"http", "https"}, result.netloc])
     except Exception:
         return False
@@ -429,7 +436,12 @@ class EnhancedHTMLParser(HTMLParser):
             if self._in_pre > 0:
                 self.result.append(data)
             else:
-                normalized = _RE_SPACES.sub(" ", data)
+                # Fast path: only sub if multiple spaces or tabs present
+                if "\t" in data or "  " in data:
+                    normalized = _RE_SPACES.sub(" ", data)
+                else:
+                    normalized = data
+
                 if normalized:
                     # Prevent double spaces across chunks
                     if normalized.startswith(" ") and self.result and self.result[-1].endswith(" "):
@@ -447,9 +459,11 @@ def extract_text_from_html(html: str, base_url: str = "") -> str:
     stripper.feed(html)
     text = "".join(stripper.result)
     # Normalize word joiner and other problematic characters
-    text = text.replace("\u2060", "")
+    if "\u2060" in text:
+        text = text.replace("\u2060", "")
     # Note: _RE_SPACES is handled per-chunk in handle_data to preserve code blocks.
-    text = _RE_NEWLINES.sub("\n\n", text)
+    if "\n\n\n" in text:
+        text = _RE_NEWLINES.sub("\n\n", text)
     return text.strip()
 
 
@@ -557,8 +571,6 @@ def normalize_url(url: str) -> str:
         parsed = urlparse(url)
         # Strip all known tracking params
         if parsed.query:
-            from urllib.parse import parse_qs, urlencode
-
             params = parse_qs(parsed.query)
             filtered_params = {
                 k: v
@@ -596,9 +608,8 @@ def normalize_url(url: str) -> str:
 def normalize_query(query: str) -> str:
     """Normalize search query."""
     # Lowercase, trim whitespace, and collapse multiple spaces
-    normalized = query.lower().strip()
-    normalized = re.sub(r"\s+", " ", normalized)
-    return normalized
+    # Using split() and join() is significantly faster than re.sub for collapsing whitespace
+    return " ".join(query.lower().split())
 
 
 def _cache_key(input_str: str, source: str) -> str:
