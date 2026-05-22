@@ -199,12 +199,14 @@ export default function Sidebar({
             <button
               data-testid="api-keys-toggle"
               onClick={() => setApiKeysOpen(!apiKeysOpen)}
+              aria-expanded={apiKeysOpen}
+              aria-controls="api-keys-panel"
               className="text-[11px] text-text-muted hover:text-foreground text-left min-h-[44px] py-2"
             >
               {apiKeysOpen ? "▼" : "▶"} API Keys
             </button>
             {apiKeysOpen && (
-              <div className="flex flex-col gap-3 pl-2">
+              <div id="api-keys-panel" className="flex flex-col gap-3 pl-2">
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between">
                     <label className="text-[11px] text-text-muted">Max chars</label>

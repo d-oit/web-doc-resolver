@@ -11,20 +11,16 @@ from pathlib import Path
 # Add project root to sys.path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from scripts.doc_checkers_1 import (
+from scripts.doc_validator import (
     check_cargo_features,
+    check_cross_docs,
     check_file_references,
+    check_npm_scripts,
     check_python_cli,
+    check_repo_tree,
     check_rust_architecture,
     check_rust_cli_flags,
     check_shell_commands,
-)
-from scripts.doc_checkers_2 import (
-    check_cross_docs,
-    check_npm_scripts,
-    check_repo_tree,
-)
-from scripts.doc_fixers import (
     fix_cargo_features,
     fix_duplicate_links,
     fix_python_cli,
