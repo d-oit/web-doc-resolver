@@ -29,6 +29,8 @@ Activate this skill when you need to:
 Install Python dependencies:
 ```bash
 pip install -r requirements.txt
+# Optional: for high-performance semantic caching
+pip install sqlite-vec
 ```
 
 ## Commands
@@ -37,13 +39,13 @@ pip install -r requirements.txt
 
 ```bash
 # Resolve a URL — uses project root scripts/
-python scripts/resolve.py "https://docs.rs/tokio"
+python3 -m scripts.cli "https://docs.rs/tokio"
 
 # Resolve a query
-python scripts/resolve.py "Rust async runtime comparison"
+python3 -m scripts.cli "Rust async runtime comparison"
 
 # With options
-python scripts/resolve.py "query" --log-level INFO --max-chars 5000
+python3 -m scripts.cli "query" --log-level INFO --max-chars 5000
 ```
 
 ### CLI Usage (standalone — after copying skill to any project)
