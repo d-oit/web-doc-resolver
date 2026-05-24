@@ -218,7 +218,7 @@ def plan_provider_order(
             ]
     else:
         # DuckDuckGo deprioritized due to instability (Alert 2026-04-20)
-        base = ["exa_mcp", "exa", "tavily", "serper", "mistral_websearch", "duckduckgo"]
+        base = ["exa_mcp", "exa", "serper", "mistral_websearch", "duckduckgo", "tavily"]
 
     skip_providers = skip_providers or set()
 
