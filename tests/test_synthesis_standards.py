@@ -66,6 +66,9 @@ Comparison here.
 
     missing_anchors_doc = """---
 relevance_score: 0.9
+intent_category: Technical
+token_estimate: 100
+last_updated: 2026-01-01
 ---
 Just some text.
 """

@@ -41,7 +41,13 @@ def score_content(markdown: str, links: list[str] | None = None) -> QualityScore
     noisy = noise_count > 6
 
     # 2026 Standard Checks
-    has_frontmatter = text.startswith("---") and "relevance_score:" in text
+    required_yaml = [
+        "relevance_score:",
+        "intent_category:",
+        "token_estimate:",
+        "last_updated:",
+    ]
+    has_frontmatter = text.startswith("---") and all(field in text for field in required_yaml)
     has_anchors = all(
         anchor in text
         for anchor in [

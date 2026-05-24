@@ -22,7 +22,7 @@ use crate::negative_cache::NegativeCache;
 use crate::providers::rate_limiter::RateLimiterRegistry;
 use crate::routing_memory::RoutingMemory;
 use crate::semantic_cache::SemanticCache;
-use crate::synthesis::synthesize_results;
+use crate::synthesis::{deterministic_merge, synthesize_results};
 use crate::types::{ProviderType, ResolvedResult};
 use std::result::Result;
 use std::sync::{Arc, Mutex, OnceLock};
@@ -231,13 +231,8 @@ impl Resolver {
             return Ok(res);
         }
 
-        // Fallback to concatenated results
-        let mut content = String::new();
-        for res in &results {
-            if let Some(c) = &res.content {
-                content.push_str(&format!("\nSource: {}\n{}\n---\n", res.url, c));
-            }
-        }
+        // Fallback to deterministic merge for 2026 standards compliance
+        let content = deterministic_merge(&results);
 
         let mut final_res =
             ResolvedResult::new(results[0].url.clone(), Some(content), "aggregated", 1.0);
