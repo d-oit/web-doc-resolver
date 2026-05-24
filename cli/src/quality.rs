@@ -29,7 +29,11 @@ pub fn score_content(markdown: &str, links: &[String], threshold: f32) -> Qualit
         + lower.matches("sign up").count();
     let noisy = noisy_count > 6;
 
-    let has_frontmatter = trimmed.starts_with("---") && trimmed.contains("relevance_score:");
+    let has_frontmatter = trimmed.starts_with("---")
+        && trimmed.contains("relevance_score:")
+        && trimmed.contains("intent_category:")
+        && trimmed.contains("token_estimate:")
+        && trimmed.contains("last_updated:");
     let has_structural_anchors = trimmed.contains("[ANCHOR: SUMMARY]")
         && trimmed.contains("[ANCHOR: TECHNICAL_DETAILS]")
         && trimmed.contains("[ANCHOR: COMPARISON]")
