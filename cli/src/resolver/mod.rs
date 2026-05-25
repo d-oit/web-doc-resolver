@@ -221,11 +221,13 @@ impl Resolver {
             res.metrics = Some(metrics);
 
             // Store in semantic cache
-            if let Some(cache) = self.cache.as_ref() {
-                let cache_key = format!("aggregated:{}", input);
-                let _ = cache
-                    .store(&cache_key, std::slice::from_ref(&res), &res.source)
-                    .await;
+            if self.config.semantic_cache.enabled {
+                if let Some(cache) = self.cache.as_ref() {
+                    let cache_key = format!("aggregated:{}", input);
+                    let _ = cache
+                        .store(&cache_key, std::slice::from_ref(&res), &res.source)
+                        .await;
+                }
             }
 
             return Ok(res);
@@ -277,10 +279,12 @@ impl Resolver {
 
         // Store in cache if successful
         if let Ok(res) = &result {
-            if let Some(cache) = self.cache.as_ref() {
-                let _ = cache
-                    .store(input, std::slice::from_ref(res), &res.source)
-                    .await;
+            if self.config.semantic_cache.enabled {
+                if let Some(cache) = self.cache.as_ref() {
+                    let _ = cache
+                        .store(input, std::slice::from_ref(res), &res.source)
+                        .await;
+                }
             }
         }
 
