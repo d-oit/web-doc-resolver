@@ -302,7 +302,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_synthesis_fallback() {
-        let mut config = Config::default();
+        let config = Config::default();
         let results = vec![ResolvedResult::new(
             "https://example.com",
             Some("Test content".to_string()),

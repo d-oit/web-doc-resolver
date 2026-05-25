@@ -201,6 +201,21 @@ impl SemanticCache {
 
         let query_vector = self.encode_query(query);
 
+        // Redundancy pruning: check if a very similar entry already exists
+        if let Ok(hits) = self.framework.probe(query_vector, 1).await {
+            if let Some((best_id, best_score)) = hits.first() {
+                if *best_score > 0.99 {
+                    tracing::info!(
+                        "Skipping store for query='{}': very similar entry already exists (id: {}, score: {:.4})",
+                        query,
+                        best_id,
+                        best_score
+                    );
+                    return Ok(());
+                }
+            }
+        }
+
         let mut metadata = HashMap::new();
         metadata.insert("query".to_string(), Value::String(query.to_string()));
         metadata.insert(
