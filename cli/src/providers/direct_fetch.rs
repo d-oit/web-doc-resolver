@@ -102,6 +102,15 @@ fn decode_entities(text: &str) -> String {
         .replace("&#x27;", "'")
         .replace("&#39;", "'")
         .replace("&nbsp;", " ")
+        .replace("&copy;", "©")
+        .replace("&reg;", "®")
+        .replace("&trade;", "™")
+        .replace("&ndash;", "–")
+        .replace("&mdash;", "—")
+        .replace("&lsquo;", "‘")
+        .replace("&rsquo;", "’")
+        .replace("&ldquo;", "“")
+        .replace("&rdquo;", "”")
         .replace("&#8288;", "") // word joiner
         .replace("&amp;", "&") // Ampersand last to avoid double-unescaping
         .replace("\u{2060}", "") // Remove word joiner
@@ -157,8 +166,27 @@ fn strip_html(html: &str) -> String {
     let mut in_pre = false;
 
     let block_tags: HashSet<&str> = [
-        "p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "li", "tr", "pre", "br", "article",
-        "section", "header", "footer", "nav", "aside",
+        "p",
+        "div",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "li",
+        "tr",
+        "pre",
+        "br",
+        "article",
+        "section",
+        "header",
+        "footer",
+        "nav",
+        "aside",
+        "main",
+        "figure",
+        "figcaption",
     ]
     .iter()
     .cloned()
@@ -306,5 +334,12 @@ mod tests {
         let html = "<img src=\"math.svg\" alt=\"x^2 + y^2 = z^2\">";
         let result = strip_html(html);
         assert!(result.contains("x^2 + y^2 = z^2"));
+    }
+
+    #[test]
+    fn test_extended_entities() {
+        let html = "<p>Copyright &copy; 2026 &mdash; All rights &reg; reserved &trade;.</p>";
+        let result = strip_html(html);
+        assert!(result.contains("Copyright © 2026 — All rights ® reserved ™."));
     }
 }

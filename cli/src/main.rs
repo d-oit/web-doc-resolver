@@ -30,6 +30,7 @@ fn init_logging(verbose: u8) {
         .with_thread_ids(true)
         .with_file(true)
         .with_line_number(true)
+        .with_writer(std::io::stderr)
         .init();
 }
 
