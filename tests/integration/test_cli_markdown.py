@@ -20,7 +20,10 @@ def test_cli_output_markdown_code_blocks():
     url = "https://docs.rs/tokio/latest/tokio/"
 
     result = subprocess.run(
-        [CLI_PATH, "resolve", url, "--provider", "jina"], capture_output=True, text=True, check=True
+        [CLI_PATH, "resolve", url, "--provider", "jina"],
+        capture_output=True,
+        text=True,
+        check=True,
     )
 
     content = result.stdout
@@ -38,7 +41,10 @@ def test_cli_output_markdown_latex():
     url = "https://en.wikipedia.org/wiki/Quadratic_formula"
 
     result = subprocess.run(
-        [CLI_PATH, "resolve", url, "--provider", "jina"], capture_output=True, text=True, check=True
+        [CLI_PATH, "resolve", url, "--provider", "jina"],
+        capture_output=True,
+        text=True,
+        check=True,
     )
 
     content = result.stdout
@@ -60,7 +66,10 @@ def test_cli_javascript_heavy_site():
     url = "https://react.dev/learn"
 
     result = subprocess.run(
-        [CLI_PATH, "resolve", url, "--provider", "jina"], capture_output=True, text=True, check=True
+        [CLI_PATH, "resolve", url, "--provider", "jina"],
+        capture_output=True,
+        text=True,
+        check=True,
     )
 
     content = result.stdout
@@ -68,3 +77,36 @@ def test_cli_javascript_heavy_site():
     # Should have meaningful content, not just a 'loading' or 'enable JS' message
     assert "React" in content
     assert "Components" in content or "Hooks" in content or "Learn" in content
+
+
+@pytest.mark.integration
+def test_cli_llm_ready_markdown():
+    """Test that the CLI output follows 2026 LLM-ready standards."""
+    url = "https://docs.rs/tokio/latest/tokio/"
+
+    # Enable synthesis to see LLM-ready output (frontmatter + anchors)
+    result = subprocess.run(
+        [CLI_PATH, "resolve", url, "--provider", "jina", "--synthesize"],
+        capture_output=True,
+        text=True,
+        check=True,
+        env={**os.environ, "MISTRAL_API_KEY": "test_key"},
+    )
+
+    content = result.stdout
+
+    # Check for YAML frontmatter
+    assert content.startswith("---")
+    assert "relevance_score:" in content
+    assert "intent_category:" in content
+    assert "token_estimate:" in content
+    assert "last_updated:" in content
+
+    # Check for Structural Anchors
+    assert "[ANCHOR: SUMMARY]" in content
+    assert "[ANCHOR: TECHNICAL_DETAILS]" in content
+    assert "[ANCHOR: CITATIONS]" in content
+
+    # Ensure citations are present at the end
+    assert "[1]" in content
+    assert url in content
