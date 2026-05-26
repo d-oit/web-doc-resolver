@@ -14,6 +14,12 @@ pytestmark = [
 ]
 
 
+def check(condition, message="Assertion failed"):
+    """Security-compliant assertion helper that won't be removed by optimization."""
+    if not condition:
+        raise AssertionError(message)
+
+
 @pytest.mark.integration
 def test_cli_output_markdown_code_blocks():
     """Test that the CLI correctly outputs Markdown with code blocks from a documentation site."""
@@ -27,12 +33,12 @@ def test_cli_output_markdown_code_blocks():
     )
 
     content = result.stdout
-    assert len(content) > 500
+    check(len(content) > 500, "Content too short")
     # Check for presence of code blocks
-    assert "```" in content
+    check("```" in content, "Missing code blocks")
     # Ensure no common 'unparsed' indicators
-    assert "<pre" not in content
-    assert "<code>" not in content
+    check("<pre" not in content, "Found unparsed <pre> tag")
+    check("<code>" not in content, "Found unparsed <code> tag")
 
 
 @pytest.mark.integration
@@ -48,7 +54,7 @@ def test_cli_output_markdown_latex():
     )
 
     content = result.stdout
-    assert len(content) > 500
+    check(len(content) > 500, "Content too short")
 
     # Check for LaTeX patterns
     # Wikipedia Jina output often uses $ or \( \) or images with alt text
@@ -56,7 +62,7 @@ def test_cli_output_markdown_latex():
     latex_indicators = ["\\pm", "\\sqrt", "b^2", "2a", "$"]
     found = any(ind in content for ind in latex_indicators)
 
-    assert found, f"No LaTeX indicators found in output: {content[:500]}..."
+    check(found, f"No LaTeX indicators found in output: {content[:500]}...")
 
 
 @pytest.mark.integration
@@ -73,10 +79,13 @@ def test_cli_javascript_heavy_site():
     )
 
     content = result.stdout
-    assert len(content) > 500
+    check(len(content) > 500, "Content too short")
     # Should have meaningful content, not just a 'loading' or 'enable JS' message
-    assert "React" in content
-    assert "Components" in content or "Hooks" in content or "Learn" in content
+    check("React" in content, "Missing 'React' keyword")
+    check(
+        "Components" in content or "Hooks" in content or "Learn" in content,
+        "Missing React learning keywords",
+    )
 
 
 @pytest.mark.integration
@@ -96,17 +105,17 @@ def test_cli_llm_ready_markdown():
     content = result.stdout
 
     # Check for YAML frontmatter
-    assert content.startswith("---")
-    assert "relevance_score:" in content
-    assert "intent_category:" in content
-    assert "token_estimate:" in content
-    assert "last_updated:" in content
+    check(content.startswith("---"), "Missing YAML frontmatter start")
+    check("relevance_score:" in content, "Missing relevance_score in frontmatter")
+    check("intent_category:" in content, "Missing intent_category in frontmatter")
+    check("token_estimate:" in content, "Missing token_estimate in frontmatter")
+    check("last_updated:" in content, "Missing last_updated in frontmatter")
 
     # Check for Structural Anchors
-    assert "[ANCHOR: SUMMARY]" in content
-    assert "[ANCHOR: TECHNICAL_DETAILS]" in content
-    assert "[ANCHOR: CITATIONS]" in content
+    check("[ANCHOR: SUMMARY]" in content, "Missing [ANCHOR: SUMMARY]")
+    check("[ANCHOR: TECHNICAL_DETAILS]" in content, "Missing [ANCHOR: TECHNICAL_DETAILS]")
+    check("[ANCHOR: CITATIONS]" in content, "Missing [ANCHOR: CITATIONS]")
 
     # Ensure citations are present at the end
-    assert "[1]" in content
-    assert url in content
+    check("[1]" in content, "Missing citation marker [1]")
+    check(url in content, f"Missing source URL {url}")
