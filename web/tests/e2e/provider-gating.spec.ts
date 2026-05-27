@@ -47,6 +47,7 @@ async function openSidebarIfMobile(page: Page): Promise<void> {
 }
 
 test.describe("Provider gating", () => {
+  // eslint-disable-next-line playwright/no-skipped-test
   test.skip(!isLocalBaseUrl, "This suite validates local UI behavior only");
 
   test("paid providers show needs key when API keys absent", async ({ page }) => {
@@ -66,15 +67,18 @@ test.describe("Provider gating", () => {
     await expect(firecrawlButton).toContainText("needs key");
   });
 
-  test("provider enables after entering local API key", async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== "desktop", "Enabled-state interaction is desktop-only");
+  test("provider enables after entering local API key", async ({ page }) => {
+    // eslint-disable-next-line playwright/no-conditional-in-test
+    if (test.info().project.name !== "desktop") {
+      return;
+    }
     await mockUiStateAndKeys(page);
     await page.goto("/");
     await openSidebarIfMobile(page);
 
     const apiKeysToggle = page.getByTestId("api-keys-toggle");
     await apiKeysToggle.scrollIntoViewIfNeeded();
-    await apiKeysToggle.click({ force: true });
+    await apiKeysToggle.click();
     await page
       .locator("label", { hasText: "Tavily" })
       .locator("..")
@@ -86,8 +90,11 @@ test.describe("Provider gating", () => {
     await expect(tavilyButton).not.toContainText("needs key");
   });
 
-  test("manual provider toggle switches profile to custom", async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== "desktop", "Profile toggle interaction is desktop-only");
+  test("manual provider toggle switches profile to custom", async ({ page }) => {
+    // eslint-disable-next-line playwright/no-conditional-in-test
+    if (test.info().project.name !== "desktop") {
+      return;
+    }
     await mockUiStateAndKeys(page);
     await page.goto("/");
     await openSidebarIfMobile(page);
@@ -95,14 +102,17 @@ test.describe("Provider gating", () => {
     // Use Exa MCP instead of DuckDuckGo (DuckDuckGo may be disabled due to Mistral gating)
     const exaMcpButton = page.getByRole("button", { name: /Exa MCP/ });
     await exaMcpButton.scrollIntoViewIfNeeded();
-    await exaMcpButton.click({ force: true });
+    await exaMcpButton.click();
     // ProfileCombobox shows "Custom" after manual provider toggle
     const profileButton = page.locator("button[aria-label='Change search profile']");
     await expect(profileButton).toContainText("Custom");
   });
 
-  test("custom provider selection persists across reload via server state", async ({ page }, testInfo) => {
-    test.skip(testInfo.project.name !== "desktop", "Persistence interaction is desktop-only");
+  test("custom provider selection persists across reload via server state", async ({ page }) => {
+    // eslint-disable-next-line playwright/no-conditional-in-test
+    if (test.info().project.name !== "desktop") {
+      return;
+    }
 
     let serverState: Record<string, unknown> = {
       sidebarCollapsed: false,
@@ -149,12 +159,11 @@ test.describe("Provider gating", () => {
     // Use Exa MCP instead of DuckDuckGo (DuckDuckGo may be disabled due to Mistral gating)
     const exaMcpButton = page.getByRole("button", { name: /Exa MCP/ });
     await exaMcpButton.scrollIntoViewIfNeeded();
-    await exaMcpButton.click({ force: true });
+    await exaMcpButton.click();
     // ProfileCombobox shows "Custom" after manual provider toggle
     const profileButton = page.locator("button[aria-label='Change search profile']");
     await expect(profileButton).toContainText("Custom");
 
-    await page.waitForTimeout(2200);
     await page.reload();
     await openSidebarIfMobile(page);
 

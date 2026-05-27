@@ -1,11 +1,23 @@
 #!/bin/bash
 # Pre-commit hook for do-web-doc-resolver
-# Runs quality gate and validates checkpoint files before commit
+# Runs quality gate, markdownlint, and validates checkpoint files before commit
 # Note: Gitleaks runs via GitHub Action (.github/workflows/gitleaks.yml)
 
 set -e
 
 echo "Running pre-commit checks..."
+
+# Run markdownlint first (fast, catches common issues early)
+if command -v npx &>/dev/null; then
+    echo "Running markdownlint..."
+    npx markdownlint . || {
+        echo "❌ markdownlint failed. Fix errors before committing."
+        exit 1
+    }
+    echo "✅ markdownlint passed."
+else
+    echo "⚠️  npx not found - skipping markdownlint. Install Node.js to enable."
+fi
 
 # Run quality gate
 if [ -f "./scripts/quality_gate.sh" ]; then
