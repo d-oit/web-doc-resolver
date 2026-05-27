@@ -1723,6 +1723,89 @@ class TestCascadeErrorHandling:
         # duckduckgo is free and high quality — cascade stops here
         assert final["source"] == "duckduckgo"
 
+    @patch("scripts._query_resolve.get_semantic_cache")
+    def test_semantic_cache_hit_skips_cascade(self, mock_get_sc, caplog):
+        """Semantic cache hit yields cached result immediately, skipping all providers."""
+        from scripts._query_resolve import resolve_query_stream
+        from scripts.models import Profile
+
+        mock_cache = Mock()
+        mock_entry = Mock()
+        mock_entry.similarity = 0.95
+        mock_entry.query = "similar cached query"
+        mock_entry.result = {
+            "source": "exa",
+            "content": "cached documentation content " * 30,
+            "url": "https://cached.example.com",
+            "score": 0.85,
+        }
+        mock_cache.query.return_value = mock_entry
+        mock_get_sc.return_value = mock_cache
+
+        with caplog.at_level(logging.INFO):
+            results = list(resolve_query_stream("test cached query", profile=Profile.BALANCED))
+
+        assert len(results) == 1
+        final = results[0]
+        assert final["semantic_cache_hit"] is True
+        assert final["semantic_similarity"] == 0.95
+        assert final["semantic_original_query"] == "similar cached query"
+        assert final["source"] == "exa"
+        assert "Semantic cache hit" in caplog.text
+
+    @patch("scripts._query_resolve.get_semantic_cache", return_value=None)
+    @patch("scripts._query_resolve.resolve_with_exa_mcp")
+    @patch("scripts._query_resolve.resolve_with_exa")
+    @patch("scripts._query_resolve.resolve_with_tavily")
+    @patch("scripts._query_resolve.resolve_with_duckduckgo")
+    @patch("scripts._query_resolve.resolve_with_mistral_websearch")
+    @patch("scripts.routing.ResolutionBudget")
+    def test_budget_exhaustion_yields_best_free_result(
+        self, mock_budget_cls, mock_mw, mock_ddg, mock_tav, mock_exa, mock_mcp, mock_sc
+    ):
+        """When budget is exhausted, best_free_result is yielded instead of source=none."""
+        from scripts._query_resolve import resolve_query_stream
+        from scripts.models import Profile, ResolvedResult
+
+        low_quality = ResolvedResult(
+            source="exa_mcp",
+            content="Some basic documentation content that is acceptable but low quality. " * 30,
+            url="https://example.com",
+        )
+        mock_mcp.return_value = low_quality
+        mock_exa.return_value = None
+        mock_tav.return_value = None
+        mock_ddg.return_value = None
+        mock_mw.return_value = None
+
+        # Budget: allows first attempt then exhausts
+        mock_budget = Mock()
+        mock_budget.min_free_quality_to_skip_paid = 0.99
+        call_counts = {"can_try": 0}
+
+        def can_try(is_paid=False):
+            call_counts["can_try"] += 1
+            if call_counts["can_try"] == 1:
+                return True
+            mock_budget.stop_reason = "max_provider_attempts"
+            return False
+
+        mock_budget.can_try = can_try
+        mock_budget.record_attempt = Mock()
+        mock_budget_cls.return_value = mock_budget
+
+        results = list(resolve_query_stream("test budget exhaust", profile=Profile.BALANCED))
+
+        final = next((r for r in results if r.get("source") != "partial"), results[-1])
+        # Should yield best_free_result from the first provider, not source=none
+        assert final["source"] == "exa_mcp"
+        assert "Some basic documentation" in final["content"]
+        # Remaining providers should not be called since budget was exhausted
+        mock_exa.assert_not_called()
+        mock_tav.assert_not_called()
+        mock_ddg.assert_not_called()
+        mock_mw.assert_not_called()
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
