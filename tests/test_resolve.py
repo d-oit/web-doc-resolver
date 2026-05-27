@@ -1669,18 +1669,21 @@ class TestCascadeErrorHandling:
             _circuit_breakers.record_failure("exa")
         assert _circuit_breakers.is_open("exa")
 
+        # First provider (exa_mcp) fails, so cascade must continue to exa (which is skipped)
+        mock_mcp.return_value = None
+        # tavily (third provider) succeeds
         good_result = ResolvedResult(
-            source="exa_mcp",
+            source="tavily",
             content=("# Documentation\n\nDetailed technical content with links. " * 60),
-            url="https://example.com",
+            url="https://tavily-result.example.com",
         )
-        mock_mcp.return_value = good_result
+        mock_tav.return_value = good_result
 
         with caplog.at_level(logging.INFO):
             results = list(resolve_query_stream("test cb skip", profile=Profile.BALANCED))
 
         final = next((r for r in results if r.get("source") != "partial"), results[-1])
-        assert final["source"] == "exa_mcp"
+        assert final["source"] == "tavily"
         # exa should not be called since breaker is open
         mock_exa.assert_not_called()
 
@@ -1904,6 +1907,137 @@ class TestCascadeErrorHandling:
         mock_mb.assert_not_called()
         mock_ddg.assert_not_called()
         mock_fetch.assert_not_called()
+
+    # ── Hedge & negative cache tests ───────────────────────────────────
+
+    @patch("scripts._query_resolve.get_semantic_cache", return_value=None)
+    @patch("scripts._query_resolve.scripts.cache_negative.should_skip_from_negative_cache")
+    @patch("scripts._query_resolve.resolve_with_exa_mcp")
+    @patch("scripts._query_resolve.resolve_with_exa")
+    @patch("scripts._query_resolve.resolve_with_tavily")
+    @patch("scripts._query_resolve.resolve_with_duckduckgo")
+    @patch("scripts._query_resolve.resolve_with_mistral_websearch")
+    def test_negative_cache_skips_provider(
+        self,
+        mock_mw,
+        mock_ddg,
+        mock_tav,
+        mock_exa,
+        mock_mcp,
+        mock_skip,
+        mock_sc,
+        caplog,
+    ):
+        """When negative cache says skip, cascade skips the provider entirely."""
+        from scripts._query_resolve import resolve_query_stream
+        from scripts.models import Profile, ResolvedResult
+
+        # exa_mcp returns None, should_skip returns True for exa, tavily succeeds
+        mock_mcp.return_value = None
+
+        def should_skip(cache, key, provider):
+            return provider == "exa"
+
+        mock_skip.side_effect = should_skip
+
+        good_result = ResolvedResult(
+            source="tavily",
+            content="Tavily documentation content with examples. " * 60,
+            url="https://tavily-result.example.com",
+        )
+        mock_tav.return_value = good_result
+
+        with caplog.at_level(logging.INFO):
+            results = list(resolve_query_stream("test neg cache skip", profile=Profile.BALANCED))
+
+        final = next((r for r in results if r.get("source") != "partial"), results[-1])
+        assert final["source"] == "tavily"
+        # exa should NOT be called since negative cache skipped it
+        mock_exa.assert_not_called()
+
+    @patch("scripts._query_resolve.get_semantic_cache", return_value=None)
+    @patch("scripts._query_resolve.resolve_with_exa_mcp")
+    @patch("scripts._query_resolve.resolve_with_exa")
+    @patch("scripts._query_resolve.resolve_with_tavily")
+    @patch("scripts._query_resolve.resolve_with_duckduckgo")
+    @patch("scripts._query_resolve.resolve_with_mistral_websearch")
+    def test_hedge_triggers_when_p75_latency_is_zero(
+        self, mock_mw, mock_ddg, mock_tav, mock_exa, mock_mcp, mock_sc, caplog
+    ):
+        """When p75 latency is 0, hedge launches next provider while first is still 'running'."""
+        from scripts._query_resolve import _routing_memory, resolve_query_stream
+        from scripts.models import Profile, ResolvedResult
+
+        # Set p75 latency to 0 to trigger instant hedge threshold
+        original_p75 = _routing_memory.get_p75_latency
+        _routing_memory.get_p75_latency = lambda d, p, default=3000: 0
+
+        try:
+            # First provider (exa_mcp) fails, so cascade must continue
+            mock_mcp.return_value = None
+            # exa (hedged provider) succeeds
+            good_result = ResolvedResult(
+                source="exa",
+                content="Exa documentation with examples. " * 60,
+                url="https://exa-result.example.com",
+            )
+            mock_exa.return_value = good_result
+            mock_tav.return_value = None
+            mock_ddg.return_value = None
+            mock_mw.return_value = None
+
+            with caplog.at_level(logging.INFO):
+                results = list(resolve_query_stream("test hedge", profile=Profile.BALANCED))
+
+            final = next((r for r in results if r.get("source") != "partial"), results[-1])
+            assert final["source"] == "exa"
+            # With p75=0, exa should be launched as a hedge (called even though exa_mcp
+            # was the first provider). Both providers are probed concurrently.
+            mock_exa.assert_called()
+        finally:
+            _routing_memory.get_p75_latency = original_p75
+
+    @patch("scripts._query_resolve.get_semantic_cache", return_value=None)
+    @patch("scripts._query_resolve.resolve_with_exa_mcp")
+    @patch("scripts._query_resolve.resolve_with_exa")
+    @patch("scripts._query_resolve.resolve_with_tavily")
+    @patch("scripts._query_resolve.resolve_with_duckduckgo")
+    @patch("scripts._query_resolve.resolve_with_mistral_websearch")
+    def test_circuit_breaker_failure_counter_resets_after_success(
+        self, mock_mw, mock_ddg, mock_tav, mock_exa, mock_mcp, mock_sc
+    ):
+        """After a provider succeeds, its circuit breaker failure counter resets to 0."""
+        from scripts._query_resolve import _circuit_breakers, resolve_query_stream
+        from scripts.models import Profile, ResolvedResult
+
+        # Pre-open the breaker for exa_mcp with some failures
+        _circuit_breakers.record_failure("exa_mcp")
+        _circuit_breakers.record_failure("exa_mcp")
+        # Not yet open (threshold is 3)
+        assert not _circuit_breakers.is_open("exa_mcp")
+
+        # Now exa_mcp succeeds
+        good_result = ResolvedResult(
+            source="exa_mcp",
+            content="Excellent documentation content with comprehensive details. " * 60,
+            url="https://example.com",
+        )
+        mock_mcp.return_value = good_result
+
+        results = list(resolve_query_stream("test cb reset", profile=Profile.BALANCED))
+
+        final = next((r for r in results if r.get("source") != "partial"), results[-1])
+        assert final["source"] == "exa_mcp"
+
+        # After success, breaker should be closed (failures reset to 0)
+        assert not _circuit_breakers.is_open("exa_mcp")
+
+        # Verify by checking it can run again without being skipped
+        breaker_state = _circuit_breakers.breakers.get("exa_mcp")
+        assert breaker_state is None or breaker_state.failures == 0
+
+        # Clean up
+        _circuit_breakers.clear()
 
 
 if __name__ == "__main__":

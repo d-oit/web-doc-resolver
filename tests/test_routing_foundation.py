@@ -544,12 +544,75 @@ class TestRoutingMemoryEdgeCases:
         assert ranked[0] == "recent"
 
     def test_get_p75_latency_single_datapoint(self):
-        """With one datapoint, p75 latency should equal that datapoint * 1.5."""
+        """With one datapoint, p75 latency = avg_latency_ms * 1.5."""
         rm = RoutingMemory()
         rm.record("d.com", "p", True, latency_ms=100, quality_score=0.8)
         lat = rm.get_p75_latency("d.com", "p")
-        # Single datapoint: formula should return something reasonable
+        # compute_p75_latency(100, 3000) = int(100 * 1.5) = 150
+        assert lat == 150
+
+    def test_rank_providers_with_corrupted_stats(self):
+        """Rank should not crash when domain has partial/corrupted stats."""
+        rm = RoutingMemory()
+        # Directly inject a stats dict with missing keys to simulate corruption
+        rm.domain_stats["corrupted.com"]["broken"] = {
+            "success": 1,
+            # Deliberately missing: failure, avg_latency_ms, avg_quality, last_attempted
+        }
+
+        # rank should handle this gracefully — not crash, not raise
+        try:
+            ranked = rm.rank("corrupted.com", ["broken", "p2"])
+            # Verify it returned a list (no crash)
+            assert isinstance(ranked, list)
+            assert len(ranked) == 2
+        except Exception as e:
+            pytest.fail(f"rank() crashed on corrupted stats: {e}")
+
+    def test_get_domain_stats_with_partial_data(self):
+        """get_domain_stats handles stats missing expected keys via .get() defaults."""
+        rm = RoutingMemory()
+        # Inject minimal stats (only success count, nothing else)
+        rm.domain_stats["partial.com"]["minimal"] = {"success": 5}
+
+        # get_domain_stats uses .get() for all keys: success=5, failure=0, attempts=5
+        stats = rm.get_domain_stats("minimal", "partial.com")
+        assert stats is not None
+        assert stats["attempts"] == 5
+        assert stats["success_rate"] == 1.0  # 5/5 = 1.0
+        assert stats["avg_latency_ms"] == 0  # missing → default 0
+        assert stats["avg_quality"] == 0.5  # missing → default 0.5
+        assert stats["days_since_last"] == 0.0  # no last_attempted → 0.0
+
+    def test_get_p75_latency_extremely_large_value(self):
+        """Extremely large avg_latency_ms should not cause overflow."""
+        rm = RoutingMemory()
+        rm.record("big.com", "slow", True, latency_ms=10_000_000, quality_score=0.5)
+        lat = rm.get_p75_latency("big.com", "slow")
+        # Should return a reasonable value, not overflow
         assert lat >= 0
+        assert lat < float("inf")
+
+    def test_rank_providers_all_new_returns_original_order(self):
+        """All new providers should return in original order (all get SCORE_BASE)."""
+        rm = RoutingMemory()
+        providers = ["delta", "alpha", "gamma", "beta"]
+        ranked = rm.rank("fresh-domain.com", providers)
+        assert ranked == providers
+
+    def test_success_rate_maintained(self):
+        """Success rate should be correctly maintained across records."""
+        rm = RoutingMemory()
+        # 3 successes, 1 failure = 75% success rate
+        rm.record("maint.com", "p", True, 100, 0.9)
+        rm.record("maint.com", "p", True, 100, 0.9)
+        rm.record("maint.com", "p", True, 100, 0.9)
+        rm.record("maint.com", "p", False, 100, 0.5)
+
+        stats = rm.get_domain_stats("p", "maint.com")
+        assert stats is not None
+        assert stats["attempts"] == 4
+        assert 0.7 < stats["success_rate"] < 0.8
 
 
 class TestQualityGate:
