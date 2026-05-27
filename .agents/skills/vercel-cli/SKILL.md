@@ -84,6 +84,7 @@ vercel build --prod  # Verify production build
 CI runs test/lint/build verification only — **no deploy jobs**. Vercel handles deployment automatically via Git integration.
 
 If using Vercel CLI in GitHub Actions (e.g., for E2E tests), ensure:
+
 - Install CLI: `npm i -g vercel`
 - Pass `--token` flag to all Vercel CLI commands
 - Use `include-hidden-files: true` on `upload-artifact` (`.vercel/` is hidden)

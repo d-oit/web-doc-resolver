@@ -17,6 +17,7 @@ Automated release management with Git and GitHub best practices.
 ## When to use this skill
 
 Activate this skill when you need to:
+
 - Create a new release (major/minor/patch)
 - Bump version numbers
 - Generate changelogs from commits
@@ -112,7 +113,7 @@ gh release create v0.2.0 \
 
 All commits should follow conventional commit format:
 
-```
+```text
 <type>(<scope>): <description>
 
 [optional body]

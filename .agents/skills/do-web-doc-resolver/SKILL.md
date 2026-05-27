@@ -17,6 +17,7 @@ Python implementation for resolving web URLs and queries into compact, LLM-ready
 ## When to use this skill
 
 Activate this skill when you need to:
+
 - Resolve a URL or query to markdown using Python
 - Use the full provider cascade with intelligent routing
 - Access quality scoring and content validation features
@@ -27,6 +28,7 @@ Activate this skill when you need to:
 ## Prerequisites
 
 Install Python dependencies:
+
 ```bash
 pip install -r requirements.txt
 # Optional: for high-performance semantic caching
@@ -196,7 +198,7 @@ export WEB_RESOLVER_TIMEOUT=30
 
 ## Skill Structure
 
-```
+```text
 do-web-doc-resolver/
 ├── SKILL.md              # This file
 ├── requirements.txt      # Python dependencies

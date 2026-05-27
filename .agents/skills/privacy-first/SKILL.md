@@ -49,6 +49,7 @@ grep -E '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' <file> || true
 ### 3. File-Type Specific Rules
 
 **Python (pyproject.toml, setup.py)**
+
 ```toml
 # Bad
 authors = [{name = "Author", email = "author@example.com"}]
@@ -58,6 +59,7 @@ authors = [{name = "Author"}]
 ```
 
 **Markdown (README.md, CONTRIBUTING.md)**
+
 ```markdown
 <!-- Bad -->
 Contact: support@project.com
@@ -67,6 +69,7 @@ Report issues: https://github.com/owner/repo/issues
 ```
 
 **Configuration files**
+
 - Never add email fields
 - Use URLs to GitHub instead
 
@@ -74,7 +77,7 @@ Report issues: https://github.com/owner/repo/issues
 
 The following are permitted and should NOT be flagged:
 
-- Test data in `tests/` directories using standard test domains:
+- Test data in `tests/` directories
   - `example.com`, `example.org`, `test.com`, `localhost`
 - URLs in documentation pointing to external services
 - Git history (cannot modify)
@@ -103,12 +106,14 @@ fi
 ## Quick Reference
 
 **Never do:**
+
 - Add `email = "..."` to any config file
 - Write `contact@project.com` in any markdown
 - Use real email addresses in examples
 - Include personal emails in commit messages
 
 **Always do:**
+
 - Use GitHub Issues URLs for support
 - Remove email fields from package metadata
 - Use test domains (`example.com`) only in test files

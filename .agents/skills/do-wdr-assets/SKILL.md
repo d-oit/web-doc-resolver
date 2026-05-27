@@ -17,6 +17,7 @@ Automated screenshot and visual asset generation for documentation.
 ## When to use this skill
 
 Activate this skill when you need to:
+
 - Capture UI screenshots for documentation
 - Generate visual assets for README.md
 - Create test captures for release notes
@@ -26,7 +27,7 @@ Activate this skill when you need to:
 
 ## Asset Structure
 
-```
+```text
 assets/
 ├── screenshots/
 │   ├── homepage.png          # Main UI screenshot

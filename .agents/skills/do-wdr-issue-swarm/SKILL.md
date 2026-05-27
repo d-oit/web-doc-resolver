@@ -42,7 +42,7 @@ Example for cli/ui/ issues:
 
 For each issue in a wave, launch a specialist agent via the Task tool:
 
-```
+```text
 Task(
   description="Implement #{N} {Title}",
   prompt="You are implementing GitHub Issue #{N}... [full issue body + context]",
@@ -51,6 +51,7 @@ Task(
 ```
 
 Each agent receives:
+
 - Full issue body from `gh issue view {N} --json body`
 - List of existing tokens from `tokens/design_tokens.css`
 - Convention examples from 1-2 existing components
@@ -104,6 +105,7 @@ gh issue close {N} --comment "Implemented in {commit_sha}. Component: cli/ui/com
 ### 8. Loop on failure
 
 If CI fails:
+
 1. Read the failure log: `gh run view {run_id} --log-failed`
 2. Fix the **simplest** failure first — if multiple runs failed, tackle one at a time
 3. Commit fix: `git commit -am "fix(ui): {description} — #{N}"`
@@ -115,7 +117,7 @@ before escalating.
 
 ## Agent prompt template
 
-```
+```text
 You are implementing GitHub Issue #{N}: "{Title}" for the do-web-doc-resolver project.
 
 CONTEXT: The UI layer is in `/workspaces/do-web-doc-resolver/cli/ui/`. Components are CSS-only files with BEM classes prefixed `do-wdr-`.

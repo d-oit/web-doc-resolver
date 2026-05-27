@@ -195,7 +195,7 @@ Stop **only** when:
 
 One-time when CI first transitions to all green:
 
-```
+```text
 🚀 CI is all green! 33/33 passed. Still on watch for review approval.
 ```
 

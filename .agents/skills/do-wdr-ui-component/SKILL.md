@@ -19,7 +19,7 @@ CSS-only components for the do-web-doc-resolver developer-first design system.
 
 Each component is a **single flat `.css` file** max 200 lines. Structure:
 
-```
+```text
 components/
 ├── badge.css
 ├── button.css
@@ -49,7 +49,7 @@ components/
 
 ## Token naming
 
-```
+```text
 --do-wdr-{component}-{element}-{variant}-{state}
 --do-wdr-button-primary-bg-hover
 --do-wdr-badge-provider-exa-bg
@@ -72,6 +72,7 @@ components/
 ## Accessibility requirements
 
 Every component MUST have:
+
 1. `focus-visible` outline (2px `--do-wdr-border-focus`, offset 2px)
 2. `prefers-reduced-motion: reduce` disabling all animations
 3. Semantic HTML where applicable (`dl/dt/dd`, `role=progressbar`, `aria-describedby`)

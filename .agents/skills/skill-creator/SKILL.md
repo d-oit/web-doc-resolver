@@ -24,7 +24,7 @@ Create and improve skills following the Agent Skills specification. A skill exte
 
 ### Directory Structure
 
-```
+```text
 skill-name/
 ├── SKILL.md          # Required: metadata + instructions
 ├── scripts/          # Optional: executable code
@@ -57,33 +57,34 @@ skill-name/
 ### Core Writing Principles
 
 1. **Use imperative phrasing** — "Use this skill when..." rather than "This skill does..."
-2. **Focus on user intent, not implementation** — Describe what the user is trying to achieve
-3. **Err on the side of being pushy** — Explicitly list contexts where the skill applies
-4. **Keep it concise** — A few sentences; max 1024 characters
+1. **Focus on user intent, not implementation** — Describe what the user is trying to achieve
+1. **Err on the side of being pushy** — Explicitly list contexts where the skill applies
+1. **Keep it concise** — A few sentences; max 1024 characters
 
 ### Testing & Evaluation
 
-5. **Design trigger eval queries** — Create ~20 realistic prompts (8-10 should-trigger, 8-10 should-not-trigger)
-6. **Vary should-trigger queries** along multiple axes: phrasing, explicitness, detail, complexity
-7. **Create strong should-not-trigger queries** — Use near-misses that share keywords but need something different
-8. **Run each query multiple times** — Model behavior is nondeterministic; run 3 times
-9. **Use train/validation splits** — ~60% train / ~40% validation
+1. **Design trigger eval queries** — Create ~20 realistic prompts (8-10 should-trigger, 8-10 should-not-trigger)
+1. **Vary should-trigger queries** along multiple axes: phrasing, explicitness, detail, complexity
+1. **Create strong should-not-trigger queries** — Use near-misses that share keywords but need something different
+1. **Run each query multiple times** — Model behavior is nondeterministic; run 3 times
+1. **Use train/validation splits** — ~60% train / ~40% validation
 
 ### The Optimization Loop
 
-10. **Evaluate on both sets** — Train results guide changes; validation tells if changes generalize
-11. **Identify failures in train set only** — Keep validation results hidden during iteration
-12. **Revise strategically:**
+1. **Evaluate on both sets** — Train results guide changes; validation tells if changes generalize
+1. **Identify failures in train set only** — Keep validation results hidden during iteration
+1. **Revise strategically:**
     - Should-trigger failing → broaden scope or add context
     - Should-not-trigger false-triggering → add specificity about what the skill does *not* do
-13. **Select best iteration by validation pass rate**
-14. **Check the 1024-character limit**
+1. **Select best iteration by validation pass rate**
+1. **Check the 1024-character limit**
 
 ---
 
 ## Creating Test Cases
 
 Store in `evals/evals.json`:
+
 ```json
 {
   "skill_name": "example-skill",

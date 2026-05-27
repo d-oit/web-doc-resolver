@@ -42,6 +42,7 @@ find . -name "*.md" -maxdepth 2
 ```
 
 Identify:
+
 - Primary language(s) and tech stack
 - What the project does (one sentence)
 - Key features (5-10 bullet points)
@@ -56,6 +57,7 @@ Identify:
 See [references/LOGO.md](references/LOGO.md) for the full logo creation guide.
 
 **Quick pattern:**
+
 - ViewBox: `0 0 320 80` at `width="320"`
 - Dark background pill (`#0f172a` to `#1e293b` gradient, `rx="14"`)
 - Domain-specific icon on the left
@@ -72,7 +74,7 @@ Use the template at [assets/logo-template.svg](assets/logo-template.svg) as star
 
 Follow this exact section order:
 
-```
+```text
 1.  <div align="center"> header block
     - Logo image
     - Project title (h1)
@@ -112,12 +114,14 @@ See [references/STRUCTURE.md](references/STRUCTURE.md) for full copy-paste templ
 See [references/BADGES.md](references/BADGES.md) for the complete badge catalog.
 
 **Required badges (always include):**
+
 - CI/CD status (`github/actions/workflows/ci.yml/badge.svg`)
 - Latest release version (`shields.io/github/v/release/...`)
 - License
 - Primary language(s)
 
 **Recommended additions:**
+
 - Live demo (Vercel / Netlify)
 - PRs Welcome
 - Code coverage (if Codecov/Coveralls configured)

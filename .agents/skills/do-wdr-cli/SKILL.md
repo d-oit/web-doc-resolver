@@ -17,6 +17,7 @@ Fast compiled Rust CLI for resolving web URLs and queries into markdown document
 ## When to use this skill
 
 Activate this skill when you need to:
+
 - Resolve a URL or query to markdown from the command line
 - Integrate documentation resolution into shell scripts
 - Get faster performance than the Python implementation
@@ -26,6 +27,7 @@ Activate this skill when you need to:
 ## Prerequisites
 
 Build the CLI first:
+
 ```bash
 cd cli && cargo build --release
 # Binary: cli/target/release/do-wdr
@@ -44,9 +46,11 @@ do-wdr resolve <INPUT> [OPTIONS]
 ```
 
 **Arguments:**
+
 - `<INPUT>`: URL or query string to resolve
 
 **Options:**
+
 - `-o, --output <FILE>`: Output file (stdout if not specified)
 - `-p, --provider <PROVIDER>`: Specific provider to use
 - `--skip <PROVIDERS>`: Skip providers (comma-separated)
@@ -191,6 +195,7 @@ do-wdr resolve "query" --metrics-file metrics.json
 ### Text Output (default)
 
 Returns markdown content directly:
+
 ```markdown
 # Documentation Title
 
@@ -216,6 +221,7 @@ Content extracted from the URL...
 ## Configuration
 
 Configuration is loaded from (in order):
+
 1. CLI arguments
 2. Environment variables
 3. `cli/config.toml`

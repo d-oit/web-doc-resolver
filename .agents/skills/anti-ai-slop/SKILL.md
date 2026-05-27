@@ -97,6 +97,7 @@ These visual patterns define the 2024–2026 AI aesthetic monoculture. Flag ever
 | **Desktop (> 1024px)** | Persistent sidebar OR top nav | Full sidebar (280px) |
 
 **Always verify:**
+
 1. Touch targets ≥ 44px on mobile
 2. Primary actions visible without scrolling
 3. Navigation accessible at all sizes
@@ -122,7 +123,9 @@ This is where AI slop is most pervasive and most invisible. By 2026, entire prod
 ### The Canon of Slop
 
 #### Hollow Affirmations
+
 Words that exist only to fill space and seem warm:
+
 - "Absolutely!", "Certainly!", "Of course!", "Great question!"
 - "I'd be happy to help with that"
 - "Sounds great!", "That makes sense!"
@@ -130,6 +133,7 @@ Words that exist only to fill space and seem warm:
 **Fix:** Delete them. Start with the actual content.
 
 #### AI Corporate Superlatives
+
 - "Powerful", "seamless", "intuitive", "robust", "next-generation"
 - "Cutting-edge", "state-of-the-art", "best-in-class"
 - "Unlock the full potential of..."
@@ -139,11 +143,13 @@ Words that exist only to fill space and seem warm:
 **Fix:** Replace with specific claims. What does it actually do? By how much? For whom?
 
 #### The Listicle Reflex
+
 AI defaults to bullet points for everything. Three bullets where one sentence works. Numbered lists for concepts with no actual sequence. Fake hierarchy with `**Bold:** then explanation` for everything.
 
 **Fix:** Write prose. Use a list only when there is a genuine enumerable set AND scanning adds value.
 
 #### Transition Theater
+
 - "In conclusion...", "To summarize...", "In essence..."
 - "It's worth noting that...", "It's important to remember..."
 - "With that said...", "Having said that..."
@@ -152,16 +158,19 @@ AI defaults to bullet points for everything. Three bullets where one sentence wo
 **Fix:** Just say the thing. These phrases delay the idea without adding to it.
 
 #### Emoji Inflation
+
 Using 🚀 💡 ✨ ⚡ 🔥 as substitutes for meaning. One emoji in a headline was interesting in 2020. Now it's punctuation-as-performance.
 
 **Fix:** Use zero emojis unless the context is genuinely casual/social. If you use one, mean it.
 
 #### The Feature Announcement Formula
+
 > "We're excited to announce [Feature]! This powerful new capability lets you [vague verb] your [noun] like never before. Stay tuned for more updates!"
 
 **Fix:** What does it do, concretely? What problem did it solve? Who asked for it? Write a changelog, not a press release for your own team.
 
 #### Hedging Chains
+
 - "This may potentially be a possible consideration for..."
 - "Generally speaking, in most cases, it tends to..."
 - "You might want to consider potentially looking into..."
@@ -169,6 +178,7 @@ Using 🚀 💡 ✨ ⚡ 🔥 as substitutes for meaning. One emoji in a headline
 **Fix:** Own your statements or explicitly flag uncertainty once, clearly.
 
 #### The Empathy Performance
+
 > "I understand how frustrating it can be when things don't work as expected. I want to assure you that we take your concerns very seriously."
 
 This is error message theater. It performs care without providing help.
@@ -176,6 +186,7 @@ This is error message theater. It performs care without providing help.
 **Fix:** Explain what happened, why, and exactly what to do next.
 
 #### Product Copy Sins (Landing Pages)
+
 | Sin | Example | Fix |
 |---|---|---|
 | Features listed as verbs | "Collaborate, Create, Ship" | What does it actually DO? |
@@ -185,6 +196,7 @@ This is error message theater. It performs care without providing help.
 | Future-tense promises | "Will change the way you think about X" | Show it changing it. Now. |
 
 #### UX Writing Sins
+
 | Sin | Example | Fix |
 |---|---|---|
 | Error: blame the user | "Invalid input" | "Email addresses need an @ sign" |
@@ -216,17 +228,20 @@ When given something to review:
 Anti-slop isn't just negation. These are the affirmative principles:
 
 ### Design
+
 - **Specificity > universality.** Design for this user, this task, this moment.
 - **Tension is interest.** Contrast, asymmetry, and friction (used deliberately) are memorable. Harmony can be invisible.
 - **Constraints create identity.** Impose a real restriction and design within it. The best brands have rules.
 - **Reference the real world.** Materials, textures, physical objects, historical artifacts. Not just other apps.
 
 ### UX
+
 - **Respect the user's time.** Every click, form field, and modal is a tax. Minimize it.
 - **Be opinionated.** Show users the best path. Don't present 6 equal options when one is clearly right.
 - **Context over consistency.** The right interaction for this moment > the component library default.
 
 ### Copy
+
 - **Specific > general.** "Saves 3 hours per week" > "Saves time"
 - **Active > passive.** "We deleted it" > "It was deleted"
 - **Short > long.** Read the sentence aloud. Cut every word that doesn't earn its place.
