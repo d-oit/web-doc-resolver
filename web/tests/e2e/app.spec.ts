@@ -81,7 +81,7 @@ test.describe("Page Load & Structure", () => {
 test.describe("CSS & Theme", () => {
   test("Tailwind CSS loads and applies styles", async ({ page }) => {
     await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const body = page.locator("body");
     const fontFamily = await body.evaluate(
@@ -93,7 +93,7 @@ test.describe("CSS & Theme", () => {
 
   test("button has styled appearance", async ({ page }) => {
     await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // Button only appears when there's text in the input
     const input = page.locator("input[placeholder*='URL']");
@@ -110,7 +110,7 @@ test.describe("CSS & Theme", () => {
 
   test("input has styled border", async ({ page }) => {
     await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // Target the main query input specifically
     const input = page.locator("input[type='text']").first();
@@ -123,7 +123,7 @@ test.describe("CSS & Theme", () => {
 
   test("main container has correct layout", async ({ page }) => {
     await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const main = page.locator("main");
     // Swiss brutalist design: main is a flex container
@@ -147,7 +147,7 @@ test.describe("Form Interaction", () => {
     await page.goto("/");
     // In Swiss brutalist design, button only shows when there's text
     const button = page.getByRole("button", { name: "Fetch" });
-    await expect(button).not.toBeVisible();
+    await expect(button).toBeHidden();
   });
 
   test("button is enabled when input has text", async ({ page }) => {
@@ -225,7 +225,7 @@ test.describe("Form Interaction", () => {
     const input = page.locator("input[type='text']");
     await input.fill("   ");
     const button = page.getByRole("button", { name: "Fetch" });
-    await expect(button).not.toBeVisible();
+    await expect(button).toBeHidden();
   });
 });
 
@@ -253,7 +253,7 @@ test.describe("Error Handling", () => {
     const input = page.locator("input[type='text']");
     await input.fill("https://example.com");
     await page.getByRole("button", { name: "Fetch" }).click();
-    await page.waitForSelector("text=Failed to fetch");
+    await expect(page.locator("text=Failed to fetch")).toBeVisible();
 
     // Swiss brutalist design: error text is red
     const errorDiv = page.locator("div").filter({ hasText: "Failed to fetch" }).first();
@@ -303,7 +303,7 @@ test.describe("Dark Mode", () => {
 
   test("body has dark background", async ({ page }) => {
     await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const main = page.locator("main");
     const bgColor = await main.evaluate(
@@ -315,7 +315,7 @@ test.describe("Dark Mode", () => {
 
   test("text has light color", async ({ page }) => {
     await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const main = page.locator("main");
     const color = await main.evaluate(
@@ -329,7 +329,7 @@ test.describe("Responsive Layout", () => {
   test("adapts to mobile viewport", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const main = page.locator("main");
     const padding = await main.evaluate(
@@ -494,7 +494,7 @@ test.describe("Network Interception", () => {
     await page.getByRole("button", { name: "Fetch" }).click();
 
     // Wait for textarea to appear (result display)
-    await page.waitForSelector("textarea", { timeout: 10000 });
+    await expect(page.locator("textarea")).toBeVisible({ timeout: 10000 });
     await expect(page.locator("textarea")).toContainText("Content here");
     // Provider should be shown in the metadata bar (Source: jina)
     await expect(page.locator("text=Source:")).toBeVisible();
@@ -504,6 +504,7 @@ test.describe("Network Interception", () => {
 test.describe("Security Headers", () => {
   test("response has X-Content-Type-Options", async ({ page }) => {
     // Security headers are only set by Vercel in production
+    // eslint-disable-next-line playwright/no-skipped-test
     test.skip(!!process.env.BASE_URL?.includes("localhost"), "Security headers only apply to production");
 
     const response = await page.goto("/");
@@ -513,6 +514,7 @@ test.describe("Security Headers", () => {
 
   test("response has X-Frame-Options", async ({ page }) => {
     // Security headers are only set by Vercel in production
+    // eslint-disable-next-line playwright/no-skipped-test
     test.skip(!!process.env.BASE_URL?.includes("localhost"), "Security headers only apply to production");
 
     const response = await page.goto("/");
@@ -537,7 +539,7 @@ test.describe("Navigation", () => {
 
   test("clicking help link navigates to /help", async ({ page }) => {
     await page.goto("/");
-    await page.click('a[href="/help"]');
+    await page.locator('a[href="/help"]').click();
     await expect(page).toHaveURL(/\/help/);
     await expect(page.locator("h1")).toContainText("Help");
   });
@@ -557,14 +559,14 @@ test.describe("Collapsible Sidebar", () => {
     await ensureSidebarOpen(page);
     await expect(page.locator("label").filter({ hasText: "Profile" })).toBeVisible();
     await page.getByTestId("sidebar-toggle").click();
-    await expect(page.locator("label").filter({ hasText: "Profile" })).not.toBeVisible();
+    await expect(page.locator("label").filter({ hasText: "Profile" })).toBeHidden();
   });
 
   test("sidebar expands when clicking Configuration header again", async ({ page }) => {
     await waitForApp(page);
     await ensureSidebarOpen(page);
     await page.getByTestId("sidebar-toggle").click();
-    await expect(page.locator("label").filter({ hasText: "Profile" })).not.toBeVisible();
+    await expect(page.locator("label").filter({ hasText: "Profile" })).toBeHidden();
     await page.getByTestId("sidebar-toggle").click();
     await expect(page.locator("label").filter({ hasText: "Profile" })).toBeVisible();
   });
@@ -598,7 +600,7 @@ test.describe("Collapsible API Keys", () => {
     await waitForApp(page);
     await ensureSidebarOpen(page);
     await expect(page.getByTestId("api-keys-toggle")).toBeVisible();
-    await expect(page.locator("label").filter({ hasText: "Serper" })).not.toBeVisible();
+    await expect(page.locator("label").filter({ hasText: "Serper" })).toBeHidden();
   });
 
   test("API Keys section expands on click", async ({ page }) => {
@@ -615,7 +617,7 @@ test.describe("Collapsible API Keys", () => {
     await page.getByTestId("api-keys-toggle").click();
     await expect(page.locator("label").filter({ hasText: "Serper" })).toBeVisible();
     await page.getByTestId("api-keys-toggle").click();
-    await expect(page.locator("label").filter({ hasText: "Serper" })).not.toBeVisible();
+    await expect(page.locator("label").filter({ hasText: "Serper" })).toBeHidden();
   });
 });
 
@@ -703,7 +705,7 @@ test.describe("Help Page", () => {
 
   test("help page CSS loads correctly", async ({ page }) => {
     await page.goto("/help");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
     const main = page.locator("main");
     const fontFamily = await main.evaluate(
       (el) => getComputedStyle(el).fontFamily

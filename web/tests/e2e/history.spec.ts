@@ -335,7 +335,10 @@ test.describe("History Delete", () => {
     await page.getByRole("button", { name: /History/ }).click();
     await expect(page.locator("text=test entry to delete")).toBeVisible();
 
-    await page.getByLabel("Delete test entry to delete").scrollIntoViewIfNeeded(); await page.getByLabel("Delete test entry to delete").click({ force: true });
+    const deleteButton = page.getByLabel("Delete test entry to delete");
+    await deleteButton.scrollIntoViewIfNeeded();
+    await expect(deleteButton).toBeVisible();
+    await deleteButton.click();
     await expect(page.getByRole("button", { name: /Confirm delete/ })).toBeVisible();
     await page.getByRole("button", { name: /Confirm delete/ }).click();
 

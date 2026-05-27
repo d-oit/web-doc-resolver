@@ -86,19 +86,19 @@ Both should be suppressed.
     // 4. ResultCard component suppresses author section when the value is a placeholder
     const result1 = page.locator('article').filter({ hasText: 'Result with placeholder author' });
     await expect(result1).toBeVisible();
-    await expect(result1.locator('text=By')).not.toBeVisible();
+    await expect(result1.locator('text=By')).toBeHidden();
     await expect(result1.locator('text=2023-05-01')).toBeVisible();
 
     // 5. ResultCard component suppresses publication date when the value is a placeholder
     const result2 = page.locator('article').filter({ hasText: 'Result with placeholder date' });
     await expect(result2).toBeVisible();
     await expect(result2.locator('text=By Jane Doe')).toBeVisible();
-    await expect(result2.locator('text=-')).not.toBeVisible();
+    await expect(result2.locator('text=-')).toBeHidden();
 
     const result3 = page.locator('article').filter({ hasText: 'Result with all placeholders' });
     await expect(result3).toBeVisible();
-    await expect(result3.locator('text=By')).not.toBeVisible();
-    await expect(result3.locator('text=–')).not.toBeVisible();
+    await expect(result3.locator('text=By')).toBeHidden();
+    await expect(result3.locator('text=–')).toBeHidden();
 
     // Check that the metadata container itself has no visible spans
     await expect(result3.locator('header > div.flex.gap-3 span')).toHaveCount(0);
