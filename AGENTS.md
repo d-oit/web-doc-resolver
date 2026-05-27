@@ -209,6 +209,8 @@ Detailed technical reference material is located in `agents-docs/`.
 
 ## Agent Guidance
 
+### Core Principles
+
 - **Plan**: Produce written plan, wait for confirmation for non-trivial tasks.
 - **Policies**: See `agents-docs/WORKFLOW.md` for Atomic Commit & Pre-Existing
   Issue resolution.
@@ -216,6 +218,60 @@ Detailed technical reference material is located in `agents-docs/`.
   `AGENTS.md`. See `plans/AUDIT.md` → Learnings for accumulated knowledge.
 - **Context**: Delegate to sub-agents; Use `/clear`; Load skills only when
   needed.
+
+### Git Failure Recovery
+
+When git commands fail, follow this retry sequence **in order** (skip steps
+that don't apply — they're harmless no-ops if run anyway):
+
+```bash
+# Step 1: Stash if you have uncommitted changes
+git stash
+
+# Step 2: Abort an in-progress rebase if needed
+git rebase --abort
+
+# Step 3: Abort an in-progress merge if needed
+git merge --abort
+
+# Step 4: Fetch latest origin/main and retry the failed command
+git fetch origin main
+# retry original command...
+```
+
+**Never retry the same failing command more than 3 times.** After 3 failures,
+stop and ask the user for help.
+
+### Long-Running Tasks (60 min+)
+
+For tasks expected to take more than 60 minutes:
+
+- Create **checkpoint files** in `plans/` after each major milestone.
+- Use descriptive names: `plans/checkpoint-<task>-<step>.md`.
+  See `plans/checkpoint-_TEMPLATE.md` for a starting template.
+- When resuming after a session boundary, reference the latest checkpoint file
+  (e.g., "continue from `plans/checkpoint-ci-fixes-wave3.md`") rather than
+  relying on session memory.
+- A checkpoint should capture: what was completed, what's in progress, current
+  branch/SHA, and the next step to take.
+
+### CI Fix Workflow
+
+Before starting CI fixes, run this diagnostic to identify failing runs:
+
+```bash
+gh run list --limit 5 --json conclusion,headBranch,workflowName
+```
+
+Then follow this workflow:
+
+1. **Identify** the latest failing runs from the output.
+2. **Fix the simplest failure first** — don't tackle multiple failures at once.
+3. **Commit and push** after fixing each failure.
+4. **Wait for CI** to pass on that commit before moving to the next failure.
+
+This incremental approach prevents compounding issues and makes bisecting
+failures straightforward if a fix introduces a new problem.
 
 ## Accumulated Learnings
 
@@ -225,6 +281,7 @@ historic project patterns (rate limiter design, CI flakiness fixes, config merge
 See `agents-docs/` for detailed reference documentation.
 
 ### GOAP PR Orchestration (2026-05-18)
+
 - **Vercel + legacy-peer-deps**: Vercel doesn't pass `--legacy-peer-deps` at build
   time. Add `legacy-peer-deps=true` to `web/.npmrc` to fix ESLint 10 peer conflicts
   on Vercel deployments.
@@ -239,6 +296,7 @@ See `agents-docs/` for detailed reference documentation.
   are deliberately sync — no `await` needed. Only async if Redis-backed.
 
 ### TypeScript 6.0.3 / ESLint 10 Upgrade
+
 - **CSS side-effect imports**: TS 6.0.3 blocks `import "./globals.css"` without
   a module declaration. Add `web/app/css.d.ts` with `declare module "*.css"`.
 - **ESLint 10 + eslint-config-next**: Peer dep conflict with `@next/eslint-plugin-next`.
@@ -249,12 +307,14 @@ See `agents-docs/` for detailed reference documentation.
   this on every build anyway.
 
 ### Cross-Platform Parity
+
 - **Rust `--profile` is wired**: `main.rs:68-84` parses profile string and applies
   budget presets. Was incorrectly flagged as missing in earlier audits.
 - **Mobile/tablet Playwright already in CI**: `ci-ui.yml` runs 3 projects
   (desktop, mobile, tablet). Check current CI before flagging gaps.
 
 ### Rate Limiter / Quality Scoring
+
 - **Token bucket**: Clamp `capacity` to `max(1.0, ·)` to prevent infinite acquire loops.
 - **Quality anchor validation**: Use `all()` with all 4 anchors (SUMMARY,
   TECHNICAL_DETAILS, COMPARISON, CITATIONS) — not `any()` with a subset.

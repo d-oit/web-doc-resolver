@@ -1,6 +1,6 @@
 #!/bin/bash
 # Pre-commit hook for do-web-doc-resolver
-# Runs quality gate before commit
+# Runs quality gate and validates checkpoint files before commit
 # Note: Gitleaks runs via GitHub Action (.github/workflows/gitleaks.yml)
 
 set -e
@@ -11,6 +11,25 @@ echo "Running pre-commit checks..."
 if [ -f "./scripts/quality_gate.sh" ]; then
     echo "Running quality gate..."
     ./scripts/quality_gate.sh
+fi
+
+# Validate checkpoint files in plans/ (advisory only — warns, never blocks)
+CHECKPOINT_TEMPLATE="plans/checkpoint-_TEMPLATE.md"
+if [ -f "$CHECKPOINT_TEMPLATE" ]; then
+    echo "Validating checkpoint files..."
+    for f in plans/checkpoint-*.md; do
+        # Skip the template itself
+        [ "$f" = "$CHECKPOINT_TEMPLATE" ] && continue
+        # Skip if no matches (globbing returned literal pattern)
+        [ ! -f "$f" ] && continue
+        # Check for required sections
+        for section in "Completed" "In Progress" "Next Steps"; do
+            if ! grep -q "^## $section" "$f" 2>/dev/null; then
+                echo "⚠️  $f: missing '## $section' section (see $CHECKPOINT_TEMPLATE)"
+            fi
+        done
+    done
+    echo "✅ Checkpoint validation complete."
 fi
 
 echo "✅ Pre-commit checks passed!"

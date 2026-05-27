@@ -76,10 +76,24 @@ git commit -m "feat(ui): implement {Component} — issue #{N}"
 
 ### 6. Push and monitor
 
+Check CI health on the target branch before pushing:
+
+```bash
+gh run list --limit 5 --json conclusion,headBranch,workflowName
+```
+
+Then push and monitor:
+
 ```bash
 git push origin {branch}
 gh run watch  # Monitor GitHub Actions
 ```
+
+If the push fails, follow the [git retry sequence](../../../AGENTS.md#git-failure-recovery):
+stash → abort rebase → abort merge → fetch main → retry. Never retry more than 3 times.
+
+See [AGENTS.md § CI Fix Workflow](../../../AGENTS.md#ci-fix-workflow) for the
+full incremental CI fix workflow.
 
 ### 7. Close issues on pass
 
@@ -91,10 +105,13 @@ gh issue close {N} --comment "Implemented in {commit_sha}. Component: cli/ui/com
 
 If CI fails:
 1. Read the failure log: `gh run view {run_id} --log-failed`
-2. Fix the issue in the component file
+2. Fix the **simplest** failure first — if multiple runs failed, tackle one at a time
 3. Commit fix: `git commit -am "fix(ui): {description} — #{N}"`
 4. Push and re-monitor: `git push && gh run watch`
 5. Close issue when CI passes
+
+If `git push` fails, follow the [git retry sequence](../../../AGENTS.md#git-failure-recovery)
+before escalating.
 
 ## Agent prompt template
 
@@ -125,3 +142,17 @@ Also update `components/README.md` to replace the issue link with `{name}.css`.
 - Max 4 parallel agents to avoid context window pressure
 - Each wave is independent — can push after each wave
 - Always verify `wc -l < 200` before committing
+
+### Long-Running Swarms (>60 min)
+
+Issue swarms often exceed 60 minutes. Create **checkpoint files** in `plans/`
+after each wave completes:
+
+```bash
+# After completing Wave N, save state:
+echo "Wave N complete. Issues: #100, #101. Branch: feat/swarm-wave-N. Next: Wave N+1." > plans/checkpoint-swarm-wave-N.md
+```
+
+When resuming, reference the latest checkpoint (e.g., "continue from
+`plans/checkpoint-swarm-wave-2.md`") rather than relying on session memory.
+See [AGENTS.md § Long-Running Tasks](../../../AGENTS.md#long-running-tasks-60-min).

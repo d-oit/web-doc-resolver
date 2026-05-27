@@ -127,6 +127,8 @@ On a fresh state file, existing pending review feedback is surfaced immediately 
 - If you interrupted `--watch` to fix, **restart `--watch` immediately** after the push.
 - Do not run multiple concurrent `--watch` processes for the same PR.
 - A push is **not** a terminal outcome — continue monitoring unless a strict stop condition is met.
+- **Git failure recovery**: If any git command fails, follow the retry sequence in [AGENTS.md § Agent Guidance](../../../AGENTS.md#git-failure-recovery): stash → abort rebase → abort merge → fetch main → retry. Never retry more than 3 times.
+- **Before CI fixes**: Always run `gh run list --limit 5 --json conclusion,headBranch,workflowName` to diagnose the latest failing runs. Fix the simplest failure first, commit, push, and wait for green before moving to the next. See [AGENTS.md § CI Fix Workflow](../../../AGENTS.md#ci-fix-workflow).
 
 ### Commit message format
 

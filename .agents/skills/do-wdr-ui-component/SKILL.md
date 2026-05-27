@@ -86,6 +86,10 @@ Every component MUST have:
 5. Update `components/README.md` — replace issue link with file reference
 6. Commit: `git add cli/ui/components/{name}.css cli/ui/components/README.md && git commit -m "feat(ui): implement {Component} — issue #{N}"`
 
+If git commands fail, follow the [retry sequence](../../../AGENTS.md#git-failure-recovery)
+before escalating: stash → abort rebase → abort merge → fetch main → retry.
+Never retry more than 3 times.
+
 ## Anti-patterns (never do these)
 
 - Adding comments to CSS code

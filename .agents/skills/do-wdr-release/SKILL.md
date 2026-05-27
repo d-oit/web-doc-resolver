@@ -54,6 +54,11 @@ Activate this skill when you need to:
 
 ## Release Workflow
 
+> **Note**: Major releases (or releases requiring extensive CI, binary builds, and
+> manual QA) can take >60 minutes. Consider creating
+> [checkpoint files](../../../AGENTS.md#long-running-tasks-60-min)
+> in `plans/` after major milestones (version bump → changelog → tag → release).
+
 ### 1. Prepare Release
 
 ```bash
@@ -297,6 +302,7 @@ jobs:
 3. **Sign commits**: `git commit -S` for security
 4. **Tag releases**: Semantic versioning tags
 5. **Don't rewrite public history**: Avoid force push to main
+6. **Handle failures gracefully**: If any git command fails, follow the [retry sequence](../../../AGENTS.md#git-failure-recovery): stash → abort rebase → abort merge → fetch main → retry. Never retry more than 3 times.
 
 ### GitHub
 
