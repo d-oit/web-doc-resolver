@@ -2039,6 +2039,94 @@ class TestCascadeErrorHandling:
         # Clean up
         _circuit_breakers.clear()
 
+    # ── URL cascade provider-specific tests ─────────────────────────────
+
+    @patch("scripts._url_resolve.get_semantic_cache", return_value=None)
+    @patch("scripts._url_resolve.resolve_with_jina")
+    @patch("scripts._url_resolve.resolve_with_firecrawl")
+    @patch("scripts._url_resolve.resolve_with_mistral_browser")
+    @patch("scripts._url_resolve.resolve_with_duckduckgo")
+    @patch("scripts._url_resolve.fetch_llms_txt")
+    @patch("scripts._url_resolve.fetch_url_content")
+    def test_llms_txt_not_found_falls_through_to_jina(
+        self,
+        mock_fetch,
+        mock_llms,
+        mock_ddg,
+        mock_mb,
+        mock_fc,
+        mock_jina,
+        mock_sc,
+    ):
+        """When llms.txt is not found, cascade falls through to jina."""
+        from scripts._url_resolve import resolve_url_stream
+        from scripts.models import Profile, ResolvedResult
+
+        # llms_txt returns None (no llms.txt file found)
+        mock_llms.return_value = None
+        # jina succeeds
+        jina_result = ResolvedResult(
+            source="jina",
+            content="Jina extracted documentation content with details. " * 60,
+            url="https://docs.example.com",
+        )
+        mock_jina.return_value = jina_result
+        mock_fc.return_value = None
+
+        results = list(resolve_url_stream("https://docs.example.com", profile=Profile.BALANCED))
+
+        final = next((r for r in results if r.get("source") != "partial"), results[-1])
+        assert final["source"] == "jina"
+        # llms_txt should have been called (and returned None)
+        mock_llms.assert_called()
+        # jina should have been called after llms_txt returned None
+        mock_jina.assert_called()
+        # firecrawl should not be called since jina succeeded
+        mock_fc.assert_not_called()
+
+    @patch("scripts._url_resolve.get_semantic_cache", return_value=None)
+    @patch("scripts._url_resolve.resolve_with_jina")
+    @patch("scripts._url_resolve.resolve_with_firecrawl")
+    @patch("scripts._url_resolve.resolve_with_mistral_browser")
+    @patch("scripts._url_resolve.resolve_with_duckduckgo")
+    @patch("scripts._url_resolve.fetch_llms_txt")
+    @patch("scripts._url_resolve.fetch_url_content")
+    def test_direct_fetch_succeeds_when_all_extraction_providers_fail(
+        self,
+        mock_fetch,
+        mock_llms,
+        mock_ddg,
+        mock_mb,
+        mock_fc,
+        mock_jina,
+        mock_sc,
+    ):
+        """When all extraction providers fail, direct_fetch yields content as best_free_result."""
+        from scripts._url_resolve import resolve_url_stream
+        from scripts.models import Profile
+
+        # All extraction providers return None
+        mock_llms.return_value = None
+        mock_jina.return_value = None
+        mock_fc.return_value = None
+        mock_mb.return_value = None
+        mock_ddg.return_value = None
+        # direct_fetch succeeds with raw HTML
+        mock_fetch.return_value = (
+            "<html><body>Raw fetched documentation content. " * 30 + "</body></html>"
+        )
+
+        results = list(
+            resolve_url_stream("https://example.com/direct-fetch-test", profile=Profile.BALANCED)
+        )
+
+        final = next((r for r in results if r.get("source") != "partial"), results[-1])
+        # direct_fetch is a free provider; its result becomes best_free_result
+        assert final["source"] == "direct_fetch"
+        assert "Raw fetched documentation" in final["content"]
+        # fetch_url_content should have been called
+        mock_fetch.assert_called()
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

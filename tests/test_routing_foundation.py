@@ -614,6 +614,54 @@ class TestRoutingMemoryEdgeCases:
         assert stats["attempts"] == 4
         assert 0.7 < stats["success_rate"] < 0.8
 
+    def test_concurrent_same_domain_provider_no_corruption(self):
+        """Multiple threads writing to the same domain+provider should not corrupt stats."""
+        import threading
+
+        rm = RoutingMemory()
+        errors = []
+        num_threads = 6
+        records_per_thread = 100
+        barrier = threading.Barrier(num_threads, timeout=5)
+
+        def record_batch(thread_id: int):
+            try:
+                barrier.wait()  # Force simultaneous access to same domain+provider
+                for i in range(records_per_thread):
+                    rm.record(
+                        "shared.com",
+                        "shared-provider",
+                        success=(i % 3 != 0),  # ~66% success rate
+                        latency_ms=100 + thread_id,
+                        quality_score=0.7 + (thread_id % 10) / 50,
+                    )
+            except Exception as e:
+                errors.append(f"Thread {thread_id}: {type(e).__name__}: {e}")
+
+        threads = [threading.Thread(target=record_batch, args=(i,)) for i in range(num_threads)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors, f"Concurrency errors: {errors}"
+
+        # All records should be persisted without corruption
+        stats = rm.get_domain_stats("shared-provider", "shared.com")
+        assert stats is not None
+        total_expected = num_threads * records_per_thread
+        assert (
+            stats["attempts"] == total_expected
+        ), f"Expected {total_expected} attempts, got {stats['attempts']}"
+        # avg_latency_ms should be reasonable (not NaN, not corrupted)
+        assert 100 <= stats["avg_latency_ms"] <= 200
+        # ~66.7% success rate expected (i % 3 != 0 → fails every 3rd record)
+        assert (
+            0.6 < stats["success_rate"] < 0.75
+        ), f"Expected ~0.667 success rate, got {stats['success_rate']}"
+        # quality scores range from 0.7 to 0.88
+        assert stats["avg_quality"] > 0.7, f"Expected avg_quality > 0.7, got {stats['avg_quality']}"
+
 
 class TestQualityGate:
     def test_gate_passed_logic(self):
