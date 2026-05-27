@@ -198,39 +198,16 @@ export WEB_RESOLVER_TIMEOUT=30
 
 ## Skill Structure
 
-```text
-do-web-doc-resolver/
-├── SKILL.md              # This file
-├── requirements.txt      # Python dependencies
-├── pyproject.toml        # Package metadata & tool config
-├── .gitignore            # Python artifacts, cache, .env
-├── .env.example          # Environment variable template
-├── __init__.py           # Package marker (re-exports resolve, resolve_url, resolve_query)
-├── __main__.py           # CLI entry point (python -m do-web-doc-resolver)
-├── scripts/
-│   ├── __init__.py
-│   ├── resolve.py        # Main resolver orchestrator & CLI
-│   ├── models.py         # Data models & enums
-│   ├── providers_impl.py # Provider implementations
-│   ├── utils.py          # Utility functions
-│   ├── quality.py        # Content quality scoring
-│   ├── routing.py        # Budget-aware routing
-│   ├── routing_memory.py # Learned provider preferences
-│   ├── synthesis.py      # LLM synthesis gate
-│   ├── circuit_breaker.py # Circuit breaker patterns
-│   └── cache_negative.py # Negative cache (failed results)
-├── tests/                # Test suite
-│   ├── __init__.py
-│   ├── conftest.py
-│   └── test_resolve.py
-└── references/           # Detailed documentation
-    ├── CASCADE.md
-    ├── CLI.md
-    ├── CONFIG.md
-    ├── PROVIDERS.md
-    ├── RUST_CLI.md
-    └── TESTING.md
-```
+The skill is implemented across the project root. Key files:
+
+| Location | File | Purpose |
+|---|---|---|
+| `.agents/skills/do-web-doc-resolver/` | `SKILL.md` | This file |
+| `.agents/skills/do-web-doc-resolver/references/` | `*.md` | Reference docs |
+| `scripts/` | `resolve.py`, `models.py`, … | Core Python implementation |
+| `tests/` | `test_resolve.py`, `conftest.py`, … | Python test suite |
+| `cli/src/` | `main.rs`, `cli.rs`, … | Rust CLI implementation |
+| `web/` | `app/`, `lib/`, `tests/` | Next.js web UI |
 
 ## References
 

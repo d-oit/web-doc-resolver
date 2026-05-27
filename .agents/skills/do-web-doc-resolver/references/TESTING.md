@@ -15,12 +15,12 @@ The project has three test suites:
 tests/
 ├── conftest.py           # Shared fixtures
 ├── test_resolve.py       # Main resolver tests
-├── test_providers.py     # Provider-specific tests
-├── test_quality.py       # Quality scoring tests
-├── test_routing.py       # Routing logic tests
-├── test_circuit_breaker.py # Circuit breaker tests
-├── test_utils.py         # Utility function tests
-└── test_cache.py         # Caching tests
+├── test_routing_foundation.py # Routing foundation tests
+├── test_routing_profile_logic.py # Routing profile logic tests
+├── test_semantic_cache.py # Semantic cache tests
+├── test_live_api_integrations.py # Live integration tests
+├── test_monitor_providers.py # Provider monitoring tests
+└── test_synthesis_standards.py # Synthesis standards tests
 ```
 
 ### Running Tests
@@ -185,10 +185,11 @@ mod tests {
 
 ```
 web/tests/e2e/
-├── basic.spec.ts       # Basic page loads
-├── resolve.spec.ts     # Resolution flow tests
-├── settings.spec.ts    # Settings page tests
-└── history.spec.ts     # Session history tests
+├── app.spec.ts           # Main application tests
+├── history.spec.ts       # Session history tests
+├── metadata.spec.ts      # Metadata display tests
+├── provider-gating.spec.ts # Provider gating tests
+└── firecrawl-visibility.spec.ts # Firecrawl visibility tests
 ```
 
 ### Running Tests

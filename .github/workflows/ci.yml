@@ -113,6 +113,14 @@ jobs:
       - name: Run mypy
         run: mypy scripts/ --ignore-missing-imports
 
+      - name: Set up Node
+        uses: actions/setup-node@499d443d67b83afb366d5bc031e2e1ffa07e9a32 # v4.3.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Run markdownlint
+        run: npx markdownlint .
+
   test:
     name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest

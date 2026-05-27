@@ -38,7 +38,7 @@ cli/
     ├── main.rs           # Entry point
     ├── lib.rs            # Library exports
     ├── cli.rs            # Clap CLI definition
-    ├── config.rs         # Configuration loading
+    ├── config/           # Configuration loading
     ├── types.rs          # Common types
     ├── error.rs          # Error types
     ├── resolver/         # Cascade orchestrator
@@ -55,7 +55,7 @@ cli/
     ├── bias_scorer.rs    # Domain trust scoring
     ├── link_validator.rs # Link validation
     ├── negative_cache.rs # Negative result cache
-    ├── semantic_cache.rs # Semantic cache
+    ├── semantic_cache/    # Semantic cache
     ├── metrics.rs        # Metrics tracking
     ├── output.rs         # Output formatting
     └── providers/

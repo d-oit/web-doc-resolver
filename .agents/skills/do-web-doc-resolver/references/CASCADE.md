@@ -9,7 +9,7 @@ The resolver auto-detects input type (URL vs query) and runs a free-first cascad
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                     Query Resolution Flow                        │
-├─────────────────────────────────────────────────────────────────┤
+─────────────────────────────────────────────────────────────────
 │  1. Cache Check (24h TTL)                                       │
 │     └─→ Hit: Return cached result                               │
 │                                                                  │
@@ -32,7 +32,7 @@ The resolver auto-detects input type (URL vs query) and runs a free-first cascad
 │                                                                  │
 │  7. Mistral Web Search (paid, MISTRAL_API_KEY)                  │
 │     └─→ Last resort AI-powered search                           │
-└─────────────────────────────────────────────────────────────────┘
+─────────────────────────────────────────────────────────────────
 ```
 
 ## URL Resolution Cascade
@@ -40,7 +40,7 @@ The resolver auto-detects input type (URL vs query) and runs a free-first cascad
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                      URL Resolution Flow                         │
-├─────────────────────────────────────────────────────────────────┤
+─────────────────────────────────────────────────────────────────
 │  1. Cache Check (24h TTL)                                       │
 │     └─→ Hit: Return cached result                               │
 │                                                                  │
@@ -69,7 +69,7 @@ The resolver auto-detects input type (URL vs query) and runs a free-first cascad
 │                                                                  │
 │  8. DuckDuckGo Fallback (FREE)                                  │
 │     └─→ Search for the URL as a query                           │
-└─────────────────────────────────────────────────────────────────┘
+─────────────────────────────────────────────────────────────────
 ```
 
 ## Hedging Strategy

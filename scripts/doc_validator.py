@@ -177,7 +177,9 @@ def check_repo_tree(report: Report, doc_name: str, content: str):
                 dir_stack.pop()
 
             parent = dir_stack[-1][1] if dir_stack else "."
-            rel_path = f"{parent}/{entry}".lstrip("./")
+            rel_path = f"{parent}/{entry}"
+            if rel_path.startswith("./"):
+                rel_path = rel_path[2:]
 
             full_path = REPO_ROOT / rel_path
             if not full_path.exists():
