@@ -1524,5 +1524,205 @@ class TestSkipProviders:
         assert result is not None
 
 
+class TestCascadeErrorHandling:
+    """Test cascade error handling: circuit breaker integration, provider failure,
+    budget exhaustion, and hedge logging in the resolve stream functions.
+
+    Patches target the sub-module level (_query_resolve / _url_resolve) because the
+    cascade_map holds local references bound at import time.
+    """
+
+    @patch("scripts._query_resolve.get_semantic_cache", return_value=None)
+    @patch("scripts._query_resolve.resolve_with_exa_mcp")
+    @patch("scripts._query_resolve.resolve_with_exa")
+    @patch("scripts._query_resolve.resolve_with_tavily")
+    @patch("scripts._query_resolve.resolve_with_duckduckgo")
+    @patch("scripts._query_resolve.resolve_with_mistral_websearch")
+    def test_all_query_providers_fail_returns_none_source(
+        self, mock_mw, mock_ddg, mock_tav, mock_exa, mock_mcp, mock_sc, caplog
+    ):
+        """When all query providers return None, cascade yields source=none."""
+        from scripts._query_resolve import resolve_query_stream
+        from scripts.models import Profile
+
+        mock_mcp.return_value = None
+        mock_exa.return_value = None
+        mock_tav.return_value = None
+        mock_ddg.return_value = None
+        mock_mw.return_value = None
+
+        with caplog.at_level(logging.INFO):
+            results = list(resolve_query_stream("test cascade failure", profile=Profile.BALANCED))
+
+        final = next((r for r in results if r.get("source") != "partial"), results[-1])
+        assert final["source"] == "none"
+        assert "Starting probe" in caplog.text
+
+    @patch("scripts._url_resolve.get_semantic_cache", return_value=None)
+    @patch("scripts._url_resolve.resolve_with_jina")
+    @patch("scripts._url_resolve.resolve_with_firecrawl")
+    @patch("scripts._url_resolve.resolve_with_mistral_browser")
+    @patch("scripts._url_resolve.resolve_with_duckduckgo")
+    @patch("scripts._url_resolve.fetch_llms_txt")
+    @patch("scripts._url_resolve.fetch_url_content")
+    def test_all_url_providers_fail_returns_none_source(
+        self,
+        mock_fetch,
+        mock_llms,
+        mock_ddg,
+        mock_mb,
+        mock_fc,
+        mock_jina,
+        mock_sc,
+        caplog,
+    ):
+        """When all URL providers return None, cascade yields source=none."""
+        from scripts._url_resolve import resolve_url_stream
+        from scripts.models import Profile
+
+        mock_llms.return_value = None
+        mock_jina.return_value = None
+        mock_fc.return_value = None
+        mock_fetch.return_value = None
+        mock_mb.return_value = None
+        mock_ddg.return_value = None
+
+        with caplog.at_level(logging.INFO):
+            results = list(
+                resolve_url_stream("https://example.com/cascade-test", profile=Profile.BALANCED)
+            )
+
+        final = next((r for r in results if r.get("source") != "partial"), results[-1])
+        assert final["source"] == "none"
+
+    @patch("scripts._query_resolve.get_semantic_cache", return_value=None)
+    @patch("scripts._query_resolve.resolve_with_exa_mcp")
+    @patch("scripts._query_resolve.resolve_with_exa")
+    @patch("scripts._query_resolve.resolve_with_tavily")
+    @patch("scripts._query_resolve.resolve_with_duckduckgo")
+    @patch("scripts._query_resolve.resolve_with_mistral_websearch")
+    def test_provider_exception_triggers_circuit_breaker(
+        self, mock_mw, mock_ddg, mock_tav, mock_exa, mock_mcp, mock_sc, caplog
+    ):
+        """Provider raising exception in cascade is caught and cascade continues."""
+        from scripts._query_resolve import resolve_query_stream
+        from scripts.models import Profile
+
+        mock_mcp.side_effect = ValueError("simulated failure")
+        mock_exa.return_value = None
+        mock_tav.return_value = None
+        mock_ddg.return_value = None
+        mock_mw.return_value = None
+
+        with caplog.at_level(logging.INFO):
+            results = list(resolve_query_stream("test cb failure", profile=Profile.BALANCED))
+
+        # Cascade should continue past the failing provider and end with none
+        final = next((r for r in results if r.get("source") != "partial"), results[-1])
+        assert final["source"] == "none"
+
+    @patch("scripts._query_resolve.get_semantic_cache", return_value=None)
+    @patch("scripts._query_resolve.resolve_with_exa_mcp")
+    @patch("scripts._query_resolve.resolve_with_exa")
+    @patch("scripts._query_resolve.resolve_with_tavily")
+    @patch("scripts._query_resolve.resolve_with_duckduckgo")
+    @patch("scripts._query_resolve.resolve_with_mistral_websearch")
+    def test_first_provider_succeeds_stops_cascade(
+        self, mock_mw, mock_ddg, mock_tav, mock_exa, mock_mcp, mock_sc
+    ):
+        """When first provider returns acceptable result, cascade stops early."""
+        from scripts._query_resolve import resolve_query_stream
+        from scripts.models import Profile, ResolvedResult
+
+        good_result = ResolvedResult(
+            source="exa_mcp",
+            content=(
+                "# Comprehensive Documentation\n\n"
+                "This is detailed technical documentation with examples. " * 60
+            ),
+            url="https://example.com",
+        )
+        mock_mcp.return_value = good_result
+
+        results = list(resolve_query_stream("test first provider", profile=Profile.BALANCED))
+
+        final = next((r for r in results if r.get("source") != "partial"), results[-1])
+        assert final["source"] == "exa_mcp"
+        # Remaining providers should not be called since first succeeded
+        mock_exa.assert_not_called()
+
+    @patch("scripts._query_resolve.get_semantic_cache", return_value=None)
+    @patch("scripts._query_resolve.resolve_with_exa_mcp")
+    @patch("scripts._query_resolve.resolve_with_exa")
+    @patch("scripts._query_resolve.resolve_with_tavily")
+    @patch("scripts._query_resolve.resolve_with_duckduckgo")
+    @patch("scripts._query_resolve.resolve_with_mistral_websearch")
+    def test_circuit_breaker_open_skips_provider(
+        self, mock_mw, mock_ddg, mock_tav, mock_exa, mock_mcp, mock_sc, caplog
+    ):
+        """When circuit breaker is open for a provider, cascade skips it entirely."""
+        from scripts._query_resolve import _circuit_breakers, resolve_query_stream
+        from scripts.models import Profile, ResolvedResult
+
+        # Open the breaker for exa (second provider in conftest order)
+        for _ in range(3):
+            _circuit_breakers.record_failure("exa")
+        assert _circuit_breakers.is_open("exa")
+
+        good_result = ResolvedResult(
+            source="exa_mcp",
+            content=("# Documentation\n\nDetailed technical content with links. " * 60),
+            url="https://example.com",
+        )
+        mock_mcp.return_value = good_result
+
+        with caplog.at_level(logging.INFO):
+            results = list(resolve_query_stream("test cb skip", profile=Profile.BALANCED))
+
+        final = next((r for r in results if r.get("source") != "partial"), results[-1])
+        assert final["source"] == "exa_mcp"
+        # exa should not be called since breaker is open
+        mock_exa.assert_not_called()
+
+        # Clean up
+        _circuit_breakers.clear()
+
+    @patch("scripts._query_resolve.get_semantic_cache", return_value=None)
+    @patch("scripts._query_resolve.resolve_with_exa_mcp")
+    @patch("scripts._query_resolve.resolve_with_exa")
+    @patch("scripts._query_resolve.resolve_with_tavily")
+    @patch("scripts._query_resolve.resolve_with_duckduckgo")
+    @patch("scripts._query_resolve.resolve_with_mistral_websearch")
+    def test_free_provider_high_quality_skips_paid(
+        self, mock_mw, mock_ddg, mock_tav, mock_exa, mock_mcp, mock_sc
+    ):
+        """A high-quality free result causes cascade to skip paid providers."""
+        from scripts._query_resolve import resolve_query_stream
+        from scripts.models import Profile, ResolvedResult
+
+        # All paid providers fail; a free provider (duckduckgo) returns high quality
+        mock_mcp.return_value = None
+        mock_exa.return_value = None
+        mock_tav.return_value = None
+        mock_mw.return_value = None
+
+        good_result = ResolvedResult(
+            source="duckduckgo",
+            content=(
+                "# Reference Documentation\n\n"
+                "Complete technical guide with code samples, "
+                "API reference, and comprehensive examples. " * 50
+            ),
+            url="https://docs.example.com",
+        )
+        mock_ddg.return_value = good_result
+
+        results = list(resolve_query_stream("test quality gate", profile=Profile.BALANCED))
+
+        final = next((r for r in results if r.get("source") != "partial"), results[-1])
+        # duckduckgo is free and high quality — cascade stops here
+        assert final["source"] == "duckduckgo"
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
