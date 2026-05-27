@@ -201,10 +201,5 @@ class TestResolveQuality:
         if result and "content" in result and len(result["content"]) > 100:
             content = result["content"]
             # Should have some structure (headers, lists, etc.)
-            has_structure = (
-                "#" in content
-                or "-" in content
-                or "*" in content
-                or "\n\n" in content
-            )
+            has_structure = "#" in content or "-" in content or "*" in content or "\n\n" in content
             assert has_structure or len(content) > 200  # Or just substantial content

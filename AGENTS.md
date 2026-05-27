@@ -199,6 +199,7 @@ Detailed technical reference material is located in `agents-docs/`.
 | readme-best-practices | .agents/skills/readme-best-practices/ |
 | anti-ai-slop | .agents/skills/anti-ai-slop/ |
 | vercel-cli | .agents/skills/vercel-cli/ |
+| codacy | .agents/skills/codacy/ |
 
 ## Security
 

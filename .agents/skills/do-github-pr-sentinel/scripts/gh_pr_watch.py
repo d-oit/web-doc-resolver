@@ -166,11 +166,7 @@ def resolve_pr(pr_spec, repo_override=None):
         raise GhCommandError("Unexpected PR payload from `gh pr view`")
 
     pr_url = str(data.get("url") or "")
-    repo = (
-        repo_override
-        or extract_repo_from_pr_url(pr_url)
-        or extract_repo_from_pr_view(data)
-    )
+    repo = repo_override or extract_repo_from_pr_url(pr_url) or extract_repo_from_pr_view(data)
     if not repo:
         raise GhCommandError("Unable to determine OWNER/REPO for the PR")
 
@@ -338,7 +334,9 @@ def failed_runs_from_workflow_runs(runs, head_sha):
                 "html_url": str(run.get("html_url") or ""),
             }
         )
-    failed_runs.sort(key=lambda item: (str(item.get("workflow_name") or ""), str(item.get("run_id") or "")))
+    failed_runs.sort(
+        key=lambda item: (str(item.get("workflow_name") or ""), str(item.get("run_id") or ""))
+    )
     return failed_runs
 
 
@@ -516,7 +514,13 @@ def fetch_new_review_items(pr, state, fresh_state, authenticated_login=None):
         elif kind == "review":
             seen_review.add(item_id)
 
-    new_items.sort(key=lambda item: (item.get("created_at") or "", item.get("kind") or "", item.get("id") or ""))
+    new_items.sort(
+        key=lambda item: (
+            item.get("created_at") or "",
+            item.get("kind") or "",
+            item.get("id") or "",
+        )
+    )
     state["seen_issue_comment_ids"] = sorted(seen_issue)
     state["seen_review_comment_ids"] = sorted(seen_review_comment)
     state["seen_review_ids"] = sorted(seen_review)

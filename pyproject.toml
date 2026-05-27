@@ -83,13 +83,14 @@ exclude = '''
     | \.agents/skills
     | \.blackbox/skills
     | \.claude/skills
+    | \.cache
 )/
 '''
 
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-exclude = [".agents/skills/", ".blackbox/skills/", ".claude/skills/"]
+exclude = [".agents/skills/", ".blackbox/skills/", ".claude/skills/", ".cache/"]
 
 [tool.ruff.lint]
 select = [
