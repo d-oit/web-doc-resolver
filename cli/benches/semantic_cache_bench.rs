@@ -70,8 +70,8 @@ fn bench_store(c: &mut Criterion) {
 
     group.finish();
 
-    // Cleanup
-    drop(cache);
+    // Cleanup — let cache drop naturally (SemanticCache doesn't impl Drop)
+    let _cache = cache;
     let _ = std::fs::remove_dir_all(temp_dir);
 }
 
@@ -131,8 +131,8 @@ fn bench_query(c: &mut Criterion) {
 
     group.finish();
 
-    // Cleanup
-    drop(cache);
+    // Cleanup — let cache drop naturally (SemanticCache doesn't impl Drop)
+    let _cache = cache;
     let _ = std::fs::remove_dir_all(temp_dir);
 }
 
@@ -187,8 +187,8 @@ fn bench_concurrent(c: &mut Criterion) {
 
     group.finish();
 
-    // Cleanup
-    drop(cache);
+    // Cleanup — let cache drop naturally (SemanticCache doesn't impl Drop)
+    let _cache = cache;
     let _ = std::fs::remove_dir_all(temp_dir);
 }
 
