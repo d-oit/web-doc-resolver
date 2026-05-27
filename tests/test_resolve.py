@@ -396,6 +396,467 @@ class TestMistralErrorLogging:
         assert "empty content" in caplog.text
 
 
+@pytest.mark.live
+class TestExaErrorLogging:
+    """Test Exa SDK error logging."""
+
+    @patch.dict(os.environ, {"EXA_API_KEY": "test_key"})
+    @patch("exa_py.Exa")
+    def test_401_logs_warning(self, mock_exa_class, caplog):
+        from scripts.providers_impl import resolve_with_exa
+
+        err = Exception("Unauthorized")
+        err.status_code = 401
+        mock_exa_class.return_value.search_and_contents.side_effect = err
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_exa("test")
+
+        assert result is None
+        assert "401 Unauthorized" in caplog.text
+
+    @patch.dict(os.environ, {"EXA_API_KEY": "test_key"})
+    @patch("exa_py.Exa")
+    def test_429_logs_warning_and_cooldown(self, mock_exa_class, caplog):
+        from scripts.providers_impl import _is_rate_limited, resolve_with_exa
+        from scripts.resolve import _rate_limits
+
+        _rate_limits.clear()
+        err = Exception("Rate limited")
+        err.status_code = 429
+        mock_exa_class.return_value.search_and_contents.side_effect = err
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_exa("test")
+
+        assert result is None
+        assert "429 Rate limited" in caplog.text
+        assert _is_rate_limited("exa")
+        _rate_limits.clear()
+
+    @patch.dict(os.environ, {"EXA_API_KEY": "test_key"})
+    @patch("exa_py.Exa")
+    def test_403_logs_warning(self, mock_exa_class, caplog):
+        from scripts.providers_impl import resolve_with_exa
+
+        err = Exception("Forbidden")
+        err.status_code = 403
+        mock_exa_class.return_value.search_and_contents.side_effect = err
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_exa("test")
+
+        assert result is None
+        assert "403 Forbidden" in caplog.text
+
+    @patch.dict(os.environ, {"EXA_API_KEY": "test_key"})
+    @patch("exa_py.Exa")
+    def test_generic_error_logs_type_and_message(self, mock_exa_class, caplog):
+        from scripts.providers_impl import resolve_with_exa
+
+        mock_exa_class.return_value.search_and_contents.side_effect = ValueError("bad input")
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_exa("test")
+
+        assert result is None
+        assert "ValueError" in caplog.text
+        assert "bad input" in caplog.text
+
+    @patch.dict(os.environ, {}, clear=True)
+    def test_no_api_key_logs_debug(self, caplog):
+        from scripts.providers_impl import resolve_with_exa
+
+        with caplog.at_level(logging.DEBUG):
+            result = resolve_with_exa("test")
+
+        assert result is None
+        assert "no API key" in caplog.text
+
+    @patch.dict(os.environ, {"EXA_API_KEY": "test_key"})
+    @patch("exa_py.Exa")
+    def test_empty_results_logs_warning(self, mock_exa_class, caplog):
+        from scripts.providers_impl import resolve_with_exa
+
+        mock_res = Mock()
+        mock_res.results = []
+        mock_exa_class.return_value.search_and_contents.return_value = mock_res
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_exa("test")
+
+        assert result is None
+        assert "no results" in caplog.text
+
+
+@pytest.mark.live
+class TestTavilyErrorLogging:
+    """Test Tavily SDK error logging."""
+
+    @patch.dict(os.environ, {"TAVILY_API_KEY": "test_key"})
+    @patch("tavily.TavilyClient")
+    def test_401_logs_warning(self, mock_tavily_class, caplog):
+        from scripts.providers_impl import resolve_with_tavily
+
+        err = Exception("Unauthorized")
+        err.status_code = 401
+        mock_tavily_class.return_value.search.side_effect = err
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_tavily("test")
+
+        assert result is None
+        assert "401 Unauthorized" in caplog.text
+
+    @patch.dict(os.environ, {"TAVILY_API_KEY": "test_key"})
+    @patch("tavily.TavilyClient")
+    def test_429_logs_warning_and_cooldown(self, mock_tavily_class, caplog):
+        from scripts.providers_impl import _is_rate_limited, resolve_with_tavily
+        from scripts.resolve import _rate_limits
+
+        _rate_limits.clear()
+        err = Exception("Rate limited")
+        err.status_code = 429
+        mock_tavily_class.return_value.search.side_effect = err
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_tavily("test")
+
+        assert result is None
+        assert "429 Rate limited" in caplog.text
+        assert _is_rate_limited("tavily")
+        _rate_limits.clear()
+
+    @patch.dict(os.environ, {"TAVILY_API_KEY": "test_key"})
+    @patch("tavily.TavilyClient")
+    def test_generic_error_logs_type_and_message(self, mock_tavily_class, caplog):
+        from scripts.providers_impl import resolve_with_tavily
+
+        mock_tavily_class.return_value.search.side_effect = RuntimeError("timeout")
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_tavily("test")
+
+        assert result is None
+        assert "RuntimeError" in caplog.text
+        assert "timeout" in caplog.text
+
+    @patch.dict(os.environ, {}, clear=True)
+    def test_no_api_key_logs_debug(self, caplog):
+        from scripts.providers_impl import resolve_with_tavily
+
+        with caplog.at_level(logging.DEBUG):
+            result = resolve_with_tavily("test")
+
+        assert result is None
+        assert "no API key" in caplog.text
+
+    @patch.dict(os.environ, {"TAVILY_API_KEY": "test_key"})
+    @patch("tavily.TavilyClient")
+    def test_empty_results_logs_warning(self, mock_tavily_class, caplog):
+        from scripts.providers_impl import resolve_with_tavily
+
+        mock_tavily_class.return_value.search.return_value = {"results": []}
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_tavily("test")
+
+        assert result is None
+        assert "no results" in caplog.text
+
+
+@pytest.mark.live
+class TestFirecrawlErrorLogging:
+    """Test Firecrawl SDK error logging."""
+
+    @patch.dict(os.environ, {"FIRECRAWL_API_KEY": "test_key"})
+    @patch("firecrawl.Firecrawl")
+    def test_401_logs_warning(self, mock_fc_class, caplog):
+        from scripts.providers_impl import resolve_with_firecrawl
+
+        err = Exception("Unauthorized")
+        err.status_code = 401
+        mock_fc_class.return_value.scrape.side_effect = err
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_firecrawl("https://example.com")
+
+        assert result is None
+        assert "401 Unauthorized" in caplog.text
+
+    @patch.dict(os.environ, {"FIRECRAWL_API_KEY": "test_key"})
+    @patch("firecrawl.Firecrawl")
+    def test_429_logs_warning_and_cooldown(self, mock_fc_class, caplog):
+        from scripts.providers_impl import _is_rate_limited, resolve_with_firecrawl
+        from scripts.resolve import _rate_limits
+
+        _rate_limits.clear()
+        err = Exception("Rate limited")
+        err.status_code = 429
+        mock_fc_class.return_value.scrape.side_effect = err
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_firecrawl("https://example.com")
+
+        assert result is None
+        assert "429 Rate limited" in caplog.text
+        assert _is_rate_limited("firecrawl")
+        _rate_limits.clear()
+
+    @patch.dict(os.environ, {"FIRECRAWL_API_KEY": "test_key"})
+    @patch("firecrawl.Firecrawl")
+    def test_403_logs_warning(self, mock_fc_class, caplog):
+        from scripts.providers_impl import resolve_with_firecrawl
+
+        err = Exception("Forbidden")
+        err.status_code = 403
+        mock_fc_class.return_value.scrape.side_effect = err
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_firecrawl("https://example.com")
+
+        assert result is None
+        assert "403 Forbidden" in caplog.text
+
+    @patch.dict(os.environ, {"FIRECRAWL_API_KEY": "test_key"})
+    @patch("firecrawl.Firecrawl")
+    def test_generic_error_logs_type_and_message(self, mock_fc_class, caplog):
+        from scripts.providers_impl import resolve_with_firecrawl
+
+        mock_fc_class.return_value.scrape.side_effect = ConnectionError("refused")
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_firecrawl("https://example.com")
+
+        assert result is None
+        assert "ConnectionError" in caplog.text
+        assert "refused" in caplog.text
+
+    @patch.dict(os.environ, {}, clear=True)
+    def test_no_api_key_logs_debug(self, caplog):
+        from scripts.providers_impl import resolve_with_firecrawl
+
+        with caplog.at_level(logging.DEBUG):
+            result = resolve_with_firecrawl("https://example.com")
+
+        assert result is None
+        assert "no API key" in caplog.text
+
+    @patch.dict(os.environ, {"FIRECRAWL_API_KEY": "test_key"})
+    @patch("firecrawl.Firecrawl")
+    def test_empty_markdown_logs_warning(self, mock_fc_class, caplog):
+        from scripts.providers_impl import resolve_with_firecrawl
+
+        mock_res = Mock()
+        mock_res.markdown = ""
+        mock_fc_class.return_value.scrape.return_value = mock_res
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_firecrawl("https://example.com")
+
+        assert result is None
+        assert "empty markdown" in caplog.text
+
+    @patch.dict(os.environ, {"FIRECRAWL_API_KEY": "test_key"})
+    def test_ssrf_blocked_logs_warning(self, caplog):
+        from scripts.providers_impl import resolve_with_firecrawl
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_firecrawl("ftp://evil.com")
+
+        assert result is None
+        assert "SSRF blocked" in caplog.text
+
+
+@pytest.mark.live
+class TestSerperErrorLogging:
+    """Test Serper HTTP error logging."""
+
+    @patch.dict(os.environ, {"SERPER_API_KEY": "test_key"})
+    @patch("scripts.providers_impl.get_session")
+    def test_429_logs_warning_and_cooldown(self, mock_session, caplog):
+        from scripts.providers_impl import _is_rate_limited, resolve_with_serper
+        from scripts.resolve import _rate_limits
+
+        _rate_limits.clear()
+        mock_resp = Mock()
+        mock_resp.status_code = 429
+        mock_session.return_value.post.return_value = mock_resp
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_serper("test")
+
+        assert result is None
+        assert "rate limited" in caplog.text.lower()
+        assert _is_rate_limited("serper")
+        _rate_limits.clear()
+
+    @patch.dict(os.environ, {"SERPER_API_KEY": "test_key"})
+    @patch("scripts.providers_impl.get_session")
+    def test_401_logs_warning(self, mock_session, caplog):
+        from scripts.providers_impl import resolve_with_serper
+
+        mock_resp = Mock()
+        mock_resp.status_code = 401
+        mock_session.return_value.post.return_value = mock_resp
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_serper("test")
+
+        assert result is None
+        assert "auth error" in caplog.text.lower()
+
+    @patch.dict(os.environ, {"SERPER_API_KEY": "test_key"})
+    @patch("scripts.providers_impl.get_session")
+    def test_500_logs_warning(self, mock_session, caplog):
+        from scripts.providers_impl import resolve_with_serper
+
+        mock_resp = Mock()
+        mock_resp.status_code = 500
+        mock_session.return_value.post.return_value = mock_resp
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_serper("test")
+
+        assert result is None
+        assert "HTTP 500" in caplog.text
+
+    @patch.dict(os.environ, {"SERPER_API_KEY": "test_key"})
+    @patch("scripts.providers_impl.get_session")
+    def test_network_error_logs_type_and_message(self, mock_session, caplog):
+        from scripts.providers_impl import resolve_with_serper
+
+        mock_session.return_value.post.side_effect = OSError("connection reset")
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_serper("test")
+
+        assert result is None
+        assert "OSError" in caplog.text
+        assert "connection reset" in caplog.text
+
+    @patch.dict(os.environ, {}, clear=True)
+    def test_no_api_key_logs_debug(self, caplog):
+        from scripts.providers_impl import resolve_with_serper
+
+        with caplog.at_level(logging.DEBUG):
+            result = resolve_with_serper("test")
+
+        assert result is None
+        assert "no API key" in caplog.text
+
+
+@pytest.mark.live
+class TestJinaErrorLogging:
+    """Test Jina HTTP error logging."""
+
+    @patch("scripts.providers_impl.get_session")
+    def test_429_logs_warning_and_cooldown(self, mock_session, caplog):
+        from scripts.providers_impl import _is_rate_limited, resolve_with_jina
+        from scripts.resolve import _rate_limits
+
+        _rate_limits.clear()
+        mock_resp = Mock()
+        mock_resp.status_code = 429
+        mock_session.return_value.get.return_value = mock_resp
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_jina("https://example.com")
+
+        assert result is None
+        assert "rate limited" in caplog.text.lower()
+        assert _is_rate_limited("jina")
+        _rate_limits.clear()
+
+    @patch("scripts.providers_impl.get_session")
+    def test_403_logs_warning(self, mock_session, caplog):
+        from scripts.providers_impl import resolve_with_jina
+
+        mock_resp = Mock()
+        mock_resp.status_code = 403
+        mock_session.return_value.get.return_value = mock_resp
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_jina("https://example.com")
+
+        assert result is None
+        assert "auth error" in caplog.text.lower()
+
+    @patch("scripts.providers_impl.get_session")
+    def test_500_logs_warning(self, mock_session, caplog):
+        from scripts.providers_impl import resolve_with_jina
+
+        mock_resp = Mock()
+        mock_resp.status_code = 500
+        mock_session.return_value.get.return_value = mock_resp
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_jina("https://example.com")
+
+        assert result is None
+        assert "HTTP 500" in caplog.text
+
+    @patch("scripts.providers_impl.get_session")
+    def test_network_error_logs_type_and_message(self, mock_session, caplog):
+        from scripts.providers_impl import resolve_with_jina
+
+        mock_session.return_value.get.side_effect = TimeoutError("timed out")
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_jina("https://example.com")
+
+        assert result is None
+        assert "TimeoutError" in caplog.text
+        assert "timed out" in caplog.text
+
+    def test_ssrf_blocked_logs_warning(self, caplog):
+        from scripts.providers_impl import resolve_with_jina
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_jina("ftp://evil.com")
+
+        assert result is None
+        assert "SSRF blocked" in caplog.text
+
+
+@pytest.mark.live
+class TestDuckDuckGoErrorLogging:
+    """Test DuckDuckGo error logging."""
+
+    @patch("scripts.providers_impl._is_rate_limited")
+    @patch("scripts.utils._get_from_cache")
+    @patch("ddgs.DDGS")
+    def test_generic_error_logs_type_and_message(self, mock_ddgs, mock_cache, mock_rl, caplog):
+        from scripts.providers_impl import resolve_with_duckduckgo
+
+        mock_cache.return_value = None
+        mock_rl.return_value = False
+        mock_ddgs.return_value.__enter__.return_value.text.side_effect = RuntimeError("crash")
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_duckduckgo("test")
+
+        assert result is None
+        assert "RuntimeError" in caplog.text
+        assert "crash" in caplog.text
+
+    @patch("scripts.providers_impl._is_rate_limited")
+    @patch("scripts.utils._get_from_cache")
+    @patch("ddgs.DDGS")
+    def test_empty_results_logs_warning(self, mock_ddgs, mock_cache, mock_rl, caplog):
+        from scripts.providers_impl import resolve_with_duckduckgo
+
+        mock_cache.return_value = None
+        mock_rl.return_value = False
+        mock_ddgs.return_value.__enter__.return_value.text.return_value = []
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_duckduckgo("test")
+
+        assert result is None
+        assert "no results" in caplog.text
+
+
 class TestResolveIntegration:
     """Integration tests for the main resolve function."""
 
