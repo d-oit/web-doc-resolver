@@ -280,7 +280,11 @@ def resolve_with_mistral_browser(url: str, max_chars: int = MAX_CHARS) -> Resolv
     if cached:
         return ResolvedResult(**cached)
     api_key = os.getenv("MISTRAL_API_KEY")
-    if not api_key or _is_rate_limited("mistral"):
+    if not api_key:
+        logger.debug("Mistral browser skipped: no API key")
+        return None
+    if _is_rate_limited("mistral"):
+        logger.debug("Mistral browser skipped: rate limited")
         return None
     try:
         from mistralai.client import Mistral
@@ -315,21 +319,34 @@ def resolve_with_mistral_browser(url: str, max_chars: int = MAX_CHARS) -> Resolv
                             elif isinstance(chunk, str):
                                 content += chunk
 
-            if content:
-                resolved = ResolvedResult(
-                    source="mistral-browser", content=content[:max_chars], url=url
-                )
-                _save_to_cache(url, "mistral_browser", resolved.to_dict())
-                return resolved
+            if not content:
+                logger.warning("Mistral browser returned empty content for URL: %s", url)
+                return None
+
+            resolved = ResolvedResult(
+                source="mistral-browser", content=content[:max_chars], url=url
+            )
+            _save_to_cache(url, "mistral_browser", resolved.to_dict())
+            return resolved
         finally:
             # Clean up the agent
             try:
                 client.beta.agents.delete(agent_id=agent.id)
             except Exception as e:
                 logger.warning("Mistral browser agent cleanup failed: %s", e)
-        return None
     except Exception as e:
-        logger.warning("Mistral browser resolution failed: %s", e)
+        status = getattr(e, "status_code", None)
+        if status == 401:
+            logger.warning(
+                "Mistral browser failed: 401 Unauthorized — API key may be invalid or expired"
+            )
+        elif status == 429:
+            logger.warning("Mistral browser failed: 429 Rate limited — setting cooldown")
+            _set_rate_limit("mistral")
+        elif status == 403:
+            logger.warning("Mistral browser failed: 403 Forbidden — %s", e)
+        else:
+            logger.warning("Mistral browser failed: %s: %s", type(e).__name__, e)
         return None
 
 
@@ -338,7 +355,11 @@ def resolve_with_mistral_websearch(query: str, max_chars: int = MAX_CHARS) -> Re
     if cached:
         return ResolvedResult(**cached)
     api_key = os.getenv("MISTRAL_API_KEY")
-    if not api_key or _is_rate_limited("mistral"):
+    if not api_key:
+        logger.debug("Mistral websearch skipped: no API key")
+        return None
+    if _is_rate_limited("mistral"):
+        logger.debug("Mistral websearch skipped: rate limited")
         return None
     try:
         from mistralai.client import Mistral
@@ -361,12 +382,27 @@ def resolve_with_mistral_websearch(query: str, max_chars: int = MAX_CHARS) -> Re
                         content += chunk.text
                     elif isinstance(chunk, str):
                         content += chunk
+        if not content:
+            logger.warning("Mistral websearch returned empty content for query: %s", query)
+            return None
         result = ResolvedResult(
             source="mistral-websearch", content=content[:max_chars], query=query
         )
         _save_to_cache(query, "mistral_websearch", result.to_dict())
         return result
-    except Exception:
+    except Exception as e:
+        status = getattr(e, "status_code", None)
+        if status == 401:
+            logger.warning(
+                "Mistral websearch failed: 401 Unauthorized — API key may be invalid or expired"
+            )
+        elif status == 429:
+            logger.warning("Mistral websearch failed: 429 Rate limited — setting cooldown")
+            _set_rate_limit("mistral")
+        elif status == 403:
+            logger.warning("Mistral websearch failed: 403 Forbidden — %s", e)
+        else:
+            logger.warning("Mistral websearch failed: %s: %s", type(e).__name__, e)
         return None
 
 
