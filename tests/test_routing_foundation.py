@@ -11,6 +11,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+# Capture real deterministic_merge before conftest mocks it
+# (conftest.py autouse fixture replaces scripts.synthesis.deterministic_merge with a stub)
+import scripts.synthesis as _synthesis_module
 from scripts._query_resolve import resolve_query_stream
 from scripts.cache_negative import (
     should_skip_from_negative_cache,
@@ -26,6 +29,8 @@ from scripts.routing import (
     extract_domain,
 )
 from scripts.routing_memory import RoutingMemory
+
+_real_deterministic_merge = _synthesis_module.deterministic_merge
 
 # ─── Quality Scoring (T59.2) ───────────────────────────────────────────────
 
@@ -565,6 +570,238 @@ class TestSynthesisGate:
         should_call, reason = self._gate_decision([])
         assert should_call is False
         assert reason == "no_results"
+
+
+# ─── Synthesis: Content Similarity ────────────────────────────────────────
+
+
+class TestContentSimilarity:
+    """Tests for _content_similarity and conflict detection."""
+
+    @staticmethod
+    def _content_similarity(a: str, b: str) -> float:
+        from scripts.synthesis import _content_similarity
+
+        return _content_similarity(a, b)
+
+    def test_identical_content(self):
+        text = "This is documentation about Python. " * 20
+        assert self._content_similarity(text, text) == 1.0
+
+    def test_completely_different(self):
+        a = "Python web framework Django. " * 20
+        b = "Rust systems programming language. " * 20
+        assert self._content_similarity(a, b) < 0.3
+
+    def test_empty_strings(self):
+        assert self._content_similarity("", "anything") == 0.0
+        assert self._content_similarity("anything", "") == 0.0
+        assert self._content_similarity("", "") == 0.0
+
+    def test_similar_but_not_identical(self):
+        # Use strings where differences are concentrated at one location
+        a = "x" * 2000
+        b = "x" * 1999 + "y"
+        sim = self._content_similarity(a, b)
+        assert sim > 0.95, f"Expected very high similarity, got {sim}"
+
+    def test_truncated_at_2000_chars(self):
+        """Similarity is computed only on first 2000 chars."""
+        # short is all x's, long starts with same x's then diverges
+        short = "x" * 650
+        long = ("x" * 650) + ("z" * 3000)  # same first 650, then different
+        # First 2000 chars: 650 x's + 1350 z's from long, vs 650 x's from short
+        # SequenceMatcher finds the matching 650 x's: 2*650/(650+2000) ≈ 0.49
+        sim = self._content_similarity(short, long)
+        assert sim > 0.3, f"Expected moderate similarity, got {sim}"
+
+
+# ─── Synthesis: Has Conflicts ────────────────────────────────────────────
+
+
+class TestHasConflicts:
+    """Tests for _has_conflicts conflict detection."""
+
+    def _has_conflicts(self, results: list) -> bool:
+        from scripts.synthesis import _has_conflicts
+
+        return _has_conflicts(results)
+
+    def _make_result(self, content: str) -> ResolvedResult:
+        return ResolvedResult(source="test", content=content, score=0.5)
+
+    def test_single_result_no_conflict(self):
+        assert self._has_conflicts([self._make_result("content")]) is False
+
+    def test_empty_list_no_conflict(self):
+        assert self._has_conflicts([]) is False
+
+    def test_similar_results_no_conflict(self):
+        # Near-identical content (1 char difference in 2000) should not be conflicting
+        r1 = self._make_result("y" * 2000)
+        r2 = self._make_result("y" * 1999 + "z")
+        assert self._has_conflicts([r1, r2]) is False
+
+    def test_conflicting_results_detected(self):
+        r1 = self._make_result("Python is the best language. " * 30)
+        r2 = self._make_result("Rust outperforms Python significantly. " * 30)
+        assert self._has_conflicts([r1, r2]) is True
+
+    def test_three_results_pairwise_conflict(self):
+        """Three results where only one pair conflicts → still True."""
+        r1 = self._make_result("A" * 1000)
+        r2 = self._make_result("A" * 1000)  # similar to r1
+        r3 = self._make_result("B" * 1000)  # different from both
+        assert self._has_conflicts([r1, r2, r3]) is True
+
+
+# ─── Synthesis: Is Fragmented ────────────────────────────────────────────
+
+
+class TestIsFragmented:
+    """Tests for _is_fragmented detection."""
+
+    @staticmethod
+    def _is_fragmented(results: list, min_chars: int = 500) -> bool:
+        from scripts.synthesis import _is_fragmented
+
+        return _is_fragmented(results, min_chars)
+
+    def _make_result(self, content: str) -> ResolvedResult:
+        return ResolvedResult(source="test", content=content, score=0.5)
+
+    def test_all_long_not_fragmented(self):
+        results = [self._make_result("x" * 600), self._make_result("y" * 600)]
+        assert self._is_fragmented(results) is False
+
+    def test_majority_short_fragmented(self):
+        results = [
+            self._make_result("short"),
+            self._make_result("also short"),
+            self._make_result("x" * 600),
+        ]
+        assert self._is_fragmented(results) is True
+
+    def test_exactly_half_short_not_fragmented(self):
+        """Exactly half short → not fragmented (must be > half)."""
+        results = [
+            self._make_result("short"),
+            self._make_result("x" * 600),
+        ]
+        assert self._is_fragmented(results) is False
+
+    def test_custom_min_chars(self):
+        """Custom min_chars threshold is respected."""
+        results = [
+            self._make_result("x" * 10),
+            self._make_result("y" * 10),
+            self._make_result("z" * 10),
+        ]
+        # With min_chars=200, all are short → fragmented
+        assert self._is_fragmented(results, min_chars=200) is True
+        # With min_chars=5, none are short → not fragmented
+        assert self._is_fragmented(results, min_chars=5) is False
+
+
+# ─── Synthesis Gate: Full Decision ───────────────────────────────────────
+
+
+class TestSynthesisGateDecision:
+    """Edge case tests for synthesis_gate_decision."""
+
+    @staticmethod
+    def _gate(results: list, threshold: float = 0.8) -> tuple:
+        from scripts.synthesis import synthesis_gate_decision
+
+        return synthesis_gate_decision(results, threshold)
+
+    def _make_result(self, content: str, score: float = 0.5) -> ResolvedResult:
+        return ResolvedResult(source="test", content=content, score=score)
+
+    def test_single_result_below_threshold_calls_synthesis(self):
+        """Single result with score just below threshold → single_low_quality."""
+        r = self._make_result("x" * 800, score=0.79)
+        should_call, reason = self._gate([r], threshold=0.8)
+        assert should_call is True
+        assert reason == "single_low_quality"
+
+    def test_custom_threshold_boundary(self):
+        """Single result at exact threshold should skip (not call)."""
+        # Beautiful, usable content >1000 chars
+        content = "Great documentation here. " * 200
+        result = self._make_result(content, score=0.8)
+        should_call, reason = self._gate([result], threshold=0.8)
+        assert should_call is False
+        assert reason == "single_high_quality"
+
+    def test_below_threshold_calls(self):
+        """Single result just below threshold → call synthesis."""
+        result = self._make_result("good content " * 100, score=0.79)
+        should_call, reason = self._gate([result], threshold=0.8)
+        assert should_call is True
+        assert reason == "single_low_quality"
+
+
+# ─── Deterministic Merge ─────────────────────────────────────────────────
+
+
+class TestDeterministicMerge:
+    """Edge case tests for deterministic_merge."""
+
+    @staticmethod
+    def _merge(results: list) -> str:
+        """Call real deterministic_merge, bypassing conftest mock."""
+        return _real_deterministic_merge(results)
+
+    def _make_result(
+        self, content: str, source: str = "test", url: str | None = None
+    ) -> ResolvedResult:
+        return ResolvedResult(source=source, content=content, url=url, score=0.5)
+
+    def test_empty_results(self):
+        assert self._merge([]) == ""
+
+    def test_single_result_has_all_anchors(self):
+        r = self._make_result("Single source documentation.", source="docs", url="http://doc.com")
+        merged = self._merge([r])
+        assert "[ANCHOR: SUMMARY]" in merged
+        assert "[ANCHOR: TECHNICAL_DETAILS]" in merged
+        assert "[ANCHOR: COMPARISON]" in merged
+        assert "[ANCHOR: CITATIONS]" in merged
+        assert "http://doc.com" in merged
+
+    def test_multi_result_deduplicates_lines(self):
+        r1 = self._make_result("Line A\nLine B\nLine C")
+        r2 = self._make_result("Line B\nLine C\nLine D")
+        merged = self._merge([r1, r2])
+        # Line B and Line C appear in both; merged should only have one copy each
+        assert merged.count("Line B") == 1
+        assert merged.count("Line C") == 1
+
+    def test_multi_result_has_all_anchors(self):
+        r1 = self._make_result("Content from source 1.", source="src1", url="http://url1.com")
+        r2 = self._make_result("Content from source 2.", source="src2", url="http://url2.com")
+        merged = self._merge([r1, r2])
+        assert "[ANCHOR: SUMMARY]" in merged
+        assert "[ANCHOR: TECHNICAL_DETAILS]" in merged
+        assert "[ANCHOR: COMPARISON]" in merged
+        assert "[ANCHOR: CITATIONS]" in merged
+        assert "http://url1.com" in merged
+        assert "http://url2.com" in merged
+
+    def test_merge_includes_citation_indices(self):
+        r1 = self._make_result("Source 1 content.", source="A", url="http://a.com")
+        r2 = self._make_result("Source 2 content.", source="B", url="http://b.com")
+        merged = self._merge([r1, r2])
+        assert "[1]" in merged
+        assert "[2]" in merged
+
+    def test_empty_content_lines_preserved(self):
+        """Blank lines between content should be preserved."""
+        r = self._make_result("Line 1\n\nLine 3")
+        merged = self._merge([r])
+        # Blank lines are part of the unique_lines set
+        assert "" in merged.splitlines()
 
 
 # ─── Routing Memory Edge Cases ──────────────────────────────────────────

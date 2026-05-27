@@ -42,20 +42,21 @@ class RoutingMemory:
                 return None
 
             stats = self.domain_stats[domain][provider]
-            attempts = stats["success"] + stats["failure"]
+            attempts = stats.get("success", 0) + stats.get("failure", 0)
             if attempts == 0:
                 return None
 
-            success_rate = stats["success"] / attempts
+            success_rate = stats.get("success", 0) / max(attempts, 1)
             days_since_last = 0.0
-            if stats["last_attempted"]:
-                days_since_last = (time.time() - stats["last_attempted"]) / 86400.0
+            last = stats.get("last_attempted")
+            if last:
+                days_since_last = (time.time() - last) / 86400.0
 
             return {
                 "attempts": attempts,
                 "success_rate": success_rate,
-                "avg_latency_ms": stats["avg_latency_ms"],
-                "avg_quality": stats["avg_quality"],
+                "avg_latency_ms": stats.get("avg_latency_ms", 0),
+                "avg_quality": stats.get("avg_quality", 0.5),
                 "days_since_last": days_since_last,
             }
 
