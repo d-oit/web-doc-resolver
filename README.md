@@ -495,7 +495,7 @@ cd web && npx playwright test --ui
 │   ├── src/
 │   │   ├── main.rs        # Entry point
 │   │   ├── cli.rs         # Clap CLI definition
-│   │   ├── config.rs      # Config loading (TOML + env)
+│   │   ├── config/         # Config loading (TOML + env)
 │   │   ├── resolver/       # Cascade orchestrator
 │   │   ├── providers/     # 13 provider modules
 │   │   └── ...            # quality, metrics, synthesis, etc.
