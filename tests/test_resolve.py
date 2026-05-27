@@ -1154,6 +1154,53 @@ class TestRateLimitHandling:
         # Clean up
         _rate_limits.clear()
 
+    def test_rate_limit_expiry(self):
+        """Rate limit should expire after cooldown period elapses."""
+        from scripts.resolve import _rate_limits
+
+        _rate_limits.clear()
+
+        # Set rate limit with very short cooldown
+        _set_rate_limit("test_provider", cooldown=1)
+        assert _is_rate_limited("test_provider")
+
+        # Simulate expiry by setting the timestamp in the past
+        import time
+
+        _rate_limits["test_provider"] = time.time() - 10
+        # Should NOT be rate limited anymore (expiry passed)
+        assert not _is_rate_limited("test_provider")
+        # Entry should be cleaned up after expiry check
+        assert "test_provider" not in _rate_limits
+
+        _rate_limits.clear()
+
+    def test_rate_limit_multiple_providers_independent_expiry(self):
+        """Each provider has independent rate limit tracking."""
+        from scripts.resolve import _rate_limits
+
+        _rate_limits.clear()
+
+        # Set rate limits for two providers
+        _set_rate_limit("provider_a", cooldown=60)
+        _set_rate_limit("provider_b", cooldown=60)
+
+        # Both should be rate limited
+        assert _is_rate_limited("provider_a")
+        assert _is_rate_limited("provider_b")
+
+        # Expire only provider_a
+        import time
+
+        _rate_limits["provider_a"] = time.time() - 10
+
+        # provider_a should now be unblocked, provider_b still blocked
+        assert not _is_rate_limited("provider_a")
+        assert "provider_a" not in _rate_limits
+        assert _is_rate_limited("provider_b")
+
+        _rate_limits.clear()
+
 
 class TestQueryCascade:
     """Test the full query resolution cascade.

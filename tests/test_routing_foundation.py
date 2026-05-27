@@ -87,6 +87,67 @@ class TestQualityScoring:
     def test_score_range(self):
         assert 0.0 <= self._score_content("abc").score <= 1.0
 
+    def test_frontmatter_bonus(self):
+        """Content with 2026-standards frontmatter gets +0.05 bonus."""
+        # Use clearly-long content (>500 chars) + no links → only missing_links
+        # penalty (-0.10). Base = 0.90, with frontmatter = 0.95.
+        base = "".join(f"Doc line {i}.\n" for i in range(30))  # well above 500
+        fm = (
+            "---\n"
+            "relevance_score: 0.9\n"
+            "intent_category: technical\n"
+            "token_estimate: 500\n"
+            "last_updated: 2026-05-01\n"
+            "---\n"
+        )
+        s1 = self._score_content(base).score
+        s2 = self._score_content(fm + base).score
+        assert s2 == s1 + 0.05, f"Expected +0.05 frontmatter bonus, got {s1=} {s2=}"
+
+    def test_anchor_bonus(self):
+        """Content with 2026-standard anchors gets +0.05 bonus."""
+        # Use clearly-long content (>500 chars) + no links → only missing_links
+        # penalty (-0.10). Base = 0.90, anchors = 0.95.
+        base = "".join(f"Doc line {i}.\n" for i in range(30))
+        anchors = "".join(
+            ["[ANCHOR: SUMMARY]\n"]
+            + [f"S{i}.\n" for i in range(15)]
+            + ["[ANCHOR: TECHNICAL_DETAILS]\n"]
+            + [f"T{i}.\n" for i in range(15)]
+            + ["[ANCHOR: COMPARISON]\n"]
+            + [f"C{i}.\n" for i in range(15)]
+            + ["[ANCHOR: CITATIONS]\n"]
+            + [f"R{i}.\n" for i in range(15)]
+        )
+        s1 = self._score_content(base).score
+        s2 = self._score_content(anchors).score
+        assert s2 == s1 + 0.05, f"Expected +0.05 anchor bonus, got {s1=} {s2=}"
+
+    def test_both_bonuses_capped_at_1_0(self):
+        """Score with both bonuses should be capped at 1.0."""
+        # Use varied lines to avoid duplicate_heavy penalty
+        lines = [
+            "---\n",
+            "relevance_score: 0.95\n",
+            "intent_category: reference\n",
+            "token_estimate: 1000\n",
+            "last_updated: 2026-05-15\n",
+            "---\n",
+        ]
+        lines.append("[ANCHOR: SUMMARY]\n")
+        lines.extend(f"Summary detail {i}.\n" for i in range(15))
+        lines.append("[ANCHOR: TECHNICAL_DETAILS]\n")
+        lines.extend(f"Technical detail {i}.\n" for i in range(15))
+        lines.append("[ANCHOR: COMPARISON]\n")
+        lines.extend(f"Comparison point {i}.\n" for i in range(15))
+        lines.append("[ANCHOR: CITATIONS]\n")
+        lines.extend(f"Citation {i}.\n" for i in range(15))
+        content = "".join(lines)
+        # No links → missing_links (-0.10) → base 0.90, both bonuses +0.10 → 1.0 capped
+        result = self._score_content(content)
+        assert result.score <= 1.0
+        assert result.score >= 0.95  # proves both bonuses applied (would be 0.90 without them)
+
 
 # ─── Resolution Budget (T59.1) ─────────────────────────────────────────────
 
@@ -135,6 +196,30 @@ class TestResolutionBudget:
         for p in ["free", "balanced", "fast", "quality"]:
             assert p in PROFILE_BUDGETS
             assert "max_provider_attempts" in PROFILE_BUDGETS[p]
+
+    def test_zero_max_provider_attempts_blocks_all(self):
+        """Budget with 0 max_provider_attempts immediately denies all can_try()."""
+        budget = ResolutionBudget(0, 0, 5000)
+        assert budget.can_try(is_paid=False) is False
+        assert budget.stop_reason == "max_provider_attempts"
+
+    def test_zero_max_paid_blocks_paid_only(self):
+        """Budget with 0 max_paid_attempts blocks paid but allows free."""
+        budget = ResolutionBudget(5, 0, 5000)
+        assert budget.can_try(is_paid=True) is False
+        assert budget.stop_reason == "max_paid_attempts"
+        # Free should still work
+        assert budget.can_try(is_paid=False) is True
+
+    def test_negative_latency_does_not_break_budget(self):
+        """Negative latency should not prevent further attempts."""
+        budget = ResolutionBudget(3, 1, 1000)
+        budget.record_attempt(is_paid=False, latency_ms=-500)
+        assert budget.attempts == 1
+        # elapsed_ms is not clamped (passed through as-is), but can_try still works
+        # because -500 < max_total_latency_ms (1000)
+        assert budget.elapsed_ms == -500
+        assert budget.can_try(is_paid=False) is True
 
 
 # ─── Negative Caching (T59.3) ──────────────────────────────────────────────
@@ -222,6 +307,49 @@ class TestCircuitBreaker:
         assert registry.is_open("p1") is False
         registry.record_failure("p1")
         assert registry.is_open("p1") is True
+
+    def test_time_based_recovery_after_cooldown(self):
+        """Circuit breaker auto-resets when cooldown period expires."""
+        registry = CircuitBreakerRegistry(threshold=1)
+        # Open the breaker with a very short cooldown
+        registry.record_failure("p1", threshold=1, cooldown_seconds=1)
+        assert registry.is_open("p1") is True
+
+        # Simulate cooldown expiry by manipulating open_until
+        from datetime import datetime, timedelta, timezone
+
+        breaker = registry.breakers["p1"]
+        breaker.open_until = datetime.now(timezone.utc) - timedelta(seconds=10)
+        assert registry.is_open("p1") is False, "Should auto-recover after cooldown"
+
+    def test_time_based_recovery_still_open_during_cooldown(self):
+        """Circuit breaker stays open while cooldown hasn't expired."""
+        registry = CircuitBreakerRegistry(threshold=1)
+        registry.record_failure("p1", threshold=1, cooldown_seconds=3600)
+        assert registry.is_open("p1") is True
+
+        # Simulate being mid-cooldown
+        from datetime import datetime, timedelta, timezone
+
+        breaker = registry.breakers["p1"]
+        breaker.open_until = datetime.now(timezone.utc) + timedelta(minutes=30)
+        assert registry.is_open("p1") is True
+
+    def test_is_open_handles_timezone_naive_open_until(self):
+        """is_open handles timezone-naive open_until by assuming UTC."""
+        from datetime import datetime, timedelta
+
+        registry = CircuitBreakerRegistry(threshold=1)
+        registry.record_failure("p1", threshold=1, cooldown_seconds=3600)
+
+        # Set open_until to naive datetime in the future
+        breaker = registry.breakers["p1"]
+        breaker.open_until = datetime.utcnow() + timedelta(hours=1)
+        assert registry.is_open("p1") is True
+
+        # Set open_until to naive datetime in the past
+        breaker.open_until = datetime.utcnow() - timedelta(hours=1)
+        assert registry.is_open("p1") is False
 
 
 # ─── Routing Memory (T59.5) ───────────────────────────────────────────────
