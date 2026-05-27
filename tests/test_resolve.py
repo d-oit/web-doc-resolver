@@ -1,5 +1,6 @@
 """Comprehensive tests for resolve.py with all fallback scenarios."""
 
+import logging
 import os
 import sys
 from pathlib import Path
@@ -227,6 +228,172 @@ class TestResolveWithMistralBrowser:
 
         result = _get_mistral_browser_func()("https://example.com")
         assert result is None
+
+
+@pytest.mark.live
+class TestMistralErrorLogging:
+    """Test that Mistral error scenarios emit correct log messages."""
+
+    @patch.dict(os.environ, {"MISTRAL_API_KEY": "test_key"})
+    @patch("mistralai.client.Mistral")
+    def test_browser_401_logs_warning(self, mock_mistral_class, caplog):
+        """Test Mistral browser 401 emits 'API key may be invalid' warning."""
+        from scripts.providers_impl import resolve_with_mistral_browser
+
+        error = Exception("Unauthorized")
+        error.status_code = 401
+        mock_client = Mock()
+        mock_client.beta.conversations.start.side_effect = error
+        mock_mistral_class.return_value = mock_client
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_mistral_browser("https://example.com")
+
+        assert result is None
+        assert "401 Unauthorized" in caplog.text
+
+    @patch.dict(os.environ, {"MISTRAL_API_KEY": "test_key"})
+    @patch("mistralai.client.Mistral")
+    def test_browser_429_logs_warning_and_cooldown(self, mock_mistral_class, caplog):
+        """Test Mistral browser 429 emits rate limited warning and sets cooldown."""
+        from scripts.providers_impl import _is_rate_limited, resolve_with_mistral_browser
+
+        # Clear any existing rate limits
+        from scripts.resolve import _rate_limits
+
+        _rate_limits.clear()
+
+        error = Exception("Too many requests")
+        error.status_code = 429
+        mock_client = Mock()
+        mock_client.beta.conversations.start.side_effect = error
+        mock_mistral_class.return_value = mock_client
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_mistral_browser("https://example.com")
+
+        assert result is None
+        assert "429 Rate limited" in caplog.text
+        assert _is_rate_limited("mistral")
+        _rate_limits.clear()
+
+    @patch.dict(os.environ, {"MISTRAL_API_KEY": "test_key"})
+    @patch("mistralai.client.Mistral")
+    def test_browser_403_logs_warning(self, mock_mistral_class, caplog):
+        """Test Mistral browser 403 emits forbidden warning."""
+        from scripts.providers_impl import resolve_with_mistral_browser
+
+        error = Exception("Forbidden")
+        error.status_code = 403
+        mock_client = Mock()
+        mock_client.beta.conversations.start.side_effect = error
+        mock_mistral_class.return_value = mock_client
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_mistral_browser("https://example.com")
+
+        assert result is None
+        assert "403 Forbidden" in caplog.text
+
+    @patch.dict(os.environ, {"MISTRAL_API_KEY": "test_key"})
+    @patch("mistralai.client.Mistral")
+    def test_browser_generic_error_logs_type_and_message(self, mock_mistral_class, caplog):
+        """Test Mistral browser generic error logs type name and message."""
+        from scripts.providers_impl import resolve_with_mistral_browser
+
+        mock_client = Mock()
+        mock_client.beta.conversations.start.side_effect = ValueError("unexpected failure")
+        mock_mistral_class.return_value = mock_client
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_mistral_browser("https://example.com")
+
+        assert result is None
+        assert "ValueError" in caplog.text
+        assert "unexpected failure" in caplog.text
+
+    @patch.dict(os.environ, {"MISTRAL_API_KEY": "test_key"})
+    @patch("mistralai.client.Mistral")
+    def test_websearch_401_logs_warning(self, mock_mistral_class, caplog):
+        """Test Mistral websearch 401 emits 'API key may be invalid' warning."""
+        from scripts.providers_impl import resolve_with_mistral_websearch
+
+        error = Exception("Unauthorized")
+        error.status_code = 401
+        mock_client = Mock()
+        mock_client.chat.complete.side_effect = error
+        mock_mistral_class.return_value = mock_client
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_mistral_websearch("test query")
+
+        assert result is None
+        assert "401 Unauthorized" in caplog.text
+
+    @patch.dict(os.environ, {"MISTRAL_API_KEY": "test_key"})
+    @patch("mistralai.client.Mistral")
+    def test_websearch_429_logs_warning_and_cooldown(self, mock_mistral_class, caplog):
+        """Test Mistral websearch 429 emits rate limited warning and sets cooldown."""
+        from scripts.providers_impl import _is_rate_limited, resolve_with_mistral_websearch
+        from scripts.resolve import _rate_limits
+
+        _rate_limits.clear()
+
+        error = Exception("Too many requests")
+        error.status_code = 429
+        mock_client = Mock()
+        mock_client.chat.complete.side_effect = error
+        mock_mistral_class.return_value = mock_client
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_mistral_websearch("test query")
+
+        assert result is None
+        assert "429 Rate limited" in caplog.text
+        assert _is_rate_limited("mistral")
+        _rate_limits.clear()
+
+    @patch.dict(os.environ, {}, clear=True)
+    def test_browser_no_api_key_logs_debug(self, caplog):
+        """Test Mistral browser with no API key emits debug log."""
+        from scripts.providers_impl import resolve_with_mistral_browser
+
+        with caplog.at_level(logging.DEBUG):
+            result = resolve_with_mistral_browser("https://example.com")
+
+        assert result is None
+        assert "no API key" in caplog.text
+
+    @patch.dict(os.environ, {}, clear=True)
+    def test_websearch_no_api_key_logs_debug(self, caplog):
+        """Test Mistral websearch with no API key emits debug log."""
+        from scripts.providers_impl import resolve_with_mistral_websearch
+
+        with caplog.at_level(logging.DEBUG):
+            result = resolve_with_mistral_websearch("test query")
+
+        assert result is None
+        assert "no API key" in caplog.text
+
+    @patch.dict(os.environ, {"MISTRAL_API_KEY": "test_key"})
+    @patch("mistralai.client.Mistral")
+    def test_websearch_empty_content_logs_warning(self, mock_mistral_class, caplog):
+        """Test Mistral websearch with empty content emits warning."""
+        from scripts.providers_impl import resolve_with_mistral_websearch
+
+        mock_client = Mock()
+        mock_response = Mock()
+        mock_response.choices = [Mock()]
+        mock_response.choices[0].message = Mock()
+        mock_response.choices[0].message.content = ""
+        mock_client.chat.complete.return_value = mock_response
+        mock_mistral_class.return_value = mock_client
+
+        with caplog.at_level(logging.WARNING):
+            result = resolve_with_mistral_websearch("test query")
+
+        assert result is None
+        assert "empty content" in caplog.text
 
 
 class TestResolveIntegration:

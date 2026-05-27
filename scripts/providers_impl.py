@@ -70,20 +70,31 @@ def resolve_with_jina(url: str, max_chars: int = MAX_CHARS) -> ResolvedResult | 
     try:
         session = get_session()
         response = session.get(
-            f"https://r.jina.ai/{url}", timeout=DEFAULT_TIMEOUT, headers={"Accept": "text/markdown"}
+            f"https://r.jina.ai/{url}",
+            timeout=DEFAULT_TIMEOUT,
+            headers={"Accept": "text/markdown"},
         )
         if response.status_code == 429:
+            logger.warning("Jina rate limited — setting cooldown")
             _set_rate_limit("jina")
             return None
+        if response.status_code == 401 or response.status_code == 403:
+            logger.warning("Jina auth error: HTTP %s for %s", response.status_code, url)
+            return None
         if response.status_code != 200:
+            logger.warning("Jina HTTP %s for %s", response.status_code, url)
             return None
         content = response.text.strip()
         if len(content) < MIN_CHARS:
+            logger.warning(
+                "Jina returned insufficient content (%s chars) for %s", len(content), url
+            )
             return None
         result = ResolvedResult(source="jina", content=content[:max_chars], url=url)
         _save_to_cache(url, "jina", result.to_dict())
         return result
-    except Exception:
+    except Exception as e:
+        logger.warning("Jina resolution failed: %s: %s", type(e).__name__, e)
         return None
 
 
@@ -108,19 +119,26 @@ def resolve_with_exa_mcp(query: str, max_chars: int = MAX_CHARS) -> ResolvedResu
             timeout=25,
         )
         if response.status_code != 200:
+            logger.warning("Exa MCP HTTP %s for query: %s", response.status_code, query)
             return None
         for line in response.text.split("\n"):
             if line.startswith("data: "):
                 data = json.loads(line[6:])
                 if data.get("result") and data["result"].get("content"):
                     content = data["result"]["content"][0].get("text", "")
+                    if not content:
+                        logger.warning("Exa MCP returned empty content for query: %s", query)
+                        return None
                     result = ResolvedResult(
                         source="exa_mcp", content=content[:max_chars], query=query
                     )
                     _save_to_cache(query, "exa_mcp", result.to_dict())
                     return result
-    except Exception:
-        return None
+        logger.warning("Exa MCP returned no usable content for query: %s", query)
+    except json.JSONDecodeError as e:
+        logger.warning("Exa MCP JSON parse failed: %s", e)
+    except Exception as e:
+        logger.warning("Exa MCP resolution failed: %s: %s", type(e).__name__, e)
     return None
 
 
@@ -129,7 +147,11 @@ def resolve_with_exa(query: str, max_chars: int = MAX_CHARS) -> ResolvedResult |
     if cached:
         return ResolvedResult(**cached)
     api_key = os.getenv("EXA_API_KEY")
-    if not api_key or _is_rate_limited("exa"):
+    if not api_key:
+        logger.debug("Exa skipped: no API key")
+        return None
+    if _is_rate_limited("exa"):
+        logger.debug("Exa skipped: rate limited")
         return None
     try:
         from exa_py import Exa
@@ -139,6 +161,7 @@ def resolve_with_exa(query: str, max_chars: int = MAX_CHARS) -> ResolvedResult |
             query, use_autoprompt=True, highlights=True, num_results=EXA_RESULTS
         )
         if not res or not res.results:
+            logger.warning("Exa returned no results for query: %s", query)
             return None
         content = "\n\n---\n\n".join(
             [
@@ -147,10 +170,23 @@ def resolve_with_exa(query: str, max_chars: int = MAX_CHARS) -> ResolvedResult |
                 if hasattr(r, "highlight") and r.highlight or hasattr(r, "text") and r.text
             ]
         )
+        if not content:
+            logger.warning("Exa returned empty content for query: %s", query)
+            return None
         result = ResolvedResult(source="exa", content=content[:max_chars], query=query)
         _save_to_cache(query, "exa", result.to_dict())
         return result
-    except Exception:
+    except Exception as e:
+        status = getattr(e, "status_code", None)
+        if status == 401:
+            logger.warning("Exa failed: 401 Unauthorized — API key may be invalid or expired")
+        elif status == 429:
+            logger.warning("Exa failed: 429 Rate limited — setting cooldown")
+            _set_rate_limit("exa")
+        elif status == 403:
+            logger.warning("Exa failed: 403 Forbidden — %s", e)
+        else:
+            logger.warning("Exa resolution failed: %s: %s", type(e).__name__, e)
         return None
 
 
@@ -159,7 +195,11 @@ def resolve_with_tavily(query: str, max_chars: int = MAX_CHARS) -> ResolvedResul
     if cached:
         return ResolvedResult(**cached)
     api_key = os.getenv("TAVILY_API_KEY")
-    if not api_key or _is_rate_limited("tavily"):
+    if not api_key:
+        logger.debug("Tavily skipped: no API key")
+        return None
+    if _is_rate_limited("tavily"):
+        logger.debug("Tavily skipped: rate limited")
         return None
     try:
         from tavily import TavilyClient
@@ -167,14 +207,23 @@ def resolve_with_tavily(query: str, max_chars: int = MAX_CHARS) -> ResolvedResul
         client = TavilyClient(api_key=api_key)
         res = client.search(query, max_results=TAVILY_RESULTS)
         if not res or not res.get("results"):
-            logger.warning(f"Tavily returned no results for query: {query}")
+            logger.warning("Tavily returned no results for query: %s", query)
             return None
         content = "\n\n---\n\n".join([f"## {r['title']}\n\n{r['content']}" for r in res["results"]])
         result = ResolvedResult(source="tavily", content=content[:max_chars], query=query)
         _save_to_cache(query, "tavily", result.to_dict())
         return result
     except Exception as e:
-        logger.error(f"Tavily resolution failed: {e}")
+        status = getattr(e, "status_code", None)
+        if status == 401:
+            logger.warning("Tavily failed: 401 Unauthorized — API key may be invalid or expired")
+        elif status == 429:
+            logger.warning("Tavily failed: 429 Rate limited — setting cooldown")
+            _set_rate_limit("tavily")
+        elif status == 403:
+            logger.warning("Tavily failed: 403 Forbidden — %s", e)
+        else:
+            logger.warning("Tavily resolution failed: %s: %s", type(e).__name__, e)
         return None
 
 
@@ -184,7 +233,11 @@ def resolve_with_serper(query: str, max_chars: int = MAX_CHARS) -> ResolvedResul
     if cached:
         return ResolvedResult(**cached)
     api_key = os.getenv("SERPER_API_KEY")
-    if not api_key or _is_rate_limited("serper"):
+    if not api_key:
+        logger.debug("Serper skipped: no API key")
+        return None
+    if _is_rate_limited("serper"):
+        logger.debug("Serper skipped: rate limited")
         return None
     try:
         session = get_session()
@@ -198,17 +251,22 @@ def resolve_with_serper(query: str, max_chars: int = MAX_CHARS) -> ResolvedResul
             timeout=DEFAULT_TIMEOUT,
         )
         if response.status_code == 429:
-            _set_rate_limit("serper", 3600)  # 1 hour cooldown
+            logger.warning("Serper rate limited — setting 1hr cooldown")
+            _set_rate_limit("serper", 3600)
             return None
         if response.status_code == 401 or response.status_code == 403:
+            logger.warning(
+                "Serper auth error: HTTP %s — API key may be invalid", response.status_code
+            )
             return None
         if response.status_code != 200:
+            logger.warning("Serper HTTP %s for query: %s", response.status_code, query)
             return None
         data = response.json()
         organic = data.get("organic", [])
         if not organic:
+            logger.warning("Serper returned no organic results for query: %s", query)
             return None
-        # Format results as markdown
         parts = []
         for r in organic:
             title = r.get("title", "")
@@ -217,12 +275,14 @@ def resolve_with_serper(query: str, max_chars: int = MAX_CHARS) -> ResolvedResul
             if title and snippet:
                 parts.append(f"## {title}\n\n{snippet}\n\n[{link}]({link})")
         if not parts:
+            logger.warning("Serper returned no usable snippets for query: %s", query)
             return None
         content = "\n\n---\n\n".join(parts)
         result = ResolvedResult(source="serper", content=content[:max_chars], query=query)
         _save_to_cache(query, "serper", result.to_dict())
         return result
-    except Exception:
+    except Exception as e:
+        logger.warning("Serper resolution failed: %s: %s", type(e).__name__, e)
         return None
 
 
@@ -231,6 +291,7 @@ def resolve_with_duckduckgo(query: str, max_chars: int = MAX_CHARS) -> ResolvedR
     if cached:
         return ResolvedResult(**cached)
     if _is_rate_limited("duckduckgo"):
+        logger.debug("DuckDuckGo skipped: rate limited")
         return None
     try:
         from ddgs import DDGS
@@ -238,6 +299,7 @@ def resolve_with_duckduckgo(query: str, max_chars: int = MAX_CHARS) -> ResolvedR
         with DDGS() as ddgs:
             results = list(ddgs.text(query, max_results=DDG_RESULTS))
         if not results:
+            logger.warning("DuckDuckGo returned no results for query: %s", query)
             return None
         content = "\n\n---\n\n".join(
             [f"## {r.get('title', '')}\n\n{r.get('body', '')}" for r in results]
@@ -245,7 +307,8 @@ def resolve_with_duckduckgo(query: str, max_chars: int = MAX_CHARS) -> ResolvedR
         result = ResolvedResult(source="duckduckgo", content=content[:max_chars], query=query)
         _save_to_cache(query, "duckduckgo", result.to_dict())
         return result
-    except Exception:
+    except Exception as e:
+        logger.warning("DuckDuckGo resolution failed: %s: %s", type(e).__name__, e)
         return None
 
 
@@ -257,18 +320,38 @@ def resolve_with_firecrawl(url: str, max_chars: int = MAX_CHARS) -> ResolvedResu
     if cached:
         return ResolvedResult(**cached)
     api_key = os.getenv("FIRECRAWL_API_KEY")
-    if not api_key or _is_rate_limited("firecrawl"):
+    if not api_key:
+        logger.debug("Firecrawl skipped: no API key")
+        return None
+    if _is_rate_limited("firecrawl"):
+        logger.debug("Firecrawl skipped: rate limited")
         return None
     try:
         from firecrawl import Firecrawl
 
         app = Firecrawl(api_key=api_key)
         res = app.scrape(url, formats=["markdown"])
-        markdown = res.markdown if res and hasattr(res, "markdown") else ""
+        if not res or not hasattr(res, "markdown"):
+            logger.warning("Firecrawl returned no markdown for URL: %s", url)
+            return None
+        markdown = res.markdown
+        if not markdown:
+            logger.warning("Firecrawl returned empty markdown for URL: %s", url)
+            return None
         result = ResolvedResult(source="firecrawl", content=markdown[:max_chars], url=url)
         _save_to_cache(url, "firecrawl", result.to_dict())
         return result
-    except Exception:
+    except Exception as e:
+        status = getattr(e, "status_code", None)
+        if status == 401:
+            logger.warning("Firecrawl failed: 401 Unauthorized — API key may be invalid or expired")
+        elif status == 429:
+            logger.warning("Firecrawl failed: 429 Rate limited — setting cooldown")
+            _set_rate_limit("firecrawl")
+        elif status == 403:
+            logger.warning("Firecrawl failed: 403 Forbidden — %s", e)
+        else:
+            logger.warning("Firecrawl resolution failed: %s: %s", type(e).__name__, e)
         return None
 
 
