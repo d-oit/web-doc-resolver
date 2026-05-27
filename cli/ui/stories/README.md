@@ -54,7 +54,7 @@ export const Primary: Story = {
 
 ## File Naming
 
-```
+```text
 components/
   button.stories.ts
   input.stories.ts
@@ -92,6 +92,7 @@ export const KeyboardNav: Story = {
 ## Viewports
 
 Pre-configured viewports matching design breakpoints:
+
 - `mobile`: 375×667
 - `tablet`: 768×1024
 - `desktop`: 1280×800
@@ -114,4 +115,5 @@ decorators: [
 ## Visual Regression
 
 Integrate with Chromatic or Percy for automated visual diffs.
+
 Run `npx chromatic` before each release.

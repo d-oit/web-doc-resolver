@@ -23,6 +23,7 @@ structure proposed but not created.
 ## What Remains
 
 All 8 improvements remain candidates:
+
 - Getting Started Tutorial (`TUTORIAL.md`)
 - Comprehensive Troubleshooting Guide (`agents-docs/TROUBLESHOOTING.md`)
 - Migration Guide (`MIGRATING.md`)

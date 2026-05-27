@@ -5,18 +5,23 @@ This directory contains example scripts demonstrating various usage patterns of 
 ## Files
 
 ### sample_basic.py
+
 Basic usage without API keys. Demonstrates:
+
 - URL resolution using free sources
 - Query resolution with free fallbacks
 - No API key configuration required
 
 **Usage:**
+
 ```bash
 python samples/sample_basic.py
 ```
 
 ### sample_with_keys.py
+
 Full cascade with all API keys configured. Demonstrates:
+
 - Checking which API keys are set
 - Deep extraction with Firecrawl (requires API key)
 - Token-efficient search with Exa
@@ -24,6 +29,7 @@ Full cascade with all API keys configured. Demonstrates:
 - Graceful fallbacks when keys not set
 
 **Usage:**
+
 ```bash
 # Set your API keys first
 export FIRECRAWL_API_KEY="your-key"
@@ -53,6 +59,7 @@ python samples/sample_with_keys.py
 ## Expected Output
 
 Each sample prints:
+
 - Input (URL or query)
 - Result length in characters
 - Preview of the resolved content

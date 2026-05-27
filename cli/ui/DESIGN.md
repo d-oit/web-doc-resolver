@@ -43,7 +43,7 @@ OKLCH perceptually-uniform color space. All colors have consistent perceived lig
 
 ### 3-Layer Token Architecture
 
-```
+```text
 Layer 1: Primitive (base)
   --do-wdr-color-ocean-500: oklch(0.57 0.10 230)
   → Raw values. Never used directly in components.
@@ -73,7 +73,7 @@ Monospace is default for all data surfaces (tables, logs, config values, URLs).
 
 ### App Shell
 
-```
+```text
 ┌──────────────────────────────────────────────┐
 │ Sidebar (16rem) │ Main Content Area          │
 │                 │ ┌──────────────────────────┐│
@@ -171,7 +171,7 @@ Data-dense compact mode uses `--do-wdr-compact-padding` (6px) and `--do-wdr-dens
 
 ## File Structure
 
-```
+```text
 cli/ui/
 ├── tokens/
 │   ├── design_tokens.css    # 3-layer: primitive → semantic → component
@@ -203,7 +203,7 @@ cli/ui/
 
 ## Token Naming Convention
 
-```
+```text
 --do-wdr-{layer}-{category}-{property}-{variant}-{state}
 
 Layer:    color | text | space | radius | shadow | z
@@ -214,6 +214,7 @@ State:    hover | active | focus | disabled | error | loading
 ```
 
 Examples:
+
 - `--do-wdr-surface-bg-elevated` — semantic layer, surface category, bg property, elevated variant
 - `--do-wdr-button-primary-bg-hover` — component layer, button, primary variant, bg property, hover state
 - `--do-wdr-interactive-bg` — semantic, interactive, bg

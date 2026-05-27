@@ -102,6 +102,7 @@ and bring PR #341 to a mergeable state with only the core quality gate feature.
 ### Separate Follow-up PR
 
 After this PR merges, a new PR `feat/cache-prewarming` should be created with:
+
 - `cli/src/startup.rs` — Prewarm logic with JoinSet (not tokio::spawn)
 - `cli/tests/startup_prewarm.rs`, `startup_semaphore.rs`
 - web prewarmCache — throttled, single-trigger, with localStorage gate

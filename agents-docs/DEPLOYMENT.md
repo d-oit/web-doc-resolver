@@ -34,7 +34,8 @@ vercel build --prod  # Verify production build
 #### Environment Variables
 
 Set in Vercel dashboard:
-- `NEXT_PUBLIC_RESOLVER_URL`: Backend resolver URL (default: http://localhost:8000)
+
+- `NEXT_PUBLIC_RESOLVER_URL`: Backend resolver URL (default: <http://localhost:8000>)
 
 ### 2. Docker (Backend)
 
@@ -195,6 +196,7 @@ curl http://localhost:8000/health
 ### Metrics
 
 Consider adding:
+
 - Prometheus metrics endpoint
 - Grafana dashboards
 - Alerting for failures
@@ -251,6 +253,7 @@ logrotate /etc/logrotate.d/do-web-doc-resolver
 ### Data Backup
 
 The resolver is mostly stateless, but consider backing up:
+
 - Configuration files
 - API keys
 - Logs for debugging
@@ -267,6 +270,7 @@ The resolver is mostly stateless, but consider backing up:
 ### Connection Pooling
 
 Adjust based on expected load:
+
 ```toml
 [network]
 max_connections = 100
@@ -276,6 +280,7 @@ timeout = 30
 ### Caching
 
 Enable caching for repeated queries:
+
 ```toml
 [caching]
 enabled = true
@@ -285,6 +290,7 @@ ttl_seconds = 3600
 ### Rate Limiting
 
 Configure rate limits to avoid provider throttling:
+
 ```toml
 [providers.exa]
 requests_per_minute = 60

@@ -169,6 +169,7 @@ cd web && npx playwright test --project=desktop
 ### Environment Variables
 
 Set API keys as needed:
+
 ```bash
 export EXA_API_KEY="your_key"
 export TAVILY_API_KEY="your_key"
@@ -227,20 +228,24 @@ cargo flamegraph --bin do-wdr -- resolve "query"
 
 To verify the semantic cache performance and quality synthesis:
 
-1.  **Build with Semantic Cache**:
+1. **Build with Semantic Cache**:
+
     ```bash
     cd cli
     cargo build --release --features semantic-cache
     ```
 
-2.  **Enable Cache via Environment**:
+1. **Enable Cache via Environment**:
+
     ```bash
     export DO_WDR_SEMANTIC_CACHE__ENABLED=true
     export DO_WDR_SEMANTIC_CACHE__PATH=.do-wdr_cache/bench
     ```
 
-3.  **Run Benchmark Pass**:
+1. **Run Benchmark Pass**:
+
     Run standard URLs twice to measure hit latency:
+
     ```bash
     # Pass 1: Prime
     ./target/release/do-wdr resolve "https://docs.python.org/3/" --provider jina
@@ -248,7 +253,7 @@ To verify the semantic cache performance and quality synthesis:
     ./target/release/do-wdr resolve "https://docs.python.org/3/" --provider jina --json
     ```
 
-4.  **Health Thresholds**:
+1. **Health Thresholds**:
     - **Cache Hit Latency**: < 200ms (Optimized targets ~15ms total, ~1ms internal).
     - **Quality Score**: > 0.85.
 
@@ -298,6 +303,7 @@ To verify the semantic cache performance and quality synthesis:
 **Status**: **Fixed** - The sqlite-vec vec0 virtual table insert syntax and linkage has been corrected.
 
 **Resolution**:
+
 - Corrected `vec0` syntax by linking to metadata via `rowid` (mapping to `cache_entries.id`).
 - Implemented a manual `DELETE` then `INSERT` pattern because `INSERT OR REPLACE` is unreliable on `rowid` columns in virtual tables.
 - Added a fallback to `pysqlite3` to ensure `load_extension` support in restricted environments.
@@ -339,6 +345,7 @@ The `duckduckgo_search` package is now `ddgs`. Update `requirements.txt` when up
 **Do NOT close issues early.** An unmerged fix is not a fixed issue.
 
 Example workflow:
+
 ```bash
 # 1-2. Apply fix and test locally
 python -c "from scripts.semantic_cache import SemanticCache; ..."
@@ -369,40 +376,52 @@ gh issue close 252 --comment "Verified, merged, CI passed."
 ## Lessons Learned
 
 ### Vercel Monorepo Setup
+
 When the Next.js app lives in a subdirectory (`web/`), set the Vercel project's `rootDirectory` via API:
+
 ```bash
 curl -X PATCH "https://api.vercel.com/v9/projects/{PROJECT_ID}?teamId={TEAM_ID}" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"rootDirectory":"web"}'
 ```
+
 Do NOT use `rootDirectory` in a root `vercel.json` — it's not valid there. The setting must be on the Vercel project.
 
 ### Dependency Compatibility Triage
+
 - PR #224 showed that grouped npm major updates can surface upstream incompatibilities rather than repo code regressions.
 - `eslint-config-next@16.2.3` currently fails under `eslint@10`, so keep ESLint on `^9.39.4` until the Next.js lint stack supports the new major.
 - Evaluate `typescript@6` separately from lint-stack upgrades so type and tooling changes do not get conflated in one PR.
 
 ### E2E Test Reliability
+
 - Use `data-testid` attributes for Playwright selectors instead of text-based filters
 - Server-side state persistence (localStorage/server sync) can break tests that depend on initial UI state
 - E2E tests against stale production deployments will fail — always deploy first or use preview URLs
 
 ### UI State + Provider Behavior
+
 - Treat `/api/ui-state` as server-backed persistence (cookie-based) and `localStorage` as fallback; tests should mock both when asserting startup state
 - Custom provider selections persist via `selectedProviders` and reload as `profile=custom`; avoid tests that assume profile defaults after a manual provider toggle
 - If `exa_mcp` and `mistral` are both selected and a Mistral key exists, query normalization combines them into `exa_mcp_mistral` (not two independent provider runs)
 - Automated browser validation can fail on protected Vercel preview links (auth gate/interstitial); use production URL or an unprotected preview URL for CI and scripted checks
 
 ### Binary Name vs Crate Name
+
 Cargo.toml supports separate names:
+
 - `[package].name` = crate name on crates.io (e.g., `do-wdr`)
 - `[[bin]].name` = output binary name (e.g., `do-wdr`)
+
 This allows short command names while having unique crate names.
 
 ### Vercel Production Alias
+
 To point production URL to a specific deployment:
+
 ```bash
 vercel alias set <deployment-url> <production-domain>
 ```
+
 Useful when promoting preview deployments to production.

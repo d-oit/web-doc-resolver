@@ -35,6 +35,7 @@ Exa MCP, Jina Reader, DuckDuckGo, and direct fetch are always available — **no
 ## Config File (Rust CLI)
 
 The Rust CLI looks for `config.toml` in:
+
 1. `~/.config/do-wdr/config.toml`
 2. `./config.toml`
 

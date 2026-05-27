@@ -1,11 +1,13 @@
-# Provider Alert: DuckDuckGo unstable
+# Known Issues
+
+## Provider Alert: DuckDuckGo unstable
 
 - **Date**: 2026-04-20
 - **Issue**: DuckDuckGo provider is consistently returning empty results or failing connectivity checks in the current environment.
 - **Action Taken**: Deprioritized DuckDuckGo in the routing logic.
 - **Status**: Monitoring for stability.
 
-# Provider Regression: Firecrawl missing in Web UI
+## Provider Regression: Firecrawl missing in Web UI
 
 - **Date**: 2026-05-05
 - **Issue**: Firecrawl provider was functional in backend runtimes but omitted from `web/app/constants.ts`, causing it to be hidden from the Sidebar and Settings.

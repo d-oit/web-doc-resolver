@@ -4,7 +4,7 @@ Visual assets for documentation, README, and release notes.
 
 ## Folder Structure
 
-```
+```text
 assets/
 ├── screenshots/
 │   ├── homepage.png              # Main UI screenshot
@@ -83,6 +83,7 @@ agent-browser close
 ## Automation
 
 Screenshots are captured:
+
 - On every release (via `capture-release.sh`)
 - In CI/CD pipeline (optional)
 - On pre-commit if UI changes detected

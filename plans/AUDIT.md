@@ -133,21 +133,24 @@
 ## Additional Learnings (post-2026-05-05)
 
 ### Provider Rate Throttling
+
 - **Token bucket design**: Clamp `capacity` to `max(1.0, ·)` to prevent infinite acquire loops
 - **Avoid polling**: Calculate exact sleep duration instead of fixed-interval polling
 - **Cascade safety**: `acquire_timeout()` so rate-limited providers fall back instead of blocking cascade
 - **Config merge**: Target specific `rate_limit` fields rather than wholesale `ProviderConfig` replacement
 
 ### Feature Implementation Patterns
+
 - **Quality confidence gate**: Free-tier results evaluated against 0.70 threshold; if met, paid providers skipped
 - **Probabilistic skip**: Providers with low win rate get skip probability proportional to fail ratio
 - **Adaptive reordering**: Routing memory ranks providers by domain performance per-profile
 - **Exa MCP tracking**: Monthly usage count stored in routing memory DB; resets on provider cooldown
 
 ### PR #365 — TOCTOU, SSRF Gaps, Shared Session (2026-05-13)
+
 - **TOCTOU in CircuitBreakerRegistry.is_open()**: Fix by inlining the state lookup + `is_open()` check under a single `self._lock` scope. This eliminates the window where `get_breaker()` releases the lock before the caller reads `breaker.is_open()`.
 - **SSRF gaps in docling + ocr**: Two provider functions (`resolve_with_docling`, `resolve_with_ocr`) passed user URLs to `subprocess.run()` without `is_safe_url()` validation. Added the check consistent with jina/firecrawl/mistral_browser pattern.
-- **Shared session for synthesis**: `synthesize_results()` used raw `requests.post()` bypassing connection pooling, retry, and SSRF validation. Switched to `get_session()` from `scripts.utils`.
+- **Shared session for synthesis**: `synthesize_results()` used raw `requests.post()` bypassing connection pooling, retry, and SSRF validation. Switched to `get_session()` from `scripts/utils`.
 - **Lazy logging fix**: Changed f-string logging in mistral_browser SSRF warning to `%s` format for consistency with DeepSource PYL-W1203 rules.
 - **Monkey-patching in resolve.py (lines 85-91)** remains necessary until ADR-014 creates `scripts/state.py`. Tests depend on these overwrites for state synchronization.
 
@@ -258,13 +261,13 @@ were already deleted before this audit and confirmed not present.
 *Last updated: 2026-05-18. ADR-012 Wave 1 ✅. ADR-013 Wave 1b ✅. ADR-015 (Nightly Bridge) ✅. GOAP PR Orchestration ✅ (9 PRs). See [18-GOAP-PR-ORCHESTRATION.md](18-GOAP-PR-ORCHESTRATION.md).*
 
 ### ADR-015 — Nightly Bridge Push → PR (2026-05-13)
+
 - **Root cause**: `nightly-bridge.yml` workflow pushed directly to `main`, violating branch protection rules (GH013: requires PR + 4/4 status checks).
 - **Fix**: PR #366 replaced `git push origin main` with branch creation + `gh pr create`. The workflow now creates `chore/nightly-format-YYYYMMDD` branches and opens PRs.
 - **Remaining**: Nightly CI still produces formatting changes that need manual merge; root cause is unformatted source files. Next nightly should produce 0 PRs after drift is resolved.
 
-## Learnings (captured 2026-05-12)
+## Learnings (captured 2026-05-12)### Rate Limiter Implementation Patterns
 
-### Rate Limiter Implementation Patterns
 - **Token bucket**: Clamp `capacity` to `max(1.0, ·)` in constructor to prevent infinite acquire loops
 - **Avoid polling**: Calculate exact sleep duration `(1.0 - tokens) / rate` instead of fixed-interval polling
 - **Cascade safety**: Use `acquire_timeout()` so rate-limited providers fall back instead of blocking the entire cascade
@@ -272,10 +275,12 @@ were already deleted before this audit and confirmed not present.
 - **Config merge**: Target specific fields (`rate_limit`) rather than wholesale `ProviderConfig` replacement to preserve future fields
 
 ### CI / Infrastructure
+
 - **libsql test flakiness**: `libsql` uses a global `Once` for threading config — tests must run with `--test-threads=1` to avoid cascade poisoning; pinned in CI at `.github/workflows/ci.yml`
 - **Rate limit env vars**: Follow existing pattern — `DO_WDR_RATE_LIMIT_<PROVIDER>_{RPS,BURST}` with granular field targeting in `Config::load()`
 
 ### ADR-012 Wave 1 (2026-05-13)
+
 - **`threading.Lock` is non-reentrant**: Calling `_get_cache()` (which acquires `_cache_lock`) from within `_get_from_cache()` (which also holds `_cache_lock`) causes a deadlock. Use `threading.RLock` for nested lock acquisition.
 - **Conftest needs lock-safe clearing**: After adding locks to RoutingMemory/CircuitBreakerRegistry, the conftest `autouse` fixture must call `.clear()` methods (which hold the lock) instead of directly accessing `.domain_stats.clear()` or `.breakers.clear()`.
 - **CircuitBreakerRegistry and RoutingMemory need RLock**: PR review flagged `threading.Lock` vs `threading.RLock`. Fixed: `rank_providers()` calls `get_domain_stats()` which re-enters the same lock — requires RLock for recursive acquisition.
@@ -285,6 +290,7 @@ were already deleted before this audit and confirmed not present.
 - **Test suite runs in ~60s**: The full non-live suite runs in ~60 seconds. The `pre-commit` hook timeout was caused by a deadlock, not slow tests.
 
 ### GOAP Audit 2026-05-13
+
 - **`TOCTOU` in CircuitBreakerRegistry.is_open()**: The registry acquires `self._lock` in `get_breaker()` to retrieve the state object, but the caller's subsequent `.is_open()` on the returned state runs **outside** the lock. The state's `open_until` field can be mutated by another thread between retrieval and check. Fix: inline the comparison inside the locked method or return a snapshot.
 - **Raw `requests.post()` bypasses shared session**: `synthesis.py:165` calls `requests.post()` directly instead of `get_session().post()`. This loses: retry logic (3 attempts), connection pooling, SSRF validation (`is_safe_url()`), and consistent User-Agent headers. The shared session in `utils.py` has `Retry(total=3, backoff_factor=1.0)`.
 - **`semantic_cache.rs` (1056 lines) is the largest file in the project**: Nearly 2x the 500-line limit. It needs splitting into sub-modules — likely `{mod,store,query,eviction}.rs` — to stay maintainable.
@@ -303,6 +309,7 @@ were already deleted before this audit and confirmed not present.
 - **Agent instruction**: When creating a release PR or merging old branches, first run `LATEST_TAG=$(git tag -l "v*.*.*" --sort=-version:refname | head -1) && python scripts/sync_versions.py --set "${LATEST_TAG#v}"`
 
 ### GOAP PR Orchestration (2026-05-18)
+
 - **Vercel builds fail without `.npmrc`**: `eslint-config-next@15.5.18` has peer dep conflicts with ESLint 10 — `npm ci` without `--legacy-peer-deps` fails. Vercel doesn't pass `--legacy-peer-deps`, but adding `legacy-peer-deps=true` to `web/.npmrc` resolves this globally.
 - **Codacy false positive rate is high**: Out of 4 Codacy reviews, 3 contained factual errors (claiming TS 6.0.3 doesn't exist, claiming `await` needed on sync function, claiming import `ddgs` is wrong). Validate before acting on Codacy feedback.
 - **`checkRateLimit` is deliberately sync**: The in-memory rate limiter uses `Map` operations (microseconds) — no async needed. Async IP rate limiters (Redis-based) would need `await`, but the PR's simple in-memory implementation is correct.

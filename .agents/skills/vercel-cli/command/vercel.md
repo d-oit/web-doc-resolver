@@ -8,7 +8,7 @@ Load the Vercel CLI skill and help with project deployment and management.
 
 ### Step 1: Load vercel-cli skill
 
-```
+```text
 skill({ name: 'vercel-cli' })
 ```
 
@@ -32,7 +32,7 @@ Based on task type, read `references/<topic>.md`. Use `vercel <command> -h` for 
 
 ### Step 5: Summarize
 
-```
+```text
 === Vercel CLI Task Complete ===
 
 Topic: <topic>

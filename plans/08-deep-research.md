@@ -18,6 +18,7 @@ to the current focus on correctness, CI, and architecture consolidation.
 ## What Remains
 
 All tasks remain unimplemented:
+
 - Multi-step research engine (`scripts/deep_research.py`)
 - Evaluation framework with 6 metrics (`scripts/evaluation.py`)
 - Performance benchmarking suite (`scripts/performance_suite.py`)

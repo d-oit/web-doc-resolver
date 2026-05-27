@@ -26,16 +26,19 @@
 ## Learnings
 
 ### RLock vs Lock
+
 `threading.Lock` deadlocks if acquired recursively. `threading.RLock` is reentrant —
 safe for nested calls like `_get_from_cache` → `_get_cache` where both acquire the same lock.
 
 ### Conftest State Management
+
 The conftest's `autouse` fixture clears shared state directly via `.clear()` methods.
 After adding locks, tests must use the lock-safe clear methods (`.clear()` on
 CircuitBreakerRegistry/RoutingMemory, `_clear_rate_limits()` on providers_impl)
 instead of direct dict access.
 
 ### Monkey-patching Dependency
+
 `resolve.py` lines 85-91 wire shared instances to `_url_resolve`/`_query_resolve`.
 These overwrites must remain until ADR-014 creates `scripts/state.py` — tests
 depend on them for state synchronization.
@@ -142,7 +145,7 @@ next-phase plan covering Waves 2-6 plus AUDIT P0/P1 items.
 
 ## Execution Order (Updated)
 
-```
+```text
 Wave 1 ✅ → Wave 2 (CI config) → Wave 3 (constants/state extraction)
 → Wave 4 (quality fixes) + AUDIT P0/P1 items in parallel
 → Wave 5 (tests) + Wave 6 (cascade consolidation) in parallel

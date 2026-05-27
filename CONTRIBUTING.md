@@ -3,6 +3,7 @@
 ## Development Workflow
 
 ### Python
+
 ```bash
 # Run tests
 python -m pytest tests/ -v -m "not live"
@@ -13,6 +14,7 @@ python -m black .
 ```
 
 ### Rust CLI
+
 ```bash
 cd cli
 cargo test
@@ -21,6 +23,7 @@ cargo fmt
 ```
 
 ### Web UI
+
 ```bash
 cd web
 npm run lint
@@ -29,7 +32,9 @@ npx playwright test --project=desktop
 ```
 
 ### Quality Gate
+
 Run the full suite before submitting:
+
 ```bash
 ./scripts/quality_gate.sh
 ```

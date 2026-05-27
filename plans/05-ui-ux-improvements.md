@@ -14,6 +14,7 @@ implemented.
 ## What's Done
 
 The following 5 items have been implemented (4 original + 1 restoration):
+
 - **Keyboard navigation** (Phase 2): ✅ PR #324 merged — search accessibility
   and keyboard navigation improvements.
 - **Profile combobox** (Phase 5): ✅ PR #290 merged — accessible profile selector.

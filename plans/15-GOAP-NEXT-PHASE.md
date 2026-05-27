@@ -89,7 +89,7 @@ further development.
 
 ## Execution Order
 
-```
+```text
 Wave 2 (fast: CI config) → Wave 3 (prerequisite for Waves 4-6)
 → Wave 4 (quality fixes) + AUDIT P0/P1 items in parallel
 → Parity items (P4/P5/M6)

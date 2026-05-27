@@ -12,6 +12,7 @@ A clear and concise description of what the bug is.
 
 **To Reproduce**
 Steps to reproduce the behavior:
+
 1. Go to '...'
 2. Run '...'
 3. See error
@@ -23,6 +24,7 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **Desktop (please complete the following information):**
+
 - OS: [e.g., macOS, Linux, Windows]
 - Python version: [e.g., 3.11, 3.12]
 - Rust version: [e.g., 1.75]

@@ -25,6 +25,7 @@ stitch generate \
 ```
 
 Options:
+
 - `--dark` — also emit dark-mode variants
 - `--breakpoints sm,md,lg,xl` — container query breakpoints (default: 320,640,1024,1440)
 - `--a11y` — emit WCAG 2.2 AA annotation comments
@@ -149,7 +150,7 @@ Main resolution screen. Command input, profile selector, pipeline progress, mark
 
 ### Composition Tree
 
-```
+```text
 AppShell (do-wdr-app)
 ├── Sidebar (do-wdr-sidebar) -- expanded, lg+
 │   ├── Nav section: Workspace (active)
@@ -368,7 +369,7 @@ BYOK (Bring Your Own Key) management. Masked inputs for API keys, provider healt
 
 ### Composition Tree
 
-```
+```text
 AppShell (do-wdr-app)
 ├── Sidebar (do-wdr-sidebar) -- expanded
 │   ├── Nav section: Workspace
@@ -550,7 +551,7 @@ Browse past resolutions. Sortable data table with search/filter. Restore from ca
 
 ### Composition Tree
 
-```
+```text
 AppShell (do-wdr-app)
 ├── Sidebar (do-wdr-sidebar) -- expanded
 │   ├── Nav section: Workspace
@@ -737,7 +738,7 @@ Error state compositions for pipeline failures, rate limiting, network errors, a
 
 Triggered when all cascade steps fail.
 
-```
+```text
 Card (do-wdr-card--status-accented, accent: signal.error)
 ├── Card Header
 │   ├── Badge (do-wdr-badge--error) "Pipeline Failed"
@@ -789,7 +790,7 @@ failed-pipeline:
 
 Triggered when a provider returns HTTP 429.
 
-```
+```text
 Card (do-wdr-card--status-accented, accent: signal.warning)
 ├── Card Header
 │   ├── Badge (do-wdr-badge--warning) "Rate Limited"
@@ -829,7 +830,7 @@ rate-limited:
 
 Triggered on fetch failure, DNS error, or timeout.
 
-```
+```text
 Card (do-wdr-card--status-accented, accent: signal.error)
 ├── Card Header
 │   └── Badge (do-wdr-badge--error) "Network Error"
@@ -868,7 +869,7 @@ network-error:
 
 Triggered when a specific provider health check fails or returns non-2xx.
 
-```
+```text
 Card (do-wdr-card--flat)
 ├── Card Header
 │   ├── Badge (do-wdr-badge--provider) "[provider name]"
@@ -972,7 +973,7 @@ All screens must meet WCAG 2.2 AA:
 
 Running `stitch generate` produces:
 
-```
+```text
 app/
 ├── layout.tsx                    # AppShell wrapper, theme provider
 ├── page.tsx                      # Screen 1: Resolver Workspace

@@ -11,6 +11,7 @@ do-web-doc-resolver resolves queries or URLs into compact, LLM-ready markdown vi
 ### 1. Python Resolver (`scripts/resolve.py`)
 
 The main Python implementation that:
+
 - Auto-detects URL vs query inputs
 - Runs provider cascade with fallback logic
 - Ranks and filters results
@@ -19,6 +20,7 @@ The main Python implementation that:
 ### 2. Rust CLI (`cli/`)
 
 A compiled binary (`do-wdr`) that:
+
 - Provides fast CLI access
 - Mirrors Python functionality
 - Supports cross-platform builds
@@ -26,6 +28,7 @@ A compiled binary (`do-wdr`) that:
 ### 3. Web UI (`web/`)
 
 Next.js web interface that:
+
 - Provides browser-based access with provider pill selection
 - Vercel env var → localStorage fallback for API keys
 - Key status API endpoint (booleans only, no key exposure)
@@ -39,6 +42,7 @@ Next.js web interface that:
 ## Provider Cascade
 
 ### Query Input
+
 1. Exa MCP (free)
 2. Exa SDK (paid)
 3. Tavily (paid)
@@ -47,6 +51,7 @@ Next.js web interface that:
 6. Mistral (paid)
 
 ### URL Input
+
 1. llms.txt probe (free)
 2. Jina Reader (free)
 3. Firecrawl (paid)
@@ -70,7 +75,7 @@ Next.js web interface that:
 
 ## File Structure
 
-```
+```text
 do-web-doc-resolver/
 ├── scripts/resolve.py       # Main Python resolver
 ├── cli/                     # Rust CLI

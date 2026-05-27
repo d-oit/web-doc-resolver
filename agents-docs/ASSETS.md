@@ -13,16 +13,19 @@ Screenshots and visual assets are stored in `assets/screenshots/`.
 Use these scripts to regenerate screenshots:
 
 ### Capture for Release
+
 ```bash
 ./scripts/capture/capture-release.sh <version>
 ```
 
 ### Capture Standard Flow
+
 ```bash
 ./scripts/capture/capture-flow.sh
 ```
 
 ### Capture Responsive Views
+
 ```bash
 ./scripts/capture/capture-responsive.sh
 ```
@@ -30,6 +33,7 @@ Use these scripts to regenerate screenshots:
 ## Manual Verification
 
 Before every release, verify the UI components and design system:
+
 1. Run `cd web && npm run dev`
 2. Inspect `http://localhost:3000`
 3. Run `cd cli/ui && pnpm storybook` to verify atomic components

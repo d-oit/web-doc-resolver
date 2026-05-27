@@ -20,6 +20,7 @@ coverage plans remain valid.
 ## What Remains
 
 All 10 improvements remain to be implemented:
+
 - Serper provider tests (Phase 1)
 - Security test suite (SSRF, URL validation, input sanitization)
 - Python/Rust parity tests

@@ -20,11 +20,12 @@
 ### Component Structure (CSS-only, no directories)
 
 Components are **single flat `.css` files** in `components/`, not directories with TSX. Each file is self-contained with:
+
 1. `:root {}` block defining `--do-wdr-{component}-*` tokens
 2. BEM classes: `.do-wdr-{component}`, `.do-wdr-{component}--variant`, `.do-wdr-{component}__element`
 3. Max **200 lines** per file. Split into `{component}-variants.css` or `{component}-states.css` if exceeded.
 
-```
+```text
 components/
 ├── badge.css          # Status indicators, provider labels (#100)
 ├── button.css         # 5 variants × 3 sizes
@@ -57,7 +58,7 @@ components/
 
 ## File Structure
 
-```
+```text
 cli/ui/
 ├── AGENTS.md                  # This file
 ├── DESIGN.md                  # Full design spec (color, typography, motion, anti-patterns)
@@ -181,7 +182,7 @@ Every component follows this exact structure:
 
 ### Token Naming Convention
 
-```
+```text
 --do-wdr-{component}-{element}-{variant}-{state}
 
 Examples:
@@ -225,6 +226,7 @@ Issues must be implemented in dependency order. Group by dependency depth for pa
 ### Agent Handoff Protocol
 
 When launching parallel agents for a wave:
+
 - Each agent receives the full issue description + existing token list
 - Agents must read existing components to match conventions
 - Agents write files using Write tool (not Edit) for new files
@@ -234,13 +236,14 @@ When launching parallel agents for a wave:
 ## Stitch Integration
 
 `stitch/DESIGN.md` follows Google Stitch's format for AI-generated screens:
+
 - Define screens as component compositions with token references
 - Stitch reads `DESIGN.md` + `tokens/semantic.json` → generates pixel-consistent Next.js pages
 - Run: `stitch generate --design stitch/DESIGN.md --tokens tokens/semantic.json --out app/`
 
 ## Figma Workflow
 
-```
+```text
 Figma Variables → Tokens Studio plugin → tokens/primitives.json
                                           ↓
                               Style Dictionary (build-tokens.sh)
@@ -346,6 +349,7 @@ vercel inspect <url> --wait              # wait for deployment to finish
 ### Release E2E Flow
 
 On tag push (`v*.*.*`), `release.yml` runs:
+
 1. `python-test` + `rust-test` — unit/integration gates
 2. `deploy-ui` — deploys to Vercel production, captures URL
 3. `e2e-release` — runs `pnpm test:e2e --project=desktop` against the deployed URL (`BASE_URL` env)
@@ -357,6 +361,7 @@ The `BASE_URL` env var overrides the default `https://web-eight-ivory-29.vercel.
 ## GitHub Issues Map
 
 ### Epics
+
 | # | Title | Scope |
 |---|---|---|
 | #69 | [Epic] Next.js PWA Infrastructure & Vercel Setup | App scaffold, PWA manifest, deploy |
@@ -367,6 +372,7 @@ The `BASE_URL` env var overrides the default `https://web-eight-ivory-29.vercel.
 | #74 | [Epic] History & Semantic Cache UI | `HistoryPanel`, search, cache |
 
 ### Infrastructure (#69)
+
 | # | Title | Blocked by | Status |
 |---|---|---|---|
 | #92 | Next.js App Router Scaffold — PWA Manifest & Base Layout | — | pending |
@@ -374,6 +380,7 @@ The `BASE_URL` env var overrides the default `https://web-eight-ivory-29.vercel.
 | #94 | Turborepo + pnpm Monorepo Configuration | #69 | pending |
 
 ### Wasm & Edge (#70)
+
 | # | Title | Blocked by | Status |
 |---|---|---|---|
 | #95 | wasm-pack Build Pipeline — Compile Core Resolver to .wasm | #69 | pending |
@@ -381,6 +388,7 @@ The `BASE_URL` env var overrides the default `https://web-eight-ivory-29.vercel.
 | #97 | TypeScript Wasm Bindings — Client-Side Integration Layer | #70 | pending |
 
 ### App Shell (#71)
+
 | # | Title | Blocked by | Status |
 |---|---|---|---|
 | #75 | Design System Tokens — CSS Custom Properties (OKLCH) | #69 | **done** |
@@ -389,6 +397,7 @@ The `BASE_URL` env var overrides the default `https://web-eight-ivory-29.vercel.
 | #78 | Accessibility Foundation — WCAG 2.2 AA Compliance | #71 | pending |
 
 ### Workspace (#72)
+
 | # | Title | Blocked by | Status |
 |---|---|---|---|
 | #79 | Command Bar — Single-line Input with Keyboard Shortcuts | #71 | pending |
@@ -398,6 +407,7 @@ The `BASE_URL` env var overrides the default `https://web-eight-ivory-29.vercel.
 | #83 | Telemetry Trace Accordion — Latency/Tokens/Provider | #71 | pending |
 
 ### Security (#73)
+
 | # | Title | Blocked by | Status |
 |---|---|---|---|
 | #84 | Provider Settings UI — Masked Key Inputs | #71 | pending |
@@ -406,6 +416,7 @@ The `BASE_URL` env var overrides the default `https://web-eight-ivory-29.vercel.
 | #87 | CSP Headers & XSS Protection Guards | #85 | pending |
 
 ### History (#74)
+
 | # | Title | Blocked by | Status |
 |---|---|---|---|
 | #88 | Desktop History View — Sortable Data Table | #69 | pending |
@@ -414,35 +425,41 @@ The `BASE_URL` env var overrides the default `https://web-eight-ivory-29.vercel.
 | #91 | Search & Filter Controls — Date/Profile/Provider | #88 | pending |
 
 ### Primitives
+
 | # | Title | Blocked by | Status |
 |---|---|---|---|
 | #100 | Badge Component — Status Indicators & Provider Labels | #75 | **done** (`badge.css`) |
 | #101 | Tooltip Component — Hover/Focus Supplementary Info | #75 | **done** (`tooltip.css`) |
 
 ### Containers
+
 | # | Title | Blocked by | Status |
 |---|---|---|---|
 | #102 | Panel Component — Resizable Split Pane & Collapsible Sections | #75, #71 | pending |
 | #103 | Modal Component — Confirmation Dialogs & Provider Key Entry | #75, #78 | pending |
 
 ### Data Display
+
 | # | Title | Blocked by | Status |
 |---|---|---|---|
 | #104 | CodeBlock Component — Syntax Highlighting & Line Numbers | #75, #82 | pending |
 | #105 | KeyValue Component — Metadata & Config Pair Display | #75 | **done** (`keyvalue.css`) |
 
 ### Pipeline
+
 | # | Title | Blocked by | Status |
 |---|---|---|---|
 | #106 | StreamIndicator Component — SSE Connection Status & Token Rate | #75, #71, #96 | pending |
 | #107 | ProgressBar Component — Determinate & Indeterminate Progress | #75 | **done** (`progress.css`) |
 
 ### Layout
+
 | # | Title | Blocked by | Status |
 |---|---|---|---|
 | #108 | Resizable Component — Split Pane with Drag Handles | #75, #71 | pending |
 
 ### Design System
+
 | # | Title | Blocked by | Status |
 |---|---|---|---|
 | #109 | Stitch Integration Spec — AI-Generated Screen Compositions | #75, #71 | pending |
@@ -450,6 +467,7 @@ The `BASE_URL` env var overrides the default `https://web-eight-ivory-29.vercel.
 | #111 | Icon Rail — Tablet Navigation (768-1024px) | #75, #71, #101 | pending |
 
 ### Testing & Docs
+
 | # | Title | Blocked by | Status |
 |---|---|---|---|
 | #98 | Storybook 9 Setup — Component Documentation & Testing | #75 | pending |

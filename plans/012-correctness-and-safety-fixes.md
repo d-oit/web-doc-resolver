@@ -8,6 +8,7 @@ Wave 1 COMPLETED (PR #364). Waves 4-6 PENDING.
 
 Code review on PR #341 and subsequent manual audit identified several classes
 of correctness issues across the Python codebase:
+
 - **Thread safety**: `threading.Lock` used where `RLock` was needed; SQLite
   connections used across threads without `check_same_thread=False`; TOCTOU
   races in circuit breaker state reads.

@@ -58,7 +58,7 @@ Data-dense, developer-first component library. No chat bubbles. No whimsy.
 
 All tokens follow `--do-wdr-{component}-{element}-{variant}-{state}`:
 
-```
+```text
 --do-wdr-button-bg                    (component + element)
 --do-wdr-button-bg-hover              (component + element + state)
 --do-wdr-button-primary-bg            (component + variant + element)
@@ -84,6 +84,7 @@ All tokens follow `--do-wdr-{component}-{element}-{variant}-{state}`:
 ## File Size Limit
 
 Each component file: **max 200 lines**. If a component exceeds this, split into:
+
 - `{component}.css` — base styles + tokens
 - `{component}-variants.css` — size/color/layout variants
 - `{component}-states.css` — hover/focus/disabled/loading states

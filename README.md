@@ -53,6 +53,7 @@ cd web && npm install && npm run dev
 This project implements a v4 cascade resolver with Python core, Rust CLI, and web UI that prioritizes free and low-cost data sources:
 
 ### Query Resolution Cascade
+
 1. **Semantic Cache** - Multi-layer cache (URL, Query, Provider)
 2. **Exa MCP** - FREE search via Model Context Protocol (no API key required!)
 3. **Exa SDK** - Token-efficient query resolution using highlights (low-cost)
@@ -62,6 +63,7 @@ This project implements a v4 cascade resolver with Python core, Rust CLI, and we
 7. **Mistral** - AI-powered fallback when other methods fail
 
 ### URL Resolution Cascade
+
 1. **Semantic Cache** - Instant retrieval for known URLs
 2. **llms.txt / Jina Reader** - Parallel fast-path probes for structured documentation
 3. **Firecrawl** - Deep extraction (requires API key)
@@ -197,6 +199,7 @@ result = resolve_direct("latest news", ProviderType.DUCKDUCKGO)
 ```
 
 Available providers:
+
 - **URL providers**: `llms_txt`, `jina`, `firecrawl`, `direct_fetch`, `mistral_browser`, `duckduckgo`
 - **Query providers**: `exa_mcp`, `exa`, `tavily`, `serper`, `duckduckgo`, `mistral_websearch`
 
@@ -287,6 +290,7 @@ cd web && npm run dev
 ```
 
 The web UI provides a browser-based interface with:
+
 - Collapsible configuration sidebar (profile, providers, advanced options)
 - Profile-based provider selection with visual active indicators
 - Collapsible API keys section for paid providers
@@ -302,7 +306,7 @@ The web UI provides a browser-based interface with:
 
 ### Query Resolution Cascade
 
-```
+```text
 Query Input
     |
     v
@@ -365,7 +369,7 @@ Query Input
 
 ### URL Resolution Cascade
 
-```
+```text
 URL Input
     |
     v
@@ -478,7 +482,7 @@ cd web && npx playwright test --ui
 
 ## Repository Structure
 
-```
+```text
 ./
 ├── AGENTS.md              # Agent instructions
 ├── README.md              # This file

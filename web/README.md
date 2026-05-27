@@ -17,13 +17,14 @@ The app runs at [http://localhost:3000](http://localhost:3000).
 
 Enter any public URL to extract its content as markdown:
 
-```
+```text
 https://docs.python.org
 https://example.com
 https://httpbin.org/html
 ```
 
 The resolver runs through a cascade of providers:
+
 1. **llms.txt** (free) — Structured docs from `/llms.txt` endpoint
 2. **Jina Reader** (free) — Web-to-markdown conversion
 3. **Firecrawl** (requires API key) — Deep extraction with JS rendering
@@ -34,13 +35,14 @@ The resolver runs through a cascade of providers:
 
 Enter a natural language search query:
 
-```
+```text
 python async best practices
 machine learning tutorials
 latest AI research papers
 ```
 
 The query cascade:
+
 1. **Exa MCP** (free) — Neural search via Model Context Protocol
 2. **Serper** (requires API key) — Google search
 3. **Tavily** (requires API key) — Comprehensive search
@@ -62,6 +64,7 @@ Click **Settings** in the nav bar to add your API keys. Keys are stored locally 
 ### Result Actions
 
 After a successful resolution:
+
 - **Copy** — Click the Copy button to copy markdown to clipboard
 - **Clear** — Clear the result to start fresh
 - **Stats** — See character and word count in the header
@@ -92,6 +95,7 @@ After a successful resolution:
 Resolve a URL or query to markdown.
 
 **Request:**
+
 ```json
 {
   "query": "https://example.com",
@@ -104,6 +108,7 @@ Resolve a URL or query to markdown.
 ```
 
 **Response:**
+
 ```json
 {
   "markdown": "Example Domain\n\nThis domain is for use in..."
@@ -111,6 +116,7 @@ Resolve a URL or query to markdown.
 ```
 
 **Error Response:**
+
 ```json
 {
   "error": "Failed to extract content from URL"
@@ -146,7 +152,7 @@ Resolve a URL or query to markdown.
 
 Deployed via [Vercel](https://vercel.com) Git integration — push to `main` and Vercel auto-builds and deploys.
 
-**Live URL**: https://web-eight-ivory-29.vercel.app
+**Live URL**: <https://web-eight-ivory-29.vercel.app>
 
 ### Local Testing (Vercel CLI)
 
@@ -166,7 +172,7 @@ vercel build --prod  # Verify production build
 
 ## Project Structure
 
-```
+```text
 web/
 ├── app/
 │   ├── layout.tsx        # Root layout (fonts, metadata, SpeedInsights)

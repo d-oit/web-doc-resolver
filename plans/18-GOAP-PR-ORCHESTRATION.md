@@ -60,14 +60,17 @@ Analyze and address all open PRs with unresolved feedback, resolve merge conflic
 ## Key Findings
 
 ### Codacy False Positives
+
 - **checkRateLimit missing await** (PR #372): `checkRateLimit` in `rate-limit.ts` is a sync function — no `async` keyword, returns a plain object. Codacy's static analyzer assumed it was async by convention without inspecting the implementation.
 - **TS 6.0.3 / ESLint 10 don't exist** (PR #379): Both TypeScript 6.0.3 and ESLint 10.3.0 are real released versions. Codacy's knowledge cutoff is outdated.
 - **ddgs import wrong** (PR #379): The `duckduckgo_search` package WAS renamed to `ddgs`. The import `from ddgs import DDGS` is correct per `pip install ddgs`.
 
 ### Vercel Build Failure Root Cause
+
 - `npm ci` without `--legacy-peer-deps` rejects ESLint 10's peer dependency conflict with `eslint-config-next@15.5.18`. The local build and CI use `--legacy-peer-deps` (via `AGENTS.md` convention), but Vercel's build pipeline doesn't. Fix: add `web/.npmrc` with `legacy-peer-deps=true`.
 
 ### Merge Conflict Pattern
+
 - PR #371 (synthesis) and PR #378 (semantic cache quality) both modified `scripts/quality.py` independently. The `quality.py` in #371 checked all 4 anchors with `all()`, while #378 checked 3 with `any()`. Resolved in #378 by adopting #371's `all()` + COMPARISON approach.
 
 ## Postconditions
