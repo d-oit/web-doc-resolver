@@ -1806,6 +1806,105 @@ class TestCascadeErrorHandling:
         mock_ddg.assert_not_called()
         mock_mw.assert_not_called()
 
+    # ── URL cascade tests ──────────────────────────────────────────────
+
+    @patch("scripts._url_resolve.get_semantic_cache")
+    def test_url_semantic_cache_hit_skips_cascade(self, mock_get_sc, caplog):
+        """URL semantic cache hit yields cached result immediately, skipping all providers."""
+        from scripts._url_resolve import resolve_url_stream
+        from scripts.models import Profile
+
+        mock_cache = Mock()
+        mock_entry = Mock()
+        mock_entry.similarity = 0.92
+        mock_entry.query = "https://cached-docs.example.com"
+        mock_entry.result = {
+            "source": "firecrawl",
+            "content": "cached url documentation content " * 30,
+            "url": "https://cached-docs.example.com",
+            "score": 0.88,
+        }
+        mock_cache.query.return_value = mock_entry
+        mock_get_sc.return_value = mock_cache
+
+        with caplog.at_level(logging.INFO):
+            results = list(
+                resolve_url_stream("https://cached-docs.example.com", profile=Profile.BALANCED)
+            )
+
+        assert len(results) == 1
+        final = results[0]
+        assert final["semantic_cache_hit"] is True
+        assert final["semantic_similarity"] == 0.92
+        assert final["semantic_original_query"] == "https://cached-docs.example.com"
+        assert final["source"] == "firecrawl"
+        assert "Semantic cache hit" in caplog.text
+
+    @patch("scripts._url_resolve.get_semantic_cache", return_value=None)
+    @patch("scripts._url_resolve.resolve_with_jina")
+    @patch("scripts._url_resolve.resolve_with_firecrawl")
+    @patch("scripts._url_resolve.resolve_with_mistral_browser")
+    @patch("scripts._url_resolve.resolve_with_duckduckgo")
+    @patch("scripts._url_resolve.fetch_llms_txt")
+    @patch("scripts._url_resolve.fetch_url_content")
+    @patch("scripts.routing.ResolutionBudget")
+    def test_url_budget_exhaustion_yields_best_free_result(
+        self,
+        mock_budget_cls,
+        mock_fetch,
+        mock_llms,
+        mock_ddg,
+        mock_mb,
+        mock_fc,
+        mock_jina,
+        mock_sc,
+    ):
+        """When URL budget is exhausted, best_free_result is yielded instead of source=none."""
+        from scripts._url_resolve import resolve_url_stream
+        from scripts.models import Profile, ResolvedResult
+
+        mock_llms.return_value = None
+        low_quality = ResolvedResult(
+            source="jina",
+            content="Basic URL content that is acceptable but brief. " * 30,
+            url="https://example.com",
+        )
+        mock_jina.return_value = low_quality
+        mock_fc.return_value = None
+        mock_fetch.return_value = None
+        mock_mb.return_value = None
+        mock_ddg.return_value = None
+
+        # Budget: allows a couple attempts then exhausts before firecrawl
+        mock_budget = Mock()
+        mock_budget.min_free_quality_to_skip_paid = 0.99
+        call_counts = {"can_try": 0}
+
+        def can_try(is_paid=False):
+            call_counts["can_try"] += 1
+            if call_counts["can_try"] <= 2:
+                return True
+            mock_budget.stop_reason = "max_provider_attempts"
+            return False
+
+        mock_budget.can_try = can_try
+        mock_budget.record_attempt = Mock()
+        mock_budget_cls.return_value = mock_budget
+
+        results = list(
+            resolve_url_stream("https://example.com/budget-test", profile=Profile.BALANCED)
+        )
+
+        final = next((r for r in results if r.get("source") != "partial"), results[-1])
+        # Should yield best_free_result from jina, not source=none
+        assert final["source"] == "jina"
+        assert "Basic URL content" in final["content"]
+        # Remaining providers should not be called since budget was exhausted
+        mock_fc.assert_not_called()
+        mock_mb.assert_not_called()
+        mock_ddg.assert_not_called()
+        mock_fetch.assert_not_called()
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
