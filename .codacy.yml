@@ -1,0 +1,35 @@
+---
+engines:
+  duplication:
+    exclude_paths:
+      - "web/.next/**"
+      - "cli/target/**"
+      - "dist/**"
+      - "build/**"
+      - "assets/screenshots/**"
+  metric:
+    exclude_paths:
+      - "tests/**"
+      - "cli/tests/**"
+      - "web/tests/**"
+languages:
+  python:
+    enabled: true
+  rust:
+    enabled: true
+  typescript:
+    enabled: true
+  javascript:
+    enabled: true
+  css:
+    enabled: true
+  shell:
+    enabled: true
+exclude_paths:
+  - "node_modules/**"
+  - "web/node_modules/**"
+  - ".next/**"
+  - "cli/target/**"
+  - "assets/screenshots/**"
+  - "test-results/**"
+  - ".cache/**"

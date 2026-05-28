@@ -50,13 +50,15 @@ class TestScoreContent:
         ]
         # Add many unique lines to exceed 500 chars
         lines.extend([f"- Feature {i} description here" for i in range(50)])
-        lines.extend([
-            "",
-            "## Links",
-            "",
-            "Visit https://python.org to download.",
-            "For more details, see https://docs.python.org/3/",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Links",
+                "",
+                "Visit https://python.org to download.",
+                "For more details, see https://docs.python.org/3/",
+            ]
+        )
         content = "\n".join(lines)
         links = ["https://python.org", "https://docs.python.org/3/"]
         result = score_content(content, links)
