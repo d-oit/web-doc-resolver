@@ -43,6 +43,7 @@ def _shutdown_executor() -> None:
     if _executor is not None:
         _executor.shutdown(wait=False)
         _executor = None
+        _state.executor = None
 
 
 atexit.register(_shutdown_executor)

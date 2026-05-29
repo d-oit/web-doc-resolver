@@ -63,7 +63,7 @@ def cascade_stream(
             if circuit_breakers.is_open(p_name):
                 continue
 
-            logger.info(f"Starting probe: {p_name}")
+            logger.info("Starting probe: %s", p_name)
             start_time_probe = time.time()
             future = executor.submit(func)
             active_futures[future] = (p_name, pt, start_time_probe)
