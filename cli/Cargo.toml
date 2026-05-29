@@ -50,6 +50,11 @@ name = "link_validator_bench"
 harness = false
 path = "benches/link_validator_bench.rs"
 
+[[bench]]
+name = "compaction_bench"
+harness = false
+path = "benches/compaction_bench.rs"
+
 [[bin]]
 name = "do-wdr"
 path = "src/main.rs"
