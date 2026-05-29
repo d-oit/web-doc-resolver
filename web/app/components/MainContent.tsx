@@ -97,18 +97,33 @@ export default function MainContent({
           <label htmlFor="search-input" className="sr-only">
             URL or search query
           </label>
-          <input
-            id="search-input"
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-            placeholder="URL or search query..."
-            aria-invalid={!!error}
-            aria-errormessage={error ? "search-error" : undefined}
-            className="flex-1 bg-transparent text-[20px] sm:text-[24px] text-foreground placeholder:text-text-dim tracking-tight"
-          />
+          <div className="flex-1 relative">
+            <input
+              id="search-input"
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+              placeholder="URL or search query..."
+              aria-invalid={!!error}
+              aria-errormessage={error ? "search-error" : undefined}
+              className="w-full bg-transparent text-[20px] sm:text-[24px] text-foreground placeholder:text-text-dim tracking-tight pr-10"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  inputRef.current?.focus();
+                }}
+                className="absolute right-0 top-1/2 -translate-y-1/2 p-2 text-text-dim hover:text-accent transition-colors"
+                aria-label="Clear query"
+              >
+                ×
+              </button>
+            )}
+          </div>
           {query.trim() && (
             <div className="flex items-center gap-2">
               <button
