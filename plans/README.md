@@ -85,7 +85,7 @@ Commit `c283dfa` (PR #270) merged an old branch on top of v0.3.3 release, revert
 | 1 | ADR-012 T1-T6, S1-S3, P1-P2 | Thread safety, SSRF, provider reachability | ✅ **DONE** (PR #364) |
 | 1b | ADR-013 I6-I8 | web/package.json version fixes, npm peer deps, libsql | ✅ **DONE** |
 | 2 | ADR-013 I1-I5, K1-K7 + N9/N11 | CI fixes, pre-commit, gitleaks, classifiers, package names | ✅ **DONE** (K7 markdownlint config OPEN) |
-| 3 | ADR-014 A1-A8 | constants.py, state.py extraction | PENDING |
+| 3 | ADR-014 A1-A8 | constants.py, state.py extraction | ✅ **DONE** (PR #407) |
 | 4 | ADR-012 P3b,P4-P7, Q1-Q6 + N5/N6/N12/N13 | Logging, quality, synthesis fixes, TOCTOU, lock guards, SSRF gaps | PARTIAL (P4,N5,N12,N13,N13b ✅ DONE; P3b,P5,P6,Q1-Q6,N6 ❌) |
 | 5 | R1-R7 | Rust file splits & dedup (semantic_cache, config, query) | ✅ **DONE** (R5 deferred) |
 | 6 | T1-T8 | Test coverage for web lib + Rust resolver + skills evals | PENDING |

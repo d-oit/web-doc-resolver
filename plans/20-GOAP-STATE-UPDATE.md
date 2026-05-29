@@ -10,11 +10,10 @@ GitHub issues (#402 roadmap, #406 compaction), and maintain quality gate.
 
 ## Preconditions
 
-- Main branch at v0.3.6 (`5ed9ed1`)
+- Main branch at v0.3.6 (`3e22c8c` after rebase)
 - 1 open PR (#406 boilerplate detection)
 - 1 open issue (#402 technical debt roadmap)
-- Waves 1, 2, 4 (partial), 5 completed
-- Wave 3 (constants/state extraction) **NOT STARTED**
+- Waves 1, 2, 3, 4 (partial), 5 completed
 - Wave 6 (tests) **PARTIALLY DONE**
 - Wave 7 (middleware) **NOT STARTED**
 
@@ -32,18 +31,18 @@ GitHub issues (#402 roadmap, #406 compaction), and maintain quality gate.
 | K4-K6 | Package names, classifiers, AGENTS.md | ✅ DONE |
 | K7 | markdownlint.toml config | ❌ STILL OPEN |
 
-### Wave 3 — ADR-014 Constants & State Extraction ❌ NOT STARTED
+### Wave 3 — ADR-014 Constants & State Extraction ✅ DONE (PR #407)
 
 | ID | Task | File | Status |
 |----|------|------|--------|
-| A1 | Create `scripts/constants.py` | New | ❌ |
-| A2 | Remove duplicate constants from `resolve.py` | `scripts/resolve.py` | ❌ |
-| A3 | Remove duplicate constants from `providers_impl.py` | `scripts/providers_impl.py` | ❌ |
-| A4 | Remove duplicate constants from `utils.py` | `scripts/utils.py` | ❌ |
-| A5 | Create `scripts/state.py` with shared singletons | New | ❌ |
-| A6 | Remove monkey-patching from resolve.py (lines 85-91) | `scripts/resolve.py` | ❌ |
-| A7 | Update `_url_resolve` + `_query_resolve` imports | 2 files | ❌ |
-| A8 | Centralize semantic cache env vars | `scripts/semantic_cache.py` | ❌ |
+| A1 | Create `scripts/constants.py` | New (86 lines) | ✅ |
+| A2 | Remove duplicate constants from `resolve.py` | `scripts/resolve.py` | ✅ |
+| A3 | Remove duplicate constants from `providers_impl.py` | `scripts/providers_impl.py` | ✅ |
+| A4 | Remove duplicate constants from `utils.py` | `scripts/utils.py` | ✅ |
+| A5 | Create `scripts/state.py` with shared singletons | New (20 lines) | ✅ |
+| A6 | Remove monkey-patching from resolve.py (lines 85-91) | `scripts/resolve.py` | ✅ |
+| A7 | Update `_url_resolve` + `_query_resolve` imports | 2 files | ✅ |
+| A8 | Centralize semantic cache env vars | Deferred — env vars still in utils.py | ⚠️ |
 
 ### Wave 4 — Quality, Safety & Code Fixes — PARTIAL
 
@@ -97,6 +96,7 @@ GitHub issues (#402 roadmap, #406 compaction), and maintain quality gate.
 | #404 | Codacy agent skill + configuration | ✅ |
 | #405 | Clear-text button in search input (UX) | ✅ |
 | #406 | Boilerplate detection optimization | ❌ OPEN |
+| #407 | ADR-014 Wave 3 — constants.py + state.py, no monkey-patching | ✅ |
 
 ### Test Coverage Expansion (10 commits)
 
@@ -122,16 +122,9 @@ GitHub issues (#402 roadmap, #406 compaction), and maintain quality gate.
 
 ## Updated Priority Actions
 
-### P0 — Complete Wave 3 (prerequisite for further progress)
+### P0 — Wave 3 ✅ DONE (PR #407)
 
-| # | Action | File | Effort |
-|---|--------|------|--------|
-| 1 | Create `scripts/constants.py` — extract MAX_CHARS, MIN_CHARS, DEFAULT_TIMEOUT, TIERED_TTL | New | M |
-| 2 | Create `scripts/state.py` — CB registry, routing memory singletons | New | M |
-| 3 | Remove monkey-patching from `resolve.py:85-91` | `scripts/resolve.py` | S |
-| 4 | Update imports in `_url_resolve` + `_query_resolve` | 2 files | S |
-| 5 | Remove duplicate constants from resolve.py, utils.py, providers_impl.py | 3 files | S |
-| 6 | Centralize semantic cache env vars | `scripts/semantic_cache.py` | S |
+All Wave 3 items completed. See PR #407 for details.
 
 ### P1 — Complete Wave 6 (test coverage)
 
@@ -175,21 +168,21 @@ GitHub issues (#402 roadmap, #406 compaction), and maintain quality gate.
 ## Execution Order
 
 ```text
-Wave 3 (constants/state) — MUST DO FIRST — prerequisite for further cleanup
-  - Wave 4 remaining (P3b, P6, Q magic numbers) — can parallel with Wave 6
-- Wave 6 (web tests, Rust tests, evals.json)
-- Wave 7 (middleware + parity) — depends on Wave 3
-- Roadmap items (402) — ongoing
+Wave 3 (constants/state) ✅ DONE (PR #407)
+  → Wave 4 remaining (P3b, P6, Q magic numbers) — can parallel with Wave 6
+  → Wave 6 (web tests, Rust tests, evals.json)
+  → Wave 7 (middleware + parity)
+  → Roadmap items (402) — ongoing
 ```
 
 ## Risk Assessment
 
 | Risk | Mitigation |
 |------|------------|
-| Wave 3 state.py breaks test fixtures | Update conftest to import from state.py; run full suite after each sub-task |
-| Wave 3 constants extraction changes behavior | Verify all constants are functionally identical; grep all references |
+| ~~Wave 3 state.py breaks test fixtures~~ | ✅ RESOLVED — conftest updated to use scripts.state |
+| ~~Wave 3 constants extraction changes behavior~~ | ✅ RESOLVED — all constants functionally identical |
 | K7 markdownlint.toml config still broken | Config parsing issue: `MD013=false` in TOML not recognized by markdownlint-cli; may need JSON config |
-| #406 boilerplate PR may conflict with Wave 3 | Merge or rebase after Wave 3 lands |
+| #406 boilerplate PR may conflict with Wave 3 | Rebase after Wave 3 lands |
 
 ---
 

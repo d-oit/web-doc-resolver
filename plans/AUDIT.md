@@ -171,6 +171,8 @@
 | 12 (old) | Extract `build_budget()` to cascade.rs | ✅ RESOLVED — Wave 5 dedup |
 | 9 (old) | Fix CircuitBreakerRegistry TOCTOU | ✅ RESOLVED (PR #365) |
 | 11 (old) | Shared session for synthesis | ✅ RESOLVED (PR #365) |
+| 7 (old) | Create constants.py + state.py | ✅ RESOLVED (PR #407) |
+| 8 (old) | Remove monkey-patching from resolve.py | ✅ RESOLVED (PR #407) |
 
 ### P0 — Critical (do now)
 
@@ -187,8 +189,8 @@
 
 | # | Action | File / Area | Status |
 |---|---|---|---|---|
-| 7 | Create `scripts/constants.py` + `scripts/state.py` (Wave 3) | `scripts/` | ❌ OPEN — prerequisite for further cleanup |
-| 8 | Remove monkey-patching from `resolve.py:85-91` | `scripts/resolve.py` | ❌ OPEN — depends on #7 |
+| 7 | Create `scripts/constants.py` + `scripts/state.py` (Wave 3) | `scripts/` | ✅ RESOLVED (PR #407) |
+| 8 | Remove monkey-patching from `resolve.py:85-91` | `scripts/resolve.py` | ✅ RESOLVED (PR #407) |
 | 9 | Fix `CircuitBreakerRegistry.is_open()` TOCTOU | `scripts/circuit_breaker.py:46-47` | ✅ RESOLVED (PR #365) |
 | 10 | Fix 2 remaining silent exception handlers | `scripts/providers_impl.py:502,517` | ❌ OPEN (docling, tesseract) |
 | 11 | Replace raw `requests.post()` with shared session + SSRF in synthesis | `scripts/synthesis.py:165` | ✅ RESOLVED (PR #365) |
@@ -266,7 +268,7 @@ were already deleted before this audit and confirmed not present.
 
 ---
 
-*Last updated: 2026-05-29. v0.3.6 released. Waves 1,2,4(partial),5 ✅. Waves 3,6(partial),7 ❌. See [20-GOAP-STATE-UPDATE.md](20-GOAP-STATE-UPDATE.md).*
+*Last updated: 2026-05-29. v0.3.6 released. Waves 1,2,3,4(partial),5 ✅. Waves 6(partial),7 ❌. See [20-GOAP-STATE-UPDATE.md](20-GOAP-STATE-UPDATE.md).*
 
 ### ADR-015 — Nightly Bridge Push → PR (2026-05-13)
 
@@ -331,3 +333,11 @@ were already deleted before this audit and confirmed not present.
 - **Web tests still minimal**: Only `results.test.ts` exists; circuit-breaker, errors, quality, keys, log tests still missing.
 - **Rust tests**: `mod.rs` + `cascade.rs` have inline tests; `query.rs` + `url.rs` do not.
 - **evals.json**: 2/13 skills (do-web-doc-resolver, do-github-pr-sentinel).
+
+### ADR-014 Wave 3 — Constants & State Extraction (2026-05-29)
+
+- **Monkey-patching elimination**: `resolve.py:85-91` overwrote `_circuit_breakers` and `_routing_memory` on `_url_resolve` and `_query_resolve` modules. Created `scripts/state.py` with shared singletons imported by all modules directly. The sub-modules (`_url_resolve.py`, `_query_resolve.py`) previously created their own `CircuitBreakerRegistry()` and `RoutingMemory()` instances at import time, then `resolve.py` overwrote them. Now they import from `state.py` at module level — no overwrites needed.
+- **Constants centralization**: `MAX_CHARS`, `MIN_CHARS`, `DEFAULT_TIMEOUT` were defined in 3 files (`resolve.py`, `utils.py`, `providers_impl.py`). `TIERED_TTL`, `USER_AGENT`, `BLOCKED_NETWORKS`, `BLOCKED_SCHEMES`, `DNS_CACHE_TTL` were in `utils.py`. `EXA_RESULTS`, `TAVILY_RESULTS`, `DDG_RESULTS` were in `providers_impl.py`. All now live in `scripts/constants.py` with a `_env()` helper for config fallback.
+- **Circular import resolution**: `_url_resolve.py` and `_query_resolve.py` imported `resolve_module._get_executor()` via lazy import inside function body. Now they import `get_executor()` from `scripts.state` at module level — cleaner and no circular dependency.
+- **Backward compatibility**: `resolve.py` still exposes `_circuit_breakers` and `_routing_memory` as aliases pointing to `state.py` singletons. Existing test code (`conftest.py`) was updated to clear via `scripts.state` instead of `scripts.resolve` internals.
+- **Codacy flag on bare except**: `constants.py:_load_config()` had bare `except Exception: pass`. Codacy flagged it. Fixed by adding `logger.debug("Failed to load config.toml: %s", e)`. This is a recurring pattern — always use `logger.debug()` instead of bare `pass` in except blocks.
