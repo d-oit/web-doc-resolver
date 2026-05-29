@@ -1,8 +1,11 @@
 """Shared constants for the Web Doc Resolver — single source of truth."""
 
 import ipaddress
+import logging
 import os
 import typing
+
+logger = logging.getLogger(__name__)
 
 if typing.TYPE_CHECKING:
     pass
@@ -18,8 +21,8 @@ def _load_config() -> dict[str, typing.Any]:
                 import tomli as tomllib  # type: ignore
             with open(config_path, "rb") as f:
                 return typing.cast(dict[str, typing.Any], tomllib.load(f))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Failed to load config.toml: %s", e)
     return {}
 
 
