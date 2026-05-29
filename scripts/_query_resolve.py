@@ -1,24 +1,12 @@
 """Query resolution - resolve_query and resolve_query_stream."""
 
-import concurrent.futures
 import logging
-import time
 from collections.abc import Generator
-from dataclasses import asdict
 from typing import Any
 
-import scripts.cache_negative
-import scripts.providers_impl
-import scripts.quality
 import scripts.routing
-import scripts.semantic_cache
-import scripts.utils
-from scripts.models import (
-    ErrorType,
-    Profile,
-    ProviderType,
-    ResolveMetrics,
-)
+from scripts._cascade import cascade_stream
+from scripts.models import Profile, ProviderType, ResolveMetrics
 from scripts.providers_impl import (
     resolve_with_duckduckgo,
     resolve_with_exa,
@@ -30,10 +18,6 @@ from scripts.providers_impl import (
 from scripts.semantic_cache import get_semantic_cache
 from scripts.state import circuit_breakers as _circuit_breakers
 from scripts.state import routing_memory as _routing_memory
-from scripts.utils import (
-    _detect_error_type,
-    _get_cache,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -124,132 +108,26 @@ def resolve_query_stream(
         target=query, is_url=False, skip_providers=skip, routing_memory=_routing_memory
     )
     cascade_map = {
-        "exa_mcp": (ProviderType.EXA_MCP, resolve_with_exa_mcp),
-        "exa": (ProviderType.EXA, resolve_with_exa),
-        "tavily": (ProviderType.TAVILY, resolve_with_tavily),
-        "serper": (ProviderType.SERPER, resolve_with_serper),
-        "duckduckgo": (ProviderType.DUCKDUCKGO, resolve_with_duckduckgo),
-        "mistral_websearch": (ProviderType.MISTRAL_WEBSEARCH, resolve_with_mistral_websearch),
+        "exa_mcp": (ProviderType.EXA_MCP, lambda: resolve_with_exa_mcp(query, max_chars)),
+        "exa": (ProviderType.EXA, lambda: resolve_with_exa(query, max_chars)),
+        "tavily": (ProviderType.TAVILY, lambda: resolve_with_tavily(query, max_chars)),
+        "serper": (ProviderType.SERPER, lambda: resolve_with_serper(query, max_chars)),
+        "duckduckgo": (ProviderType.DUCKDUCKGO, lambda: resolve_with_duckduckgo(query, max_chars)),
+        "mistral_websearch": (
+            ProviderType.MISTRAL_WEBSEARCH,
+            lambda: resolve_with_mistral_websearch(query, max_chars),
+        ),
     }
-    cache = _get_cache()
     eligible = [p for p in provider_names if p in cascade_map]
-    active_futures = {}
-    best_free_result: dict[str, Any] | None = None
 
-    from scripts.state import get_executor
-
-    executor = get_executor(max_workers=max(10, len(eligible)))
-    try:
-        for i, p_name in enumerate(eligible):
-            pt, func = cascade_map[p_name]
-
-            if pt.is_paid() and best_free_result:
-                score = best_free_result.get("score", 0.0)
-                if score >= budget.min_free_quality_to_skip_paid:
-                    metrics.quality_gate = {"passed": True, "score": score}
-                    best_free_result["metrics"] = asdict(metrics)
-                    _store_in_semantic_cache(query, best_free_result)
-                    yield best_free_result
-                    return
-
-            if not budget.can_try(is_paid=pt.is_paid()):
-                if budget.stop_reason in ("paid_disabled", "max_paid_attempts"):
-                    continue
-                break
-            if scripts.cache_negative.should_skip_from_negative_cache(cache, query, p_name):
-                continue
-            if _circuit_breakers.is_open(p_name):
-                continue
-            logger.info(f"Starting probe: {p_name}")
-            start_time_probe = time.time()
-            future = executor.submit(func, query, max_chars)
-            active_futures[future] = (p_name, pt, start_time_probe)
-            threshold = _routing_memory.get_p75_latency("query", p_name) / 1000.0
-            while active_futures:
-                elapsed = time.time() - start_time_probe
-                if i < len(eligible) - 1 and elapsed >= threshold:
-                    break
-
-                done, _ = concurrent.futures.wait(
-                    active_futures.keys(),
-                    timeout=0.01,
-                    return_when=concurrent.futures.FIRST_COMPLETED,
-                )
-                found_final = False
-                for f in list(done):
-                    if f not in active_futures:
-                        continue
-                    p_name_done, pt_done, s_time = active_futures.pop(f)
-                    latency = int((time.time() - s_time) * 1000)
-                    budget.record_attempt(is_paid=pt_done.is_paid(), latency_ms=latency)
-                    try:
-                        res = f.result()
-                    except Exception as e:
-                        err_type = _detect_error_type(e)
-                        if err_type not in (ErrorType.AUTH_ERROR, ErrorType.SSRF_BLOCKED):
-                            _circuit_breakers.record_failure(p_name_done)
-                        metrics.record_provider(pt_done, latency, False)
-                        continue
-                    if res:
-                        q_score = scripts.quality.score_content(res.content)
-                        if q_score.acceptable:
-                            _circuit_breakers.record_success(p_name_done)
-                            metrics.record_provider(pt_done, latency, True)
-                            _routing_memory.record(
-                                "query", p_name_done, True, latency, q_score.score
-                            )
-
-                            res.metrics, res.score = metrics, q_score.score
-                            result_dict = res.to_dict()
-
-                            if pt_done.is_paid():
-                                _store_in_semantic_cache(query, result_dict)
-                                yield result_dict
-                                found_final = True
-                                break
-                            else:
-                                if not best_free_result or q_score.score > best_free_result.get(
-                                    "score", 0.0
-                                ):
-                                    best_free_result = result_dict
-
-                                if q_score.score >= budget.min_free_quality_to_skip_paid:
-                                    metrics.quality_gate = {"passed": True, "score": q_score.score}
-                                    result_dict["metrics"] = asdict(metrics)
-                                    _store_in_semantic_cache(query, result_dict)
-                                    yield result_dict
-                                    found_final = True
-                                    break
-                        else:
-                            scripts.cache_negative.write_negative_cache(
-                                cache, query, p_name_done, "thin_content"
-                            )
-                            _routing_memory.record(
-                                "query", p_name_done, False, latency, q_score.score
-                            )
-                    else:
-                        _circuit_breakers.record_failure(p_name_done)
-                        metrics.record_provider(pt_done, latency, False)
-
-                if found_final:
-                    return
-                if done:
-                    break
-                if not active_futures:
-                    break
-    finally:
-        # We don't shut down the shared executor, but we should cancel our own futures
-        for f in active_futures:
-            f.cancel()
-
-    if best_free_result:
-        best_free_result["metrics"] = asdict(metrics)
-        _store_in_semantic_cache(query, best_free_result)
-        yield best_free_result
-    else:
-        yield {
-            "source": "none",
-            "query": query,
-            "content": "Failed",
-            "error": f"No resolution method available. Stop reason: {budget.stop_reason}",
-        }
+    yield from cascade_stream(
+        target=query,
+        cascade_map=cascade_map,
+        eligible=eligible,
+        budget=budget,
+        metrics=metrics,
+        routing_memory=_routing_memory,
+        circuit_breakers=_circuit_breakers,
+        semantic_cache_store=_store_in_semantic_cache,
+        routing_key=query,
+    )
