@@ -1,0 +1,27 @@
+{
+  "skill_name": "do-wdr-issue-swarm",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Analyze the open GitHub issues in this repo and determine which ones depend on others by checking 'Blocked by' references in issue bodies",
+      "expected_output": "A dependency graph grouping issues into waves based on their blocker relationships.",
+      "assertions": [
+        "Runs gh issue list to fetch open issues",
+        "Parses issue bodies for 'Blocked by' lines",
+        "Groups issues into numbered waves by dependency depth",
+        "Issues with no blockers are in Wave 1"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Launch a wave of parallel agents to implement all Wave 1 issues from the dependency graph",
+      "expected_output": "Multiple specialist agents launched in parallel, each implementing one issue with full context and conventions.",
+      "assertions": [
+        "Uses Task tool to launch sub-agents",
+        "Each agent receives the full issue body and design token context",
+        "Agents are launched in parallel (up to 4 max)",
+        "Each agent creates a component file following BEM conventions"
+      ]
+    }
+  ]
+}

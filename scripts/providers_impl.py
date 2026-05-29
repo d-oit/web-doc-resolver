@@ -496,8 +496,8 @@ def resolve_with_docling(url: str, max_chars: int) -> ResolvedResult | None:
         )
         if res.returncode == 0:
             return ResolvedResult(source="docling", content=res.stdout[:max_chars], url=url)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("Docling resolution failed: %s: %s", type(e).__name__, e)
     return None
 
 
@@ -511,6 +511,6 @@ def resolve_with_ocr(url: str, max_chars: int) -> ResolvedResult | None:
         )
         if res.returncode == 0:
             return ResolvedResult(source="ocr-tesseract", content=res.stdout[:max_chars], url=url)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("OCR resolution failed: %s: %s", type(e).__name__, e)
     return None

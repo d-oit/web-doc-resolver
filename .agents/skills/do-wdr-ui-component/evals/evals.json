@@ -1,0 +1,30 @@
+{
+  "skill_name": "do-wdr-ui-component",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Create a new badge component CSS file at cli/ui/components/badge.css for the do-wdr design system",
+      "expected_output": "A single CSS file with BEM classes using the do-wdr- prefix, semantic tokens, size variants, and accessibility features.",
+      "assertions": [
+        "File is at cli/ui/components/badge.css",
+        "Uses BEM naming with do-wdr- prefix (e.g., .do-wdr-badge)",
+        "Defines custom properties in :root block using semantic tokens",
+        "Includes focus-visible outline with --do-wdr-border-focus",
+        "Includes prefers-reduced-motion media query",
+        "File is under 200 lines",
+        "Contains no CSS comments"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Audit the CSS file cli/ui/components/button.css for correct BEM naming conventions",
+      "expected_output": "Report on whether the component follows BEM naming: .do-wdr-{component} base, .do-wdr-{component}--variant modifiers, .do-wdr-{component}__element sub-elements.",
+      "assertions": [
+        "Checks for .do-wdr-{component} base class pattern",
+        "Checks for modifier classes using double-dash (--)",
+        "Checks for element classes using double-underscore (__)",
+        "Reports any non-compliant class names"
+      ]
+    }
+  ]
+}

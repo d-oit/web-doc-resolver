@@ -4,6 +4,19 @@ Heuristics for scoring the quality of resolved content.
 
 from dataclasses import dataclass
 
+# Quality scoring penalties
+PENALTY_TOO_SHORT = 0.25
+PENALTY_MISSING_LINKS = 0.10
+PENALTY_DUPLICATE_HEAVY = 0.15
+PENALTY_NOISY = 0.10
+
+# Quality scoring bonuses
+BONUS_HAS_FRONTMATTER = 0.05
+BONUS_HAS_ANCHORS = 0.05
+
+# Acceptance threshold
+ACCEPTABLE_THRESHOLD = 0.65
+
 
 @dataclass
 class QualityScore:
@@ -60,25 +73,25 @@ def score_content(markdown: str, links: list[str] | None = None) -> QualityScore
 
     score = 1.0
     if too_short:
-        score -= 0.25  # Reduced from 0.35
+        score -= PENALTY_TOO_SHORT  # Reduced from 0.35
     if missing_links:
-        score -= 0.10  # Reduced from 0.15
+        score -= PENALTY_MISSING_LINKS  # Reduced from 0.15
     if duplicate_heavy:
-        score -= 0.15  # Reduced from 0.25
+        score -= PENALTY_DUPLICATE_HEAVY  # Reduced from 0.25
     if noisy:
-        score -= 0.10  # Reduced from 0.20
+        score -= PENALTY_NOISY  # Reduced from 0.20
 
     # Bonus for 2026 standards
     if has_frontmatter:
-        score += 0.05
+        score += BONUS_HAS_FRONTMATTER
     if has_anchors:
-        score += 0.05
+        score += BONUS_HAS_ANCHORS
 
     # Ensure range
     score = max(0.0, min(1.0, score))
 
-    # Threshold for acceptance as per #59: 0.65 and not too_short
-    acceptable = score >= 0.65 and not too_short
+    # Threshold for acceptance as per #59: ACCEPTABLE_THRESHOLD and not too_short
+    acceptable = score >= ACCEPTABLE_THRESHOLD and not too_short
 
     return QualityScore(
         score=score,

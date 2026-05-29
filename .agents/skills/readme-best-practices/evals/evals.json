@@ -1,0 +1,31 @@
+{
+  "skill_name": "readme-best-practices",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Audit the existing README.md and identify issues with structure, badges, code blocks, and sections",
+      "expected_output": "A checklist report showing which best practices the README follows and which it violates.",
+      "assertions": [
+        "Checks for centered header block with logo and badges",
+        "Verifies all code blocks have language specifiers",
+        "Checks for Table of Contents if README exceeds 100 lines",
+        "Validates badge URLs are not broken",
+        "Reports missing sections (Quick Start, Installation, Contributing, License)"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Add shields.io badges for CI status, release version, license, and primary language to the README header",
+      "expected_output": "A centered badge row in the README header with valid shields.io badge images for CI, release, license, and language.",
+      "assertions": [
+        "Badges use shields.io or GitHub Actions badge URLs",
+        "Badges are placed inside a <div align=\"center\"> block",
+        "Includes CI/CD status badge",
+        "Includes latest release version badge",
+        "Includes license badge",
+        "Includes primary language badge",
+        "No more than 8 badges total"
+      ]
+    }
+  ]
+}

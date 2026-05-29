@@ -1,0 +1,26 @@
+{
+  "skill_name": "do-wdr-release",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Check that the version numbers are in sync across pyproject.toml, cli/Cargo.toml, web/package.json, and cli/src/cli.rs",
+      "expected_output": "Version sync check result showing whether all 4 version files match.",
+      "assertions": [
+        "Runs python scripts/sync_versions.py to verify versions",
+        "Reports which files match or mismatch",
+        "Does not modify any files in check-only mode"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Create a patch release for the project using the release script",
+      "expected_output": "A new patch version bumped across all 4 version files, changelog generated, and a git tag created.",
+      "assertions": [
+        "Uses ./scripts/release.sh patch",
+        "Version is bumped in pyproject.toml, cli/Cargo.toml, web/package.json, and cli/src/cli.rs",
+        "A git tag is created with the new version",
+        "Commit follows conventional commit format"
+      ]
+    }
+  ]
+}

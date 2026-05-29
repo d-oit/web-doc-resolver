@@ -1,0 +1,35 @@
+{
+  "skill_name": "do-wdr-cli",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Resolve the URL https://docs.rs/tokio using the do-wdr CLI",
+      "expected_output": "Markdown documentation extracted from the tokio docs URL via the do-wdr resolve command.",
+      "assertions": [
+        "Command uses 'do-wdr resolve <URL>' syntax",
+        "Output contains markdown content",
+        "Exit code is 0 on success"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Use do-wdr to search for information about Python web frameworks",
+      "expected_output": "Markdown content about Python web frameworks resolved via a query string.",
+      "assertions": [
+        "Command uses 'do-wdr resolve <query>' syntax",
+        "Output contains markdown content mentioning Python or web frameworks",
+        "Output is non-empty"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Resolve https://github.com/rust-lang/rust with do-wdr and limit output to 2000 characters using --max-chars",
+      "expected_output": "Truncated markdown from GitHub page, output capped at 2000 characters.",
+      "assertions": [
+        "Command includes --max-chars 2000 flag",
+        "Output contains markdown content",
+        "Output length is under 2500 characters (including CLI overhead)"
+      ]
+    }
+  ]
+}

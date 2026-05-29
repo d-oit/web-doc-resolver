@@ -1,0 +1,27 @@
+{
+  "skill_name": "privacy-first",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Scan the file README.md for any email addresses that should not be in the codebase",
+      "expected_output": "Detection of email patterns in the file with a report of which ones are violations vs allowed exceptions.",
+      "assertions": [
+        "Uses grep with email regex pattern to scan the file",
+        "Identifies real email addresses as violations",
+        "Excludes test domains (example.com, example.org) from violations",
+        "Reports file path and line numbers for each match"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Replace the email address support@myproject.com in CONTRIBUTING.md with a GitHub Issues link",
+      "expected_output": "The email address replaced with a GitHub Issues URL pointing to the repo's issues page.",
+      "assertions": [
+        "Identifies the email address in the file",
+        "Replaces it with a GitHub Issues URL (https://github.com/owner/repo/issues)",
+        "Does not leave any email addresses in the file",
+        "Preserves surrounding text and formatting"
+      ]
+    }
+  ]
+}

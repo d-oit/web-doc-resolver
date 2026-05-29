@@ -471,3 +471,59 @@ impl Default for UrlCascade {
         Self::new()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::{Config, routing_profile_defaults};
+
+    #[test]
+    fn test_url_cascade_new() {
+        let _cascade = UrlCascade::new();
+    }
+
+    #[test]
+    fn test_build_budget_free() {
+        let config = Config::default();
+        let defaults = routing_profile_defaults("free");
+        let budget = build_budget(&config, &defaults);
+        assert_eq!(budget.max_provider_attempts, 3);
+        assert!(!budget.allow_paid);
+    }
+
+    #[test]
+    fn test_build_budget_balanced() {
+        let config = Config::default();
+        let defaults = routing_profile_defaults("balanced");
+        let budget = build_budget(&config, &defaults);
+        assert!(budget.max_provider_attempts >= 4);
+        assert!(budget.allow_paid);
+    }
+
+    #[test]
+    fn test_extract_domain() {
+        let domain = extract_domain_or_default("https://docs.rs/tokio");
+        assert_eq!(domain, "docs.rs");
+    }
+
+    #[test]
+    fn test_is_safe_url_valid() {
+        assert!(is_safe_url("https://example.com"));
+    }
+
+    #[test]
+    fn test_is_safe_url_localhost() {
+        assert!(!is_safe_url("http://localhost:8080"));
+    }
+
+    #[test]
+    fn test_is_safe_url_private_ip() {
+        assert!(!is_safe_url("http://192.168.1.1"));
+    }
+
+    #[test]
+    fn test_classify_error_timeout() {
+        let err = ResolverError::Network("request timeout".to_string());
+        assert_eq!(classify_error(&err), "timeout");
+    }
+}
