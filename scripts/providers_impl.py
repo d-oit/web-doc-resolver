@@ -9,6 +9,8 @@ import subprocess
 import threading
 import time
 
+import requests
+
 from scripts.constants import (
     DDG_RESULTS,
     DEFAULT_TIMEOUT,
@@ -90,7 +92,7 @@ def resolve_with_jina(url: str, max_chars: int = MAX_CHARS) -> ResolvedResult | 
         result = ResolvedResult(source="jina", content=content[:max_chars], url=url)
         _save_to_cache(url, "jina", result.to_dict())
         return result
-    except Exception as e:
+    except requests.RequestException as e:
         logger.warning("Jina resolution failed: %s: %s", type(e).__name__, e)
         return None
 
@@ -134,7 +136,7 @@ def resolve_with_exa_mcp(query: str, max_chars: int = MAX_CHARS) -> ResolvedResu
         logger.warning("Exa MCP returned no usable content for query: %s", query)
     except json.JSONDecodeError as e:
         logger.warning("Exa MCP JSON parse failed: %s", e)
-    except Exception as e:
+    except requests.RequestException as e:
         logger.warning("Exa MCP resolution failed: %s: %s", type(e).__name__, e)
     return None
 
@@ -278,7 +280,7 @@ def resolve_with_serper(query: str, max_chars: int = MAX_CHARS) -> ResolvedResul
         result = ResolvedResult(source="serper", content=content[:max_chars], query=query)
         _save_to_cache(query, "serper", result.to_dict())
         return result
-    except Exception as e:
+    except requests.RequestException as e:
         logger.warning("Serper resolution failed: %s: %s", type(e).__name__, e)
         return None
 
@@ -496,8 +498,8 @@ def resolve_with_docling(url: str, max_chars: int) -> ResolvedResult | None:
         )
         if res.returncode == 0:
             return ResolvedResult(source="docling", content=res.stdout[:max_chars], url=url)
-    except Exception as e:
-        logger.debug("Docling resolution failed: %s: %s", type(e).__name__, e)
+    except (subprocess.SubprocessError, OSError) as e:
+        logger.warning("Docling resolution failed: %s: %s", type(e).__name__, e)
     return None
 
 
@@ -511,6 +513,6 @@ def resolve_with_ocr(url: str, max_chars: int) -> ResolvedResult | None:
         )
         if res.returncode == 0:
             return ResolvedResult(source="ocr-tesseract", content=res.stdout[:max_chars], url=url)
-    except Exception as e:
-        logger.debug("OCR resolution failed: %s: %s", type(e).__name__, e)
+    except (subprocess.SubprocessError, OSError) as e:
+        logger.warning("OCR resolution failed: %s: %s", type(e).__name__, e)
     return None
