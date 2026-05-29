@@ -4,22 +4,18 @@ Web Doc Resolver - Resolve queries or URLs into compact, LLM-ready markdown.
 Main orchestrator. CLI entrypoint moved to scripts/cli.py.
 """
 
-import concurrent.futures
 import logging
-import os
 from typing import Any
 
 import scripts._query_resolve
 import scripts._url_resolve
 import scripts.cache_negative
-import scripts.circuit_breaker
 import scripts.providers_impl
 import scripts.quality
 import scripts.routing
-import scripts.routing_memory
 import scripts.semantic_cache
 import scripts.synthesis
-import scripts.utils
+from scripts.constants import DEFAULT_TIMEOUT, MAX_CHARS, MIN_CHARS
 from scripts.models import (
     ErrorType,
     Profile,
@@ -44,6 +40,7 @@ from scripts.providers_impl import (
     resolve_with_tavily,
 )
 from scripts.semantic_cache import get_semantic_cache
+from scripts.state import circuit_breakers, get_executor, routing_memory
 from scripts.utils import (
     _cache_key,
     _detect_error_type,
@@ -59,36 +56,12 @@ from scripts.utils import (
     validate_url,
 )
 
-MAX_CHARS = int(os.getenv("WEB_RESOLVER_MAX_CHARS", "8000"))
-MIN_CHARS = int(os.getenv("WEB_RESOLVER_MIN_CHARS", "200"))
-DEFAULT_TIMEOUT = int(os.getenv("WEB_RESOLVER_TIMEOUT", "30"))
-
 logger = logging.getLogger(__name__)
 
-_circuit_breakers = scripts.circuit_breaker.CircuitBreakerRegistry()
-_routing_memory = scripts.routing_memory.RoutingMemory()
 _cache = None
-_semantic_cache = None
-_executor = None
 
-
-def _get_executor(max_workers: int = 10) -> concurrent.futures.ThreadPoolExecutor:
-    """Get or create shared ThreadPoolExecutor."""
-    global _executor
-    if _executor is None:
-        _executor = concurrent.futures.ThreadPoolExecutor(
-            max_workers=max_workers, thread_name_prefix="resolver"
-        )
-    return _executor
-
-
-# TODO(ADR-014): Replace monkey-patching with scripts/state.py singleton.
-# These overwrites sync sub-module state but create race conditions under
-# concurrent imports. Both conftest.py and the cascade depend on this wiring.
-scripts._query_resolve._circuit_breakers = _circuit_breakers
-scripts._query_resolve._routing_memory = _routing_memory
-scripts._url_resolve._circuit_breakers = _circuit_breakers
-scripts._url_resolve._routing_memory = _routing_memory
+_circuit_breakers = circuit_breakers
+_routing_memory = routing_memory
 
 is_rate_limited = _is_rate_limited
 set_rate_limit = _set_rate_limit
@@ -147,6 +120,9 @@ __all__ = [
     "_cache",
     "_check_semantic_cache",
     "_store_in_semantic_cache",
+    "circuit_breakers",
+    "routing_memory",
+    "get_executor",
 ]
 
 

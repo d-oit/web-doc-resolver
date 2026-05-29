@@ -8,11 +8,9 @@ from dataclasses import asdict
 from typing import Any
 
 import scripts.cache_negative
-import scripts.circuit_breaker
 import scripts.providers_impl
 import scripts.quality
 import scripts.routing
-import scripts.routing_memory
 import scripts.semantic_cache
 import scripts.utils
 from scripts.models import (
@@ -30,15 +28,14 @@ from scripts.providers_impl import (
     resolve_with_tavily,
 )
 from scripts.semantic_cache import get_semantic_cache
+from scripts.state import circuit_breakers as _circuit_breakers
+from scripts.state import routing_memory as _routing_memory
 from scripts.utils import (
     _detect_error_type,
     _get_cache,
 )
 
 logger = logging.getLogger(__name__)
-
-_circuit_breakers = scripts.circuit_breaker.CircuitBreakerRegistry()
-_routing_memory = scripts.routing_memory.RoutingMemory()
 
 
 def _check_semantic_cache(query_or_url: str) -> dict[str, Any] | None:
@@ -139,9 +136,9 @@ def resolve_query_stream(
     active_futures = {}
     best_free_result: dict[str, Any] | None = None
 
-    from scripts import resolve as resolve_module
+    from scripts.state import get_executor
 
-    executor = resolve_module._get_executor(max_workers=max(10, len(eligible)))
+    executor = get_executor(max_workers=max(10, len(eligible)))
     try:
         for i, p_name in enumerate(eligible):
             pt, func = cascade_map[p_name]

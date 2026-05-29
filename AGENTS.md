@@ -321,3 +321,18 @@ See `agents-docs/` for detailed reference documentation.
   TECHNICAL_DETAILS, COMPARISON, CITATIONS) — not `any()` with a subset.
 - **Penalty tuning**: Tech docs need more lenient penalties (0.25/0.10/0.15/0.10
   vs legacy 0.35/0.15/0.25/0.20) and duplicate threshold at `//3` not `//2`.
+
+### ADR-014 Wave 3 — Constants & State Extraction (2026-05-29)
+
+- **Monkey-patching elimination**: `resolve.py:85-91` overwrote `_circuit_breakers` and
+  `_routing_memory` on `_url_resolve` and `_query_resolve`. Created `scripts/state.py`
+  with shared singletons imported by all modules directly. Sub-modules previously created
+  their own instances at import time, then `resolve.py` overwrote them.
+- **Constants centralization**: `MAX_CHARS`, `MIN_CHARS`, `DEFAULT_TIMEOUT` were defined
+  in 3 files. `TIERED_TTL`, `USER_AGENT`, `BLOCKED_NETWORKS` in `utils.py`. All now
+  live in `scripts/constants.py` with a `_env()` helper for config fallback.
+- **Circular import resolution**: `_url_resolve.py` and `_query_resolve.py` used lazy
+  `from scripts import resolve as resolve_module` inside function body to get executor.
+  Now import `get_executor()` from `scripts.state` at module level.
+- **Bare except pattern**: Codacy flags `except Exception: pass`. Always use
+  `logger.debug("...: %s", e)` instead. Recurring pattern across codebase.
