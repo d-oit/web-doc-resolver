@@ -114,6 +114,8 @@
 | #403 | Strengthen bridge + improve LLM-ready Markdown output | ✅ |
 | #404 | Codacy agent skill + configuration | ✅ |
 | #405 | Clear-text button in search input (UX) | ✅ |
+| #406 | Optimize boilerplate detection in compaction | ✅ |
+| #407 | ADR-014 Wave 3 — constants.py + state.py, no monkey-patching | ✅ |
 
 ### 7. Newly Discovered Issues (2026-05-13 Audit)
 
@@ -268,7 +270,7 @@ were already deleted before this audit and confirmed not present.
 
 ---
 
-*Last updated: 2026-05-29. v0.3.6 released. Waves 1,2,3,4(partial),5 ✅. Waves 6(partial),7 ❌. See [20-GOAP-STATE-UPDATE.md](20-GOAP-STATE-UPDATE.md).*
+*Last updated: 2026-05-29. v0.3.6 on main (`ad4dbf3`). Waves 1,2,3,4(partial),5 ✅. Waves 6(partial),7 ❌. 0 open PRs, 1 open issue (#402). See [20-GOAP-STATE-UPDATE.md](20-GOAP-STATE-UPDATE.md).*
 
 ### ADR-015 — Nightly Bridge Push → PR (2026-05-13)
 

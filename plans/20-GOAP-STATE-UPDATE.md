@@ -1,17 +1,17 @@
 # GOAP State Update — 2026-05-29
 
-> Generated after fetching latest `origin/main` (v0.3.6, commit `5ed9ed1`).
+> Updated after PR #407 merge. Main at `ad4dbf3`.
 > Supersedes `16-GOAP-WAVE2-6.md` and `15-GOAP-NEXT-PHASE.md` for remaining work.
 
 ## Goal
 
-Complete all outstanding technical debt items (Waves 3, 6, 7), address open
-GitHub issues (#402 roadmap, #406 compaction), and maintain quality gate.
+Complete all outstanding technical debt items (Waves 4, 6, 7), address open
+GitHub issues (#402 roadmap), and maintain quality gate.
 
 ## Preconditions
 
-- Main branch at v0.3.6 (`3e22c8c` after rebase)
-- 1 open PR (#406 boilerplate detection)
+- Main branch at v0.3.6 (`ad4dbf3`)
+- 0 open PRs
 - 1 open issue (#402 technical debt roadmap)
 - Waves 1, 2, 3, 4 (partial), 5 completed
 - Wave 6 (tests) **PARTIALLY DONE**
@@ -95,7 +95,7 @@ GitHub issues (#402 roadmap, #406 compaction), and maintain quality gate.
 | #403 | Bridge strengthening + LLM-ready Markdown output | ✅ |
 | #404 | Codacy agent skill + configuration | ✅ |
 | #405 | Clear-text button in search input (UX) | ✅ |
-| #406 | Boilerplate detection optimization | ❌ OPEN |
+| #406 | Boilerplate detection optimization | ✅ |
 | #407 | ADR-014 Wave 3 — constants.py + state.py, no monkey-patching | ✅ |
 
 ### Test Coverage Expansion (10 commits)
@@ -116,7 +116,6 @@ GitHub issues (#402 roadmap, #406 compaction), and maintain quality gate.
 | # | Title | Labels | Status |
 |---|-------|--------|--------|
 | #402 | Roadmap: Technical Debt Reduction (Q2-Q3 2026) | documentation, enhancement, security, testing, performance, technical-debt, architecture, roadmap | OPEN — master roadmap |
-| #406 | Optimize boilerplate detection in content compaction | — | OPEN — active PR |
 
 ---
 
@@ -182,7 +181,6 @@ Wave 3 (constants/state) ✅ DONE (PR #407)
 | ~~Wave 3 state.py breaks test fixtures~~ | ✅ RESOLVED — conftest updated to use scripts.state |
 | ~~Wave 3 constants extraction changes behavior~~ | ✅ RESOLVED — all constants functionally identical |
 | K7 markdownlint.toml config still broken | Config parsing issue: `MD013=false` in TOML not recognized by markdownlint-cli; may need JSON config |
-| #406 boilerplate PR may conflict with Wave 3 | Rebase after Wave 3 lands |
 
 ---
 
