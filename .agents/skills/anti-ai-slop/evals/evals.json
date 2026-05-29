@@ -1,0 +1,27 @@
+{
+  "skill": "anti-ai-slop",
+  "version": "1.0.0",
+  "evals": [
+    {
+      "name": "ui-audit",
+      "description": "Audit a UI for AI slop patterns",
+      "input": "Audit this landing page for AI slop patterns",
+      "expected_patterns": ["purple-gradient", "glassmorphism", "rounded-everything"],
+      "tags": ["audit", "ui"]
+    },
+    {
+      "name": "copy-rewrite",
+      "description": "Rewrite AI-slop copy to be more human",
+      "input": "Rewrite this feature announcement to be less AI-like",
+      "expected_patterns": ["specific-claims", "active-voice", "no-superlatives"],
+      "tags": ["copy", "rewrite"]
+    },
+    {
+      "name": "responsive-check",
+      "description": "Verify responsive design across viewports",
+      "input": "Check this UI for responsive design issues on mobile, tablet, and desktop",
+      "expected_patterns": ["touch-targets", "navigation", "layout"],
+      "tags": ["responsive", "mobile"]
+    }
+  ]
+}

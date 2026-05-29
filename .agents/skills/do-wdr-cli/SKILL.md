@@ -93,76 +93,6 @@ Show semantic cache statistics.
 do-wdr cache-stats
 ```
 
-## Examples
-
-### Basic Usage
-
-```bash
-# Resolve a URL
-do-wdr resolve "https://docs.rs/tokio/latest/tokio/"
-
-# Resolve a query
-do-wdr resolve "Rust async runtime comparison"
-
-# JSON output
-do-wdr resolve "Python web frameworks" --json
-```
-
-### Provider Selection
-
-```bash
-# Use specific provider
-do-wdr resolve "query" --provider exa_mcp
-
-# Skip providers
-do-wdr resolve "query" --skip tavily,serper
-
-# Custom provider order
-do-wdr resolve "query" --providers-order duckduckgo,exa_mcp,tavily
-```
-
-### Output Options
-
-```bash
-# Save to file
-do-wdr resolve "https://example.com" --output result.md
-
-# JSON output to file
-do-wdr resolve "query" --json --output results.json
-
-# Include metrics
-do-wdr resolve "query" --json --metrics-json
-```
-
-### Performance Profiles
-
-```bash
-# Free tier only (no API keys needed)
-do-wdr resolve "query" --profile free
-
-# Balanced speed and quality
-do-wdr resolve "query" --profile balanced
-
-# Fast results
-do-wdr resolve "query" --profile fast
-
-# High quality results
-do-wdr resolve "query" --profile quality
-```
-
-### Advanced Features
-
-```bash
-# Synthesize multiple results
-do-wdr resolve "query" --synthesize
-
-# Skip cache
-do-wdr resolve "query" --skip-cache
-
-# Save metrics for analysis
-do-wdr resolve "query" --metrics-file metrics.json
-```
-
 ## Available Providers
 
 | Provider | Type | Free | Description |
@@ -190,81 +120,14 @@ do-wdr resolve "query" --metrics-file metrics.json
 | `fast` | Prioritize speed over cost |
 | `quality` | Prioritize quality over cost |
 
-## Output Format
+## References
 
-### Text Output (default)
-
-Returns markdown content directly:
-
-```markdown
-# Documentation Title
-
-Content extracted from the URL...
-```
-
-### JSON Output
-
-```json
-{
-  "url": "https://example.com/docs",
-  "content": "# Documentation\n\n...",
-  "source": "exa_mcp",
-  "score": 0.87,
-  "metrics": {
-    "latency_ms": 1234,
-    "providers_attempted": ["exa_mcp"],
-    "cache_hit": false
-  }
-}
-```
-
-## Configuration
-
-Configuration is loaded from (in order):
-
-1. CLI arguments
-2. Environment variables
-3. `cli/config.toml`
-4. Defaults
-
-### Environment Variables
-
-```bash
-# Provider API keys (all optional)
-export EXA_API_KEY="your_key"
-export TAVILY_API_KEY="your_key"
-export SERPER_API_KEY="your_key"
-export FIRECRAWL_API_KEY="your_key"
-export MISTRAL_API_KEY="your_key"
-```
-
-## Verbose Logging
-
-Use `-v` flags for debugging:
-
-```bash
-# Info level
-do-wdr resolve "query" -v
-
-# Debug level
-do-wdr resolve "query" -vv
-
-# Trace level
-do-wdr resolve "query" -vvv
-```
-
-## Integration with Scripts
-
-```bash
-#!/bin/bash
-# Example: Resolve and process results
-
-RESULT=$(do-wdr resolve "Rust web frameworks" --json)
-echo "$RESULT" | jq '.content' > frameworks.md
-
-# Use in pipeline
-do-wdr resolve "API documentation" | grep -A5 "## Authentication"
-```
+| Topic | File |
+|-------|------|
+| Usage examples | [references/examples.md](references/examples.md) |
+| Output formats | [references/output-format.md](references/output-format.md) |
+| Configuration | [references/configuration.md](references/configuration.md) |
+| Script integration | [references/integration.md](references/integration.md) |
 
 ## Related Skills
 

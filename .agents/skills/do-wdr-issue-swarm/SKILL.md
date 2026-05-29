@@ -138,6 +138,13 @@ TASK: Create `/workspaces/do-web-doc-resolver/cli/ui/components/{name}.css`. Max
 Also update `components/README.md` to replace the issue link with `{name}.css`.
 ```
 
+## References
+
+| Topic | File |
+|-------|------|
+| Wave execution strategy | [references/wave-execution.md](references/wave-execution.md) |
+| Agent prompt template | [references/agent-prompt.md](references/agent-prompt.md) |
+
 ## Tips
 
 - Read existing components before writing to match conventions exactly

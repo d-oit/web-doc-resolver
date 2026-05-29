@@ -55,11 +55,6 @@ Activate this skill when you need to:
 
 ## Release Workflow
 
-> **Note**: Major releases (or releases requiring extensive CI, binary builds, and
-> manual QA) can take >60 minutes. Consider creating
-> [checkpoint files](../../../AGENTS.md#long-running-tasks-60-min)
-> in `plans/` after major milestones (version bump → changelog → tag → release).
-
 ### 1. Prepare Release
 
 ```bash
@@ -76,9 +71,8 @@ git status
 ### 2. Bump Version
 
 ```bash
-# Update version in package.json (web)
-# Update version in Cargo.toml (cli)
-# Update version in pyproject.toml (python)
+# Update version in all files
+python scripts/sync_versions.py --set $VERSION
 ```
 
 ### 3. Generate Changelog
@@ -109,251 +103,15 @@ gh release create v0.2.0 \
   --assets assets/screenshots/release-v0.2.0/
 ```
 
-## Conventional Commits
+## References
 
-All commits should follow conventional commit format:
-
-```text
-<type>(<scope>): <description>
-
-[optional body]
-
-[optional footer]
-```
-
-### Types
-
-| Type | Description | Example |
-|------|-------------|---------|
-| `feat` | New feature | `feat(cli): add cache-stats command` |
-| `fix` | Bug fix | `fix(web): resolve hydration error` |
-| `docs` | Documentation | `docs: update README with examples` |
-| `style` | Formatting | `style: fix indentation` |
-| `refactor` | Code refactoring | `refactor(providers): simplify cascade` |
-| `perf` | Performance | `perf: optimize memory allocation` |
-| `test` | Tests | `test: add unit tests for resolver` |
-| `build` | Build system | `build: update cargo dependencies` |
-| `ci` | CI/CD | `ci: add screenshot capture step` |
-| `chore` | Maintenance | `chore: update .gitignore` |
-
-### Scopes
-
-| Scope | Description |
-|-------|-------------|
-| `cli` | Rust CLI changes |
-| `web` | Web UI changes |
-| `python` | Python resolver changes |
-| `exa_mcp` | Exa MCP provider |
-| `tavily` | Tavily provider |
-| `duckduckgo` | DuckDuckGo provider |
-| `assets` | Visual assets |
-| `release` | Release changes |
-
-## Version Bumping
-
-Follow [Semantic Versioning](https://semver.org/):
-
-| Version | When | Example |
-|---------|------|---------|
-| **MAJOR** | Breaking changes | 1.0.0 → 2.0.0 |
-| **MINOR** | New features (backward compatible) | 1.0.0 → 1.1.0 |
-| **PATCH** | Bug fixes (backward compatible) | 1.0.0 → 1.0.1 |
-
-### Pre-release Versions
-
-```bash
-# Alpha
-./scripts/release.sh 1.0.0-alpha.1
-
-# Beta
-./scripts/release.sh 1.0.0-beta.1
-
-# Release Candidate
-./scripts/release.sh 1.0.0-rc.1
-```
-
-## Changelog Generation
-
-### Automatic from Commits
-
-```bash
-# Since last tag
-git log $(git describe --tags --abbrev=0)..HEAD --oneline --no-merges
-
-# With conventional commit parsing
-./scripts/changelog.sh v0.2.0
-```
-
-### Changelog Format
-
-```markdown
-# Changelog
-
-## [0.2.0] - 2026-03-21
-
-### Features
-- **cli**: Add cache-stats command
-- **web**: Add dark mode toggle
-
-### Bug Fixes
-- **web**: Resolve hydration error
-- **python**: Fix rate limit handling
-
-### Documentation
-- Update README with examples
-```
-
-## GitHub Release
-
-### Create Release
-
-```bash
-gh release create v0.2.0 \
-  --title "Release v0.2.0" \
-  --notes "Release notes here" \
-  --target main
-```
-
-### Upload Assets
-
-```bash
-gh release create v0.2.0 \
-  --assets "assets/screenshots/release-v0.2.0/*.png"
-```
-
-### Generate Release Notes
-
-```bash
-gh release create v0.2.0 \
-  --generate-notes
-```
-
-## Release Checklist
-
-- [ ] All tests pass (`./scripts/quality_gate.sh`)
-- [ ] Screenshots captured (`./scripts/capture/capture-release.sh`)
-- [ ] Version bumped in all files
-- [ ] Changelog updated
-- [ ] Tag created
-- [ ] Pushed to remote
-- [ ] GitHub release created
-- [ ] Assets uploaded
-
-## Automation
-
-### Pre-commit Hook
-
-```bash
-# .git/hooks/pre-commit
-# Capture screenshots if UI files changed
-if git diff --cached --name-only | grep -q "web/"; then
-    ./scripts/capture/capture-release.sh "pre-commit"
-fi
-```
-
-### CI/CD Pipeline
-
-The release workflow runs tests and builds binaries. Vercel deployment is handled automatically via Git integration (push to `main` → auto-deploy).
-
-```yaml
-# .github/workflows/release.yml
-name: Release
-on:
-  push:
-    tags:
-      - 'v*'
-
-jobs:
-  python-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - run: pip install -r requirements.txt
-      - run: python -m pytest tests/ -v -m "not live"
-
-  rust-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: dtolnay/rust-toolchain@stable
-      - run: cd cli && cargo test
-      - run: cd cli && cargo clippy -- -D warnings
-      - run: cd cli && cargo fmt --check
-
-  build-binaries:
-    needs: [python-test, rust-test]
-    # ... matrix build for Linux, macOS, Windows
-
-  release:
-    needs: [build-binaries]
-    steps:
-      - uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
-```
-
-**Note**: Web UI deployment is handled by Vercel's Git integration — no deploy job in CI.
-
-## Best Practices
-
-### Git
-
-1. **Commit often**: Small, focused commits
-2. **Use conventional commits**: Enables automatic changelog
-3. **Sign commits**: `git commit -S` for security
-4. **Tag releases**: Semantic versioning tags
-5. **Don't rewrite public history**: Avoid force push to main
-6. **Handle failures gracefully**: If any git command fails, follow the [retry sequence](../../../AGENTS.md#git-failure-recovery): stash → abort rebase → abort merge → fetch main → retry. Never retry more than 3 times.
-
-### GitHub
-
-1. **Draft releases**: Create draft, publish when ready
-2. **Release assets**: Include screenshots and binaries
-3. **Release notes**: Auto-generate from commits
-4. **Pre-releases**: Mark alpha/beta/rc appropriately
-5. **Discussion links**: Link to GitHub Discussions
-
-### Versioning
-
-1. **0.x.x**: API unstable, breaking changes expected
-2. **1.x.x**: Stable API, follow semver strictly
-3. **Pre-release**: Use `-alpha`, `-beta`, `-rc` suffixes
-4. **Deprecations**: Note in changelog before removal
-
-## Commands Reference
-
-### Git Commands
-
-```bash
-# Create annotated tag
-git tag -a v0.2.0 -m "Release v0.2.0"
-
-# List tags
-git tag -l "v*"
-
-# Push tags
-git push origin --tags
-
-# Delete tag (local and remote)
-git tag -d v0.2.0
-git push origin :refs/tags/v0.2.0
-```
-
-### GitHub Commands
-
-```bash
-# Create release
-gh release create v0.2.0 --title "v0.2.0" --notes "Release notes"
-
-# List releases
-gh release list
-
-# View release
-gh release view v0.2.0
-
-# Delete release
-gh release delete v0.2.0
-```
+| Topic | File |
+|-------|------|
+| Commit format & types | [references/conventional-commits.md](references/conventional-commits.md) |
+| Version bumping & sync | [references/version-bumping.md](references/version-bumping.md) |
+| Changelog generation | [references/changelog-format.md](references/changelog-format.md) |
+| CI/CD & pre-commit hooks | [references/automation.md](references/automation.md) |
+| Git & GitHub commands | [references/commands-reference.md](references/commands-reference.md) |
 
 ## Related Skills
 

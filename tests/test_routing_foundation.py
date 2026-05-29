@@ -342,18 +342,18 @@ class TestCircuitBreaker:
 
     def test_is_open_handles_timezone_naive_open_until(self):
         """is_open handles timezone-naive open_until by assuming UTC."""
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
 
         registry = CircuitBreakerRegistry(threshold=1)
         registry.record_failure("p1", threshold=1, cooldown_seconds=3600)
 
         # Set open_until to naive datetime in the future
         breaker = registry.breakers["p1"]
-        breaker.open_until = datetime.utcnow() + timedelta(hours=1)
+        breaker.open_until = datetime.now(timezone.utc) + timedelta(hours=1)
         assert registry.is_open("p1") is True
 
         # Set open_until to naive datetime in the past
-        breaker.open_until = datetime.utcnow() - timedelta(hours=1)
+        breaker.open_until = datetime.now(timezone.utc) - timedelta(hours=1)
         assert registry.is_open("p1") is False
 
 
@@ -1043,18 +1043,16 @@ class TestQualityGate:
         best_free_score = 0.5
         assert best_free_score < budget.min_free_quality_to_skip_paid
 
-    @pytest.mark.skip(
-        reason="TODO: needs proper concurrent.futures mock — MagicMock futures hang in wait()"
-    )
     def test_gate_integration_mock(self):
         with (
             patch("scripts._query_resolve.get_semantic_cache", return_value=None),
             patch("scripts._query_resolve._routing_memory") as mock_rm,
-            patch("scripts._query_resolve._get_cache", return_value=None),
+            patch("scripts._cascade._get_cache", return_value=None),
             patch("scripts._query_resolve.scripts.quality.score_content") as mock_score,
             patch("scripts._query_resolve._circuit_breakers") as mock_cb,
             patch("scripts.routing.plan_provider_order", return_value=["exa_mcp", "exa"]),
-            patch("scripts.resolve._get_executor") as mock_executor,
+            patch("scripts.state.get_executor") as mock_executor,
+            patch("scripts._cascade.concurrent.futures.wait") as mock_wait,
         ):
             mock_cb.is_open.return_value = False
             mock_rm.get_p75_latency.return_value = 100
@@ -1067,6 +1065,9 @@ class TestQualityGate:
             mock_fut = MagicMock()
             mock_fut.result.return_value = res_free
             mock_executor.return_value.submit.return_value = mock_fut
+
+            # Make concurrent.futures.wait return the mock future as done
+            mock_wait.return_value = ({mock_fut}, set())
 
             # Quality score 0.8 (above default 0.7)
             mock_score.return_value = MagicMock(acceptable=True, score=0.8)

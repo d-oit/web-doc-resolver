@@ -1,0 +1,27 @@
+{
+  "skill": "agent-browser",
+  "version": "1.0.0",
+  "evals": [
+    {
+      "name": "basic-navigation",
+      "description": "Navigate to a URL and take a snapshot",
+      "input": "Open https://example.com and take a snapshot",
+      "expected_tools": ["Bash(agent-browser:*)"],
+      "tags": ["basic", "navigation"]
+    },
+    {
+      "name": "form-filling",
+      "description": "Fill out a form with multiple fields",
+      "input": "Fill out the login form with email user@example.com and password pass123",
+      "expected_tools": ["Bash(agent-browser:*)"],
+      "tags": ["forms", "interaction"]
+    },
+    {
+      "name": "screenshot-capture",
+      "description": "Take a screenshot of the current page",
+      "input": "Take a screenshot of the page",
+      "expected_tools": ["Bash(agent-browser:*)"],
+      "tags": ["capture", "screenshot"]
+    }
+  ]
+}

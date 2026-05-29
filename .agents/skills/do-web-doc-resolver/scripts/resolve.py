@@ -5,19 +5,17 @@ Main orchestrator. CLI entrypoint moved to scripts/cli.py.
 """
 
 import logging
-import os
+from typing import Any
 
 import scripts._query_resolve
 import scripts._url_resolve
 import scripts.cache_negative
-import scripts.circuit_breaker
 import scripts.providers_impl
 import scripts.quality
 import scripts.routing
-import scripts.routing_memory
 import scripts.semantic_cache
 import scripts.synthesis
-import scripts.utils
+from scripts.constants import DEFAULT_TIMEOUT, MAX_CHARS, MIN_CHARS
 from scripts.models import (
     ErrorType,
     Profile,
@@ -29,6 +27,7 @@ from scripts.providers_impl import (
     _is_rate_limited,
     _rate_limits,
     _set_rate_limit,
+    resolve_with_docling,
     resolve_with_duckduckgo,
     resolve_with_exa,
     resolve_with_exa_mcp,
@@ -36,9 +35,12 @@ from scripts.providers_impl import (
     resolve_with_jina,
     resolve_with_mistral_browser,
     resolve_with_mistral_websearch,
+    resolve_with_ocr,
+    resolve_with_serper,
     resolve_with_tavily,
 )
 from scripts.semantic_cache import get_semantic_cache
+from scripts.state import circuit_breakers, get_executor, routing_memory
 from scripts.utils import (
     _cache_key,
     _detect_error_type,
@@ -54,23 +56,12 @@ from scripts.utils import (
     validate_url,
 )
 
-MAX_CHARS = int(os.getenv("WEB_RESOLVER_MAX_CHARS", "8000"))
-MIN_CHARS = int(os.getenv("WEB_RESOLVER_MIN_CHARS", "200"))
-DEFAULT_TIMEOUT = int(os.getenv("WEB_RESOLVER_TIMEOUT", "30"))
-
 logger = logging.getLogger(__name__)
 
-_circuit_breakers = scripts.circuit_breaker.CircuitBreakerRegistry()
-_routing_memory = scripts.routing_memory.RoutingMemory()
 _cache = None
-_semantic_cache = None
 
-# Keep facade and extracted submodules on the same shared state so callers,
-# tests, and future monkeypatches still observe one resolver runtime.
-scripts._query_resolve._circuit_breakers = _circuit_breakers
-scripts._query_resolve._routing_memory = _routing_memory
-scripts._url_resolve._circuit_breakers = _circuit_breakers
-scripts._url_resolve._routing_memory = _routing_memory
+_circuit_breakers = circuit_breakers
+_routing_memory = routing_memory
 
 is_rate_limited = _is_rate_limited
 set_rate_limit = _set_rate_limit
@@ -81,7 +72,7 @@ def _get_semantic_cache():
     return get_semantic_cache()
 
 
-def _check_semantic_cache(query_or_url: str) -> dict:
+def _check_semantic_cache(query_or_url: str) -> dict[str, Any] | None:
     """Check semantic cache - delegates to sub-modules."""
     result = scripts._query_resolve._check_semantic_cache(query_or_url)
     if result:
@@ -129,6 +120,9 @@ __all__ = [
     "_cache",
     "_check_semantic_cache",
     "_store_in_semantic_cache",
+    "circuit_breakers",
+    "routing_memory",
+    "get_executor",
 ]
 
 
@@ -147,7 +141,7 @@ def resolve(
     max_chars: int = MAX_CHARS,
     skip_providers: set[str] | None = None,
     profile: Profile | str = Profile.BALANCED,
-) -> dict:
+) -> dict[str, Any]:
     if isinstance(profile, str):
         profile = Profile(profile.lower())
 
@@ -156,8 +150,10 @@ def resolve(
     return resolve_query(input_str, max_chars, skip_providers, profile=profile)
 
 
-def resolve_direct(input_str: str, provider: ProviderType, max_chars: int = MAX_CHARS) -> dict:
-    funcs = {
+def resolve_direct(
+    input_str: str, provider: ProviderType, max_chars: int = MAX_CHARS
+) -> dict[str, Any]:
+    funcs: dict[ProviderType, Any] = {
         ProviderType.JINA: resolve_with_jina,
         ProviderType.EXA_MCP: resolve_with_exa_mcp,
         ProviderType.EXA: resolve_with_exa,
@@ -167,6 +163,14 @@ def resolve_direct(input_str: str, provider: ProviderType, max_chars: int = MAX_
         ProviderType.MISTRAL_BROWSER: resolve_with_mistral_browser,
         ProviderType.MISTRAL_WEBSEARCH: resolve_with_mistral_websearch,
         ProviderType.DIRECT_FETCH: fetch_url_content,
+        ProviderType.LLMS_TXT: lambda url, mc: (
+            ResolvedResult(source="llms_txt", content=res, url=url)
+            if (res := fetch_llms_txt(url))
+            else None
+        ),
+        ProviderType.SERPER: resolve_with_serper,
+        ProviderType.DOCLING: resolve_with_docling,
+        ProviderType.OCR: resolve_with_ocr,
     }
     if provider in funcs:
         res = funcs[provider](input_str, max_chars)
@@ -176,7 +180,7 @@ def resolve_direct(input_str: str, provider: ProviderType, max_chars: int = MAX_
 
 def resolve_with_order(
     input_str: str, providers_order: list[ProviderType], max_chars: int = MAX_CHARS
-) -> dict:
+) -> dict[str, Any]:
     for pt in providers_order:
         res = resolve_direct(input_str, pt, max_chars)
         if res.get("source") != "none":
@@ -184,11 +188,13 @@ def resolve_with_order(
     return {"source": "none", "error": "All providers failed"}
 
 
-def resolve_url_with_order(url: str, order: list[ProviderType], max_chars: int = MAX_CHARS) -> dict:
+def resolve_url_with_order(
+    url: str, order: list[ProviderType], max_chars: int = MAX_CHARS
+) -> dict[str, Any]:
     return resolve_with_order(url, order, max_chars)
 
 
 def resolve_query_with_order(
     query: str, order: list[ProviderType], max_chars: int = MAX_CHARS
-) -> dict:
+) -> dict[str, Any]:
     return resolve_with_order(query, order, max_chars)
