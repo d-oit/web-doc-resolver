@@ -361,14 +361,21 @@ test.describe("Keyboard Navigation", () => {
     await expect(input).toBeFocused();
   });
 
-  test("button is focusable when visible", async ({ page }) => {
+  test("buttons are focusable when visible", async ({ page }) => {
     await page.goto("/");
-    const input = page.locator("input[type='text']");
+    const input = page.locator("input[placeholder*='URL']");
     await input.fill("some query");
     await input.focus();
+
+    // Tab 1: Clear query button
     await page.keyboard.press("Tab");
-    const button = page.getByRole("button", { name: "Fetch" });
-    await expect(button).toBeFocused();
+    const clearButton = page.getByRole("button", { name: "Clear query" });
+    await expect(clearButton).toBeFocused();
+
+    // Tab 2: Fetch button
+    await page.keyboard.press("Tab");
+    const fetchButton = page.getByRole("button", { name: "Fetch" });
+    await expect(fetchButton).toBeFocused();
   });
 
   test("input accepts keyboard input", async ({ page }) => {
