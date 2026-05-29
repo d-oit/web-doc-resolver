@@ -2,18 +2,7 @@
 Negative caching logic for the Web Doc Resolver.
 """
 
-from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any
-
-
-@dataclass
-class NegativeCacheEntry:
-    key: str
-    provider: str
-    reason: str
-    expires_at: datetime
-    metadata: dict[str, Any]
 
 
 def should_skip_from_negative_cache(cache, key: str, provider: str) -> bool:
