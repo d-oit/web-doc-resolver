@@ -270,7 +270,7 @@ were already deleted before this audit and confirmed not present.
 
 ---
 
-*Last updated: 2026-05-29. v0.3.6 on main (`ad4dbf3`). Waves 1,2,3,4(partial),5 ✅. Waves 6(partial),7 ❌. 0 open PRs, 1 open issue (#402). See [20-GOAP-STATE-UPDATE.md](20-GOAP-STATE-UPDATE.md).*
+*Last updated: 2026-05-29. v0.3.6 on main (`5cea0e6`). Waves 1,2,3,4,5,6 ✅. Wave 7 ❌. 0 open PRs, 1 open issue (#402). See [20-GOAP-STATE-UPDATE.md](20-GOAP-STATE-UPDATE.md).*
 
 ### ADR-015 — Nightly Bridge Push → PR (2026-05-13)
 

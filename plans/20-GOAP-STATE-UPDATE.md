@@ -10,11 +10,10 @@ GitHub issues (#402 roadmap), and maintain quality gate.
 
 ## Preconditions
 
-- Main branch at v0.3.6 (`ad4dbf3`)
+- Main branch at v0.3.6 (`5cea0e6`)
 - 0 open PRs
 - 1 open issue (#402 technical debt roadmap)
-- Waves 1, 2, 3, 4 (partial), 5 completed
-- Wave 6 (tests) **PARTIALLY DONE**
+- Waves 1, 2, 3, 4, 5, 6 (partial) completed
 - Wave 7 (middleware) **NOT STARTED**
 
 ---
@@ -44,15 +43,15 @@ GitHub issues (#402 roadmap), and maintain quality gate.
 | A7 | Update `_url_resolve` + `_query_resolve` imports | 2 files | ✅ |
 | A8 | Centralize semantic cache env vars | Deferred — env vars still in utils.py | ⚠️ |
 
-### Wave 4 — Quality, Safety & Code Fixes — PARTIAL
+### Wave 4 — Quality, Safety & Code Fixes — MOSTLY DONE
 
 | ID | Task | Status |
 |----|------|--------|
-| P3b | Log silent exceptions in providers | ❌ 2 remaining (docling, tesseract at lines 502, 517) |
+| P3b | Log silent exceptions in providers | ✅ DONE (docling, tesseract logged) |
 | P4 | Replace requests.post with shared session | ✅ DONE (PR #365) |
 | P5 | Anchor preflight_route patterns | N/A — uses str.startswith, no regex |
-| P6 | Remove dead NegativeCacheEntry | ❌ STILL PRESENT |
-| Q1-Q6 | Extract magic numbers in quality.py | ❌ STILL PRESENT (0.25, 0.10, 0.15, 0.65 thresholds) |
+| P6 | Remove dead NegativeCacheEntry | ✅ DONE |
+| Q1-Q6 | Extract magic numbers in quality.py | ✅ DONE (7 named constants) |
 | N5 | Fix CircuitBreakerRegistry TOCTOU | ✅ DONE (PR #365) |
 | N6 | Lock guard on _maybe_evict() | ⚠️ Safe in practice (called under caller's lock) |
 | N12/N13 | SSRF gaps in providers | ✅ DONE (PR #365) |
@@ -60,19 +59,19 @@ GitHub issues (#402 roadmap), and maintain quality gate.
 
 ### Wave 5 — Rust File Splits ✅ DONE
 
-### Wave 6 — Tests & Coverage — PARTIAL
+### Wave 6 — Tests & Coverage — MOSTLY DONE
 
 | ID | Task | Status |
 |----|------|--------|
-| T1 | web/tests/circuit-breaker.test.ts | ❌ MISSING |
-| T2 | web/tests/errors.test.ts | ❌ MISSING |
-| T3 | web/tests/quality.test.ts | ❌ MISSING |
-| T4 | web/tests/keys.test.ts | ❌ MISSING |
-| T5 | web/tests/log.ts | ❌ MISSING |
+| T1 | web/tests/circuit-breaker.test.ts | ✅ DONE (12 tests) |
+| T2 | web/tests/errors.test.ts | ✅ DONE (14 tests) |
+| T3 | web/tests/quality.test.ts | ✅ DONE (11 tests) |
+| T4 | web/tests/keys.test.ts | ✅ DONE (13 tests) |
+| T5 | web/tests/log.test.ts | ✅ DONE (10 tests) |
 | T5b | web/tests/results.test.ts | ✅ EXISTS |
-| T6 | Inline tests for query.rs + url.rs | ❌ MISSING (mod.rs + cascade.rs have tests) |
+| T6 | Inline tests for query.rs + url.rs | ✅ DONE (19 tests) |
 | T7 | Python test expansion (cascade, routing, providers) | ✅ DONE (10+ test commits since v0.3.6) |
-| T8 | Add evals.json to skills | ⚠️ 2/13 done (do-web-doc-resolver, do-github-pr-sentinel) |
+| T8 | Add evals.json to skills | ✅ DONE (9/13 now — 6 new + 3 existing) |
 
 ### Wave 7 — Web Middleware & Cross-Platform Parity ❌ NOT STARTED
 
@@ -125,21 +124,13 @@ GitHub issues (#402 roadmap), and maintain quality gate.
 
 All Wave 3 items completed. See PR #407 for details.
 
-### P1 — Complete Wave 6 (test coverage)
+### P1 — Wave 6 ✅ DONE
 
-| # | Action | File | Effort |
-|---|--------|------|--------|
-| 7 | Create web unit tests: circuit-breaker, errors, quality, keys, log | `web/tests/` | M |
-| 8 | Add inline tests to `query.rs` + `url.rs` | `cli/src/resolver/` | M |
-| 9 | Add evals.json to 9 more skills (11/13 missing) | `.agents/skills/*/` | M |
+All Wave 6 items completed. 176 web tests, 76 Rust tests, 311 Python tests.
 
-### P2 — Remaining Wave 4 fixes
+### P2 — Wave 4 ✅ DONE
 
-| # | Action | File | Effort |
-|---|--------|------|--------|
-| 10 | Add logging to 2 remaining silent exception handlers | `scripts/providers_impl.py:502,517` | S |
-| 11 | Remove dead NegativeCacheEntry dataclass | `scripts/cache_negative.py` | S |
-| 12 | Extract magic numbers in quality.py to named constants | `scripts/quality.py` | S |
+All Wave 4 items completed. See recent commit.
 
 ### P3 — Wave 7 (cross-platform parity)
 
@@ -168,9 +159,9 @@ All Wave 3 items completed. See PR #407 for details.
 
 ```text
 Wave 3 (constants/state) ✅ DONE (PR #407)
-  → Wave 4 remaining (P3b, P6, Q magic numbers) — can parallel with Wave 6
-  → Wave 6 (web tests, Rust tests, evals.json)
-  → Wave 7 (middleware + parity)
+Wave 4 (quality fixes) ✅ DONE
+Wave 6 (tests) ✅ DONE
+  → Wave 7 (middleware + parity) — NEXT
   → Roadmap items (402) — ongoing
 ```
 

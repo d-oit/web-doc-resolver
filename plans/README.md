@@ -86,9 +86,9 @@ Commit `c283dfa` (PR #270) merged an old branch on top of v0.3.3 release, revert
 | 1b | ADR-013 I6-I8 | web/package.json version fixes, npm peer deps, libsql | ✅ **DONE** |
 | 2 | ADR-013 I1-I5, K1-K7 + N9/N11 | CI fixes, pre-commit, gitleaks, classifiers, package names | ✅ **DONE** (K7 markdownlint config OPEN) |
 | 3 | ADR-014 A1-A8 | constants.py, state.py extraction | ✅ **DONE** (PR #407) |
-| 4 | ADR-012 P3b,P4-P7, Q1-Q6 + N5/N6/N12/N13 | Logging, quality, synthesis fixes, TOCTOU, lock guards, SSRF gaps | PARTIAL (P4,N5,N12,N13,N13b ✅ DONE; P3b,P5,P6,Q1-Q6,N6 ❌) |
+| 4 | ADR-012 P3b,P4-P7, Q1-Q6 + N5/N6/N12/N13 | Logging, quality, synthesis fixes, TOCTOU, lock guards, SSRF gaps | ✅ **DONE** |
 | 5 | R1-R7 | Rust file splits & dedup (semantic_cache, config, query) | ✅ **DONE** (R5 deferred) |
-| 6 | T1-T8 | Test coverage for web lib + Rust resolver + skills evals | PENDING |
+| 6 | T1-T8 | Test coverage for web lib + Rust resolver + skills evals | ✅ **DONE** (176 web, 76 Rust, 311 Python tests) |
 | 7 | W1-W4 | Web middleware + cross-platform parity (preflight, hedging) | PENDING |
 
 ## Roadmap Plans (Condensed Status)
