@@ -536,8 +536,8 @@ mod tests {
         let config = Config::default();
         let profile_defaults = routing_profile_defaults("balanced");
         let budget = build_budget(&config, &profile_defaults);
-        assert_eq!(budget.max_provider_attempts, 4);
-        assert!(budget.max_paid_attempts >= 1);
+        assert_eq!(budget.max_provider_attempts, 6);
+        assert!(budget.max_paid_attempts >= 2);
         assert!(budget.allow_paid);
     }
 

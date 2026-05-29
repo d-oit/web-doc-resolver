@@ -1,4 +1,14 @@
+use url::Url;
+
 use crate::routing_memory::RoutingMemory;
+
+#[derive(Debug, Clone)]
+pub struct PreflightResult {
+    pub platform: Option<&'static str>,
+    pub preferred_strategy: &'static str,
+    pub confidence: f32,
+    pub js_heavy: bool,
+}
 
 #[derive(Debug, Clone)]
 pub struct ResolutionBudget {
@@ -49,6 +59,114 @@ pub struct PlannedProvider {
     pub skip_reason: Option<String>,
 }
 
+pub fn detect_doc_platform(url: &str) -> Option<&'static str> {
+    let parsed = Url::parse(url).ok()?;
+    let hostname = parsed.host_str()?.to_ascii_lowercase();
+    let path = parsed.path().to_ascii_lowercase();
+
+    if hostname == "gitbook.io" || hostname.ends_with(".gitbook.io") {
+        return Some("gitbook");
+    }
+    if hostname == "gitbook.com" || hostname.ends_with(".gitbook.com") {
+        return Some("gitbook");
+    }
+    if hostname == "readthedocs.io" || hostname.ends_with(".readthedocs.io") {
+        return Some("sphinx");
+    }
+    if hostname == "rtfd.io" || hostname.ends_with(".rtfd.io") {
+        return Some("sphinx");
+    }
+    if hostname == "mkdocs.org" || hostname == "www.mkdocs.org" {
+        return Some("mkdocs");
+    }
+    if hostname == "notion.so" || hostname.ends_with(".notion.so") {
+        return Some("notion");
+    }
+    if hostname == "notion.site" || hostname.ends_with(".notion.site") {
+        return Some("notion");
+    }
+    if (hostname.ends_with(".atlassian.net") && path.starts_with("/wiki"))
+        || hostname.contains("confluence")
+        || path.contains("confluence")
+    {
+        return Some("confluence");
+    }
+
+    None
+}
+
+pub fn preflight_route(url: &str) -> PreflightResult {
+    let platform = detect_doc_platform(url);
+    let parsed = Url::parse(url).ok();
+    let hostname = parsed
+        .as_ref()
+        .and_then(|u| u.host_str())
+        .map(str::to_ascii_lowercase)
+        .unwrap_or_default();
+    let path = parsed
+        .as_ref()
+        .map(|u| u.path().to_ascii_lowercase())
+        .unwrap_or_default();
+
+    if matches!(platform, Some("gitbook" | "sphinx" | "mkdocs")) {
+        return PreflightResult {
+            platform,
+            preferred_strategy: "llms_txt",
+            confidence: 0.85,
+            js_heavy: false,
+        };
+    }
+
+    if matches!(platform, Some("notion" | "confluence")) {
+        return PreflightResult {
+            platform,
+            preferred_strategy: "extraction",
+            confidence: 0.8,
+            js_heavy: true,
+        };
+    }
+
+    let doc_signals = [
+        "docs.",
+        "doc.",
+        "documentation",
+        "/docs/",
+        "/doc/",
+        "/api/",
+        "/reference/",
+    ];
+    if doc_signals
+        .iter()
+        .any(|s| hostname.contains(s) || path.contains(s))
+    {
+        return PreflightResult {
+            platform: None,
+            preferred_strategy: "llms_txt",
+            confidence: 0.6,
+            js_heavy: false,
+        };
+    }
+
+    if ["github.com", "gitlab.com", "bitbucket.org"]
+        .iter()
+        .any(|d| hostname.contains(d))
+    {
+        return PreflightResult {
+            platform: None,
+            preferred_strategy: "direct_fetch",
+            confidence: 0.7,
+            js_heavy: false,
+        };
+    }
+
+    PreflightResult {
+        platform: None,
+        preferred_strategy: "llms_txt",
+        confidence: 0.4,
+        js_heavy: false,
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn plan_provider_order(
     target: &str,
@@ -74,20 +192,42 @@ pub fn plan_provider_order(
             .cloned()
             .collect()
     } else if is_url {
-        vec![
-            "llms_txt".into(),
-            "jina".into(),
-            "firecrawl".into(),
-            "direct_fetch".into(),
-            "mistral_browser".into(),
-            "duckduckgo".into(),
-        ]
+        let preflight = preflight_route(target);
+
+        if matches!(preflight.platform, Some("notion" | "confluence")) || preflight.js_heavy {
+            vec![
+                "firecrawl".into(),
+                "mistral_browser".into(),
+                "jina".into(),
+                "direct_fetch".into(),
+                "duckduckgo".into(),
+            ]
+        } else if preflight.preferred_strategy == "direct_fetch" {
+            vec![
+                "direct_fetch".into(),
+                "llms_txt".into(),
+                "jina".into(),
+                "firecrawl".into(),
+                "mistral_browser".into(),
+                "duckduckgo".into(),
+            ]
+        } else {
+            vec![
+                "llms_txt".into(),
+                "jina".into(),
+                "firecrawl".into(),
+                "direct_fetch".into(),
+                "mistral_browser".into(),
+                "duckduckgo".into(),
+            ]
+        }
     } else {
         // DuckDuckGo deprioritized due to instability (Alert 2026-04-20)
         vec![
             "exa_mcp".into(),
             "exa".into(),
             "tavily".into(),
+            "serper".into(),
             "mistral_websearch".into(),
             "duckduckgo".into(),
         ]
