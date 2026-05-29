@@ -8,51 +8,63 @@ import logging
 import os
 import re
 import socket
+import threading
 import time
+import typing
 from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from html.parser import HTMLParser
 from typing import Any
-from urllib.parse import urljoin, urlparse
+from urllib.parse import parse_qs, urlencode, urljoin, urlparse
 
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+from scripts.constants import (
+    BLOCKED_NETWORKS,
+    BLOCKED_SCHEMES,
+    CACHE_DIR,
+    DEFAULT_TIMEOUT,
+    DNS_CACHE_TTL,
+    MAX_CHARS,
+    TIERED_TTL,
+    USER_AGENT,
+)
 from scripts.models import ErrorType, ResolvedResult, ValidationResult
 
 logger = logging.getLogger(__name__)
 
-MAX_CHARS = int(os.getenv("WEB_RESOLVER_MAX_CHARS", "8000"))
-DEFAULT_TIMEOUT = int(os.getenv("WEB_RESOLVER_TIMEOUT", "30"))
-CACHE_DIR = os.path.expanduser(os.getenv("WEB_RESOLVER_CACHE_DIR", "~/.cache/do-web-doc-resolver"))
-CACHE_TTL = int(os.getenv("WEB_RESOLVER_CACHE_TTL", str(3600 * 24)))
+_CONFIG_DATA: dict[str, Any] | None = None
 
-# Semantic cache configuration
-ENABLE_SEMANTIC_CACHE = os.environ.get("DO_WDR_SEMANTIC_CACHE", "1") == "1"
-SEMANTIC_CACHE_THRESHOLD = float(os.environ.get("DO_WDR_CACHE_THRESHOLD", "0.85"))
-SEMANTIC_CACHE_MAX_ENTRIES = int(os.environ.get("DO_WDR_CACHE_MAX_ENTRIES", "10000"))
 
-USER_AGENT = (
-    "Mozilla/5.0 (compatible; WebDocResolver/2.0; +https://github.com/d-oit/do-web-doc-resolver)"
-)
+def get_config_data() -> dict[str, Any]:
+    """Load configuration from config.toml if available."""
+    global _CONFIG_DATA
+    if _CONFIG_DATA is not None:
+        return _CONFIG_DATA
 
-BLOCKED_NETWORKS = [
-    ipaddress.ip_network("127.0.0.0/8"),
-    ipaddress.ip_network("10.0.0.0/8"),
-    ipaddress.ip_network("172.16.0.0/12"),
-    ipaddress.ip_network("192.168.0.0/16"),
-    ipaddress.ip_network("169.254.0.0/16"),
-    ipaddress.ip_network("::1/128"),
-    ipaddress.ip_network("fc00::/7"),
-    ipaddress.ip_network("fe80::/10"),
-]
+    _CONFIG_DATA = {}
+    config_path = os.getenv("DO_WDR_CONFIG") or "config.toml"
+    if os.path.exists(config_path):
+        try:
+            try:
+                import tomllib
+            except ImportError:
+                import tomli as tomllib  # type: ignore
 
-BLOCKED_SCHEMES: set[str] = {"file", "javascript", "data", "vbscript"}
+            with open(config_path, "rb") as f:
+                _CONFIG_DATA = typing.cast(dict[str, Any], tomllib.load(f))
+        except Exception as e:
+            logger.debug(f"Failed to load config.toml: {e}")
+
+    return _CONFIG_DATA
 
 
 _global_session: requests.Session | None = None
+_session_lock = threading.Lock()
 _cache = None
+_cache_lock = threading.RLock()
 
 
 def create_session_with_retry() -> requests.Session:
@@ -79,16 +91,18 @@ def create_session_with_retry() -> requests.Session:
 
 def get_session() -> requests.Session:
     global _global_session
-    if _global_session is None:
-        _global_session = create_session_with_retry()
+    with _session_lock:
+        if _global_session is None:
+            _global_session = create_session_with_retry()
     return _global_session
 
 
 def close_session() -> None:
     global _global_session
-    if _global_session is not None:
-        _global_session.close()
-        _global_session = None
+    with _session_lock:
+        if _global_session is not None:
+            _global_session.close()
+            _global_session = None
 
 
 def _safe_request(
@@ -130,9 +144,6 @@ def _safe_request(
     raise requests.TooManyRedirects(f"Exceeded {max_redirects} redirects")
 
 
-_DNS_CACHE_TTL = 60  # seconds
-
-
 @lru_cache(maxsize=1024)
 def _getaddrinfo_bucketed(host: str, port: int | str | None, bucket: int) -> list[tuple]:
     """Internal helper for cached getaddrinfo using time-bucketing."""
@@ -141,7 +152,7 @@ def _getaddrinfo_bucketed(host: str, port: int | str | None, bucket: int) -> lis
 
 def _getaddrinfo_cached(host: str, port: int | str | None = None) -> list[tuple]:
     """Cached version of socket.getaddrinfo with TTL to balance performance and security."""
-    bucket = int(time.time() // _DNS_CACHE_TTL)
+    bucket = int(time.time() // DNS_CACHE_TTL)
     return _getaddrinfo_bucketed(host, port, bucket)
 
 
@@ -185,11 +196,18 @@ def is_safe_url(url: str) -> bool:
 
 
 def is_url(input_str: str) -> bool:
-    if not input_str or not input_str.strip():
+    if not input_str:
+        return False
+    trimmed = input_str.strip()
+    if not trimmed:
+        return False
+    # Fast path: must start with http (case-insensitive check without full lower() allocation)
+    prefix = trimmed[:8].lower()
+    if not prefix.startswith(("http://", "https://")):
         return False
     try:
-        result = urlparse(input_str)
-        return all([result.scheme in ("http", "https", "ftp", "ftps"), result.netloc])
+        result = urlparse(trimmed)
+        return all([result.scheme in {"http", "https"}, result.netloc])
     except Exception:
         return False
 
@@ -287,70 +305,129 @@ def compact_content(content: str, max_chars: int) -> str:
     return "\n".join(compacted)[:max_chars]
 
 
-def extract_text_from_html(html: str, base_url: str = "") -> str:
-    class EnhancedHTMLParser(HTMLParser):
-        def __init__(self) -> None:
-            super().__init__(convert_charrefs=True)
-            self.result: list[str] = []
-            self._skip_depth = 0
-            self._block_tags = {
+class EnhancedHTMLParser(HTMLParser):
+    _block_tags = {
+        "p",
+        "div",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "li",
+        "tr",
+        "article",
+        "section",
+        "header",
+        "footer",
+        "nav",
+        "aside",
+        "blockquote",
+        "ul",
+        "ol",
+        "table",
+        "hr",
+    }
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.result: list[str] = []
+        self._skip_depth = 0
+        self._in_pre = 0
+
+    def handle_starttag(self, tag, attrs):
+        tag_lower = tag.lower()
+        if tag_lower in ("script", "style"):
+            self._skip_depth += 1
+        elif self._skip_depth == 0:
+            if tag_lower == "pre":
+                self._in_pre += 1
+                self.result.append("\n\n```\n")
+            elif tag_lower == "br":
+                self.result.append("\n")
+            elif tag_lower == "hr":
+                self.result.append("\n\n---\n\n")
+            elif tag_lower in (
                 "p",
-                "div",
                 "h1",
                 "h2",
                 "h3",
                 "h4",
                 "h5",
                 "h6",
-                "li",
-                "tr",
-                "pre",
-                "br",
-                "article",
-                "section",
-                "header",
-                "footer",
-                "nav",
-                "aside",
-            }
+                "blockquote",
+                "ul",
+                "ol",
+                "table",
+            ):
+                self.result.append("\n\n")
+            elif tag_lower in self._block_tags:
+                self.result.append("\n")
 
-        def handle_starttag(self, tag, attrs):
-            tag_lower = tag.lower()
-            if tag_lower in ("script", "style"):
-                self._skip_depth += 1
-            elif self._skip_depth == 0:
-                if tag_lower in self._block_tags:
-                    if self.result and self.result[-1] != "\n":
-                        self.result.append("\n")
-                if tag_lower == "code":
-                    self.result.append("`")
-                elif tag_lower == "pre":
-                    self.result.append("\n```\n")
+            if tag_lower == "code":
+                self.result.append("`")
 
-        def handle_endtag(self, tag):
-            tag_lower = tag.lower()
-            if tag_lower in ("script", "style") and self._skip_depth > 0:
-                self._skip_depth -= 1
-            elif self._skip_depth == 0:
-                if tag_lower == "code":
-                    self.result.append("`")
-                elif tag_lower == "pre":
-                    self.result.append("\n```\n")
-                elif tag_lower in self._block_tags:
-                    if self.result and self.result[-1] != "\n":
-                        self.result.append("\n")
+    def handle_endtag(self, tag):
+        tag_lower = tag.lower()
+        if tag_lower in ("script", "style") and self._skip_depth > 0:
+            self._skip_depth -= 1
+        elif self._skip_depth == 0:
+            if tag_lower == "pre":
+                self._in_pre = max(0, self._in_pre - 1)
+                self.result.append("\n```\n\n")
+            elif tag_lower == "code":
+                self.result.append("`")
+            elif tag_lower in (
+                "p",
+                "h1",
+                "h2",
+                "h3",
+                "h4",
+                "h5",
+                "h6",
+                "blockquote",
+                "ul",
+                "ol",
+                "table",
+            ):
+                self.result.append("\n\n")
+            elif tag_lower in self._block_tags:
+                self.result.append("\n")
 
-        def handle_data(self, data):
-            if self._skip_depth == 0:
+    def handle_data(self, data):
+        if self._skip_depth == 0:
+            if self._in_pre > 0:
                 self.result.append(data)
+            else:
+                # Fast path: only sub if multiple spaces or tabs present
+                if "\t" in data or "  " in data:
+                    normalized = _RE_SPACES.sub(" ", data)
+                else:
+                    normalized = data
 
+                if normalized:
+                    # Prevent double spaces across chunks
+                    if normalized.startswith(" ") and self.result and self.result[-1].endswith(" "):
+                        normalized = normalized[1:]
+                    if normalized:
+                        self.result.append(normalized)
+
+
+_RE_SPACES = re.compile(r"[ \t]+")
+_RE_NEWLINES = re.compile(r"\n{3,}")
+
+
+def extract_text_from_html(html: str, base_url: str = "") -> str:
     stripper = EnhancedHTMLParser()
     stripper.feed(html)
     text = "".join(stripper.result)
     # Normalize word joiner and other problematic characters
-    text = text.replace("\u2060", "")
-    text = re.sub(r"[ \t]+", " ", text)
-    text = re.sub(r"\n{3,}", "\n\n", text)
+    if "\u2060" in text:
+        text = text.replace("\u2060", "")
+    # Note: _RE_SPACES is handled per-chunk in handle_data to preserve code blocks.
+    if "\n\n\n" in text:
+        text = _RE_NEWLINES.sub("\n\n", text)
     return text.strip()
 
 
@@ -398,10 +475,13 @@ def fetch_llms_txt(url: str) -> str | None:
             content_type = response.headers.get("Content-Type", "")
             if "text" in content_type or "markdown" in content_type:
                 _save_to_cache(
-                    base_url, "llms_txt", {"found": True, "content": response.text}, ttl=3600
+                    base_url,
+                    "llms_txt",
+                    {"found": True, "content": response.text},
+                    ttl=get_ttl("llms_txt"),
                 )
                 return response.text
-        _save_to_cache(base_url, "llms_txt", {"found": False}, ttl=3600)
+        _save_to_cache(base_url, "llms_txt", {"found": False}, ttl=get_ttl("llms_txt"))
     except Exception:
         pass
     return None
@@ -455,8 +535,6 @@ def normalize_url(url: str) -> str:
         parsed = urlparse(url)
         # Strip all known tracking params
         if parsed.query:
-            from urllib.parse import parse_qs, urlencode
-
             params = parse_qs(parsed.query)
             filtered_params = {
                 k: v
@@ -494,9 +572,8 @@ def normalize_url(url: str) -> str:
 def normalize_query(query: str) -> str:
     """Normalize search query."""
     # Lowercase, trim whitespace, and collapse multiple spaces
-    normalized = query.lower().strip()
-    normalized = re.sub(r"\s+", " ", normalized)
-    return normalized
+    # Using split() and join() is significantly faster than re.sub for collapsing whitespace
+    return " ".join(query.lower().split())
 
 
 def _cache_key(input_str: str, source: str) -> str:
@@ -530,27 +607,67 @@ def get_cache():
 
 def _get_cache():
     global _cache
-    _cache = _get_cache_proxy()
-    if _cache is None:
-        _cache = get_cache()
+    with _cache_lock:
+        _cache = _get_cache_proxy()
+        if _cache is None:
+            _cache = get_cache()
     return _cache
 
 
+def get_ttl(provider: str, config: dict | None = None) -> int:
+    """Get the TTL for a given provider from config or defaults."""
+    # Normalize provider name for alias support
+    provider_key = provider
+    if provider in ("exa_mcp", "exa"):
+        provider_key = "exa"
+    elif provider in ("mistral_browser", "mistral_websearch"):
+        provider_key = "mistral"
+
+    # Use provided config or load from file
+    cfg = config if config is not None else get_config_data()
+
+    # Environment variable override takes precedence over file-based config
+    env_key = f"DO_WDR_CACHE_TTL_{provider_key.upper()}"
+    if env_key in os.environ:
+        try:
+            return int(os.environ[env_key])
+        except ValueError:
+            pass
+
+    if cfg:
+        # Try to get from nested config.toml style
+        ttl_cfg = cfg.get("cache", {}).get("ttl", {})
+        if provider_key in ttl_cfg:
+            return int(ttl_cfg[provider_key])
+        if "default" in ttl_cfg:
+            return int(ttl_cfg["default"])
+
+    return TIERED_TTL.get(provider_key, TIERED_TTL.get("default", 3600))
+
+
 def _get_from_cache(input_str: str, source: str) -> dict[str, Any] | None:
-    cache = _get_cache()
+    with _cache_lock:
+        cache = _get_cache()
     if not cache:
         return None
-    result = cache.get(_cache_key(input_str, source))
+    with _cache_lock:
+        result = cache.get(_cache_key(input_str, source))
     if result is None:
         return None
     return dict(result)
 
 
 def _save_to_cache(input_str: str, source: str, result: dict[str, Any], ttl: int | None = None):
-    cache = _get_cache()
+    with _cache_lock:
+        cache = _get_cache()
     if not cache:
         return
-    cache.set(_cache_key(input_str, source), result, expire=ttl or CACHE_TTL)
+
+    if ttl is None:
+        ttl = get_ttl(source)
+
+    with _cache_lock:
+        cache.set(_cache_key(input_str, source), result, expire=ttl)
 
 
 def _detect_error_type(error: Exception) -> ErrorType:

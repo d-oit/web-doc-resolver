@@ -91,6 +91,13 @@ If git commands fail, follow the [retry sequence](../../../AGENTS.md#git-failure
 before escalating: stash → abort rebase → abort merge → fetch main → retry.
 Never retry more than 3 times.
 
+## References
+
+| Topic | File |
+|-------|------|
+| Design tokens | [references/design-tokens.md](references/design-tokens.md) |
+| Accessibility requirements | [references/accessibility.md](references/accessibility.md) |
+
 ## Anti-patterns (never do these)
 
 - Adding comments to CSS code

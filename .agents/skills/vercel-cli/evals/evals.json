@@ -1,0 +1,20 @@
+{
+  "skill": "vercel-cli",
+  "version": "1.0.0",
+  "evals": [
+    {
+      "name": "deploy-project",
+      "description": "Deploy a project to Vercel",
+      "input": "Deploy the web directory to Vercel",
+      "expected_tools": ["Bash(vercel:*)"],
+      "tags": ["deploy", "vercel"]
+    },
+    {
+      "name": "check-deployment",
+      "description": "Check the status of a Vercel deployment",
+      "input": "Check the latest deployment status",
+      "expected_tools": ["Bash(vercel:*)"],
+      "tags": ["status", "deployment"]
+    }
+  ]
+}

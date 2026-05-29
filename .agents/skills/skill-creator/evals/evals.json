@@ -1,0 +1,27 @@
+{
+  "skill": "skill-creator",
+  "version": "1.0.0",
+  "evals": [
+    {
+      "name": "create-skill",
+      "description": "Create a new skill from scratch",
+      "input": "Create a new skill called 'my-skill' for processing JSON data",
+      "expected_tools": ["Read", "Write"],
+      "tags": ["create", "skill"]
+    },
+    {
+      "name": "optimize-skill",
+      "description": "Optimize an existing skill's description",
+      "input": "Optimize the description of the do-web-doc-resolver skill for better triggering",
+      "expected_tools": ["Read", "Write"],
+      "tags": ["optimize", "description"]
+    },
+    {
+      "name": "run-evals",
+      "description": "Run evaluations for a skill",
+      "input": "Run evals for the do-wdr-cli skill",
+      "expected_tools": ["Bash(python:*)"],
+      "tags": ["evals", "testing"]
+    }
+  ]
+}
