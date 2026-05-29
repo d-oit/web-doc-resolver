@@ -3,12 +3,13 @@
 ## Current State
 
 → **[AUDIT.md](AUDIT.md)** — Project audit. Start here.
-→ **[16-GOAP-WAVE2-6.md](16-GOAP-WAVE2-6.md)** — Comprehensive 7-wave plan (supersedes 15).
-→ **[15-GOAP-NEXT-PHASE.md](15-GOAP-NEXT-PHASE.md)** — Previous plan (superseded by 16).
+→ **[20-GOAP-STATE-UPDATE.md](20-GOAP-STATE-UPDATE.md)** — **Latest** GOAP state (2026-05-29, supersedes 16/18).
+→ **[16-GOAP-WAVE2-6.md](16-GOAP-WAVE2-6.md)** — Previous 7-wave plan (superseded by 20).
+→ **[18-GOAP-PR-ORCHESTRATION.md](18-GOAP-PR-ORCHESTRATION.md)** — PR orchestration (completed).
 
-## Release Readiness: v0.3.4
+## Release Readiness: v0.3.6
 
-**Current version**: `0.3.4` (manifest) — GitHub latest: `v0.3.3` (tag/manifest drift from PR #270 regression)
+**Current version**: `0.3.6` (manifest) — GitHub latest: `v0.3.6` (tag)
 **Commits since v0.3.1**: 240+
 **Quality gate**: PASS (exit 0) — ~3262 markdownlint warnings (non-blocking)
 **CI**: All workflows passing on `main`

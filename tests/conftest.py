@@ -7,6 +7,7 @@ import scripts.quality
 import scripts.resolve
 import scripts.routing
 import scripts.routing_memory
+import scripts.state
 import scripts.synthesis
 import scripts.utils
 
@@ -37,9 +38,9 @@ def setup_test_env():
 
     # Mock get_cache to return our memory cache
     with patch("scripts.utils.get_cache", return_value=cache):
-        # Reset other globals via lock-safe methods
-        scripts.resolve._routing_memory.clear()
-        scripts.resolve._circuit_breakers.clear()
+        # Reset shared state via state.py singletons
+        scripts.state.routing_memory.clear()
+        scripts.state.circuit_breakers.clear()
         scripts.providers_impl._clear_rate_limits()
 
         # Mock synthesis to avoid LLM calls

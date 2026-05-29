@@ -9,26 +9,23 @@ import subprocess
 import threading
 import time
 
+from scripts.constants import (
+    DDG_RESULTS,
+    DEFAULT_TIMEOUT,
+    EXA_RESULTS,
+    MAX_CHARS,
+    MIN_CHARS,
+    TAVILY_RESULTS,
+)
 from scripts.models import ResolvedResult
 from scripts.utils import (
     _get_from_cache,
     _save_to_cache,
-    get_config_data,
     get_session,
     is_safe_url,
 )
 
 logger = logging.getLogger(__name__)
-
-# Load from config or env
-_config = get_config_data()
-
-MAX_CHARS = int(os.getenv("WEB_RESOLVER_MAX_CHARS", _config.get("max_chars", 8000)))
-MIN_CHARS = int(os.getenv("WEB_RESOLVER_MIN_CHARS", _config.get("min_chars", 200)))
-DEFAULT_TIMEOUT = int(os.getenv("WEB_RESOLVER_TIMEOUT", "30"))
-EXA_RESULTS = int(os.getenv("WEB_RESOLVER_EXA_RESULTS", _config.get("exa_results", 5)))
-TAVILY_RESULTS = int(os.getenv("WEB_RESOLVER_TAVILY_RESULTS", _config.get("tavily_results", 5)))
-DDG_RESULTS = int(os.getenv("WEB_RESOLVER_DDG_RESULTS", _config.get("ddg_results", 5)))
 
 _rate_limits: dict[str, float] = {}
 _rate_limits_lock = threading.Lock()

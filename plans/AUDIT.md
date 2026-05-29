@@ -103,12 +103,17 @@
 | #358 | Per-provider token-bucket rate throttling | ✅ |
 | #359-#361 | Template workflows, gitleaks SHA-pins, .gitattributes | ✅ |
 | #364 | ADR-012 Wave 1: thread safety, SSRF, provider fixes | ✅ |
-| #365 | PR #365: GOAP Wave 2-7 plan + N5/N12 fixes + SSRF gaps | ✅ |
-| #371 | Synthesis 2026 standards alignment — 4-anchor quality scoring, COMPARISON anchor | ✅ |
-| #372 | Rate limiting for resolve endpoint — token bucket, client IP identification | ✅ |
+| #365 | GOAP Wave 2-7 plan + N5/N12 fixes + SSRF gaps | ✅ |
+| #371 | Synthesis 2026 standards — 4-anchor quality scoring, COMPARISON anchor | ✅ |
+| #372 | Rate limiting for resolve endpoint — token bucket, client IP | ✅ |
 | #374 | Cargo-deps: bump tokio 1.52.1→1.52.3 | ✅ |
-| #378 | Semantic cache optimization — redundancy pruning, quality heuristics, 4-anchor all() | ✅ |
-| #379 | TypeScript 6.0.3 + ESLint 10 upgrade — `.npmrc`, CSS type decl, Vercel fix | ✅ |
+| #378 | Semantic cache optimization — redundancy pruning, quality heuristics | ✅ |
+| #379 | TypeScript 6.0.3 + ESLint 10 upgrade — `.npmrc`, CSS type decl | ✅ |
+| #395 | Align quality synthesis with 2026 LLM-Readable-Doc standards | ✅ |
+| #401 | Semantic cache hit performance optimization + pruning | ✅ |
+| #403 | Strengthen bridge + improve LLM-ready Markdown output | ✅ |
+| #404 | Codacy agent skill + configuration | ✅ |
+| #405 | Clear-text button in search input (UX) | ✅ |
 
 ### 7. Newly Discovered Issues (2026-05-13 Audit)
 
@@ -160,9 +165,12 @@
 
 | Old # | Action | Status |
 |-------|--------|--------|
-| 5 (old) | Split `query.rs` into sub-modules | Still OPEN — moved to P0 #3 |
+| 5 (old) | Split `query.rs` into sub-modules | ✅ RESOLVED — 527→503 via build_budget extraction |
 | 6 (old) | Add mobile + tablet Playwright to CI | ✅ RESOLVED — already runs 3 projects |
 | 8 (old) | Wire Rust `--profile` to budget presets | ✅ RESOLVED — wired in `main.rs:68-84` |
+| 12 (old) | Extract `build_budget()` to cascade.rs | ✅ RESOLVED — Wave 5 dedup |
+| 9 (old) | Fix CircuitBreakerRegistry TOCTOU | ✅ RESOLVED (PR #365) |
+| 11 (old) | Shared session for synthesis | ✅ RESOLVED (PR #365) |
 
 ### P0 — Critical (do now)
 
@@ -178,14 +186,14 @@
 ### P1 — High (next sprint)
 
 | # | Action | File / Area | Status |
-|---|---|---|---|
-| 7 | Create rate-limiting middleware | `web/middleware.ts` | |
-| 8 | Unit tests for web utilities (6 files: circuit-breaker, errors, quality, keys, log, results) | `web/lib/*.ts` | |
+|---|---|---|---|---|
+| 7 | Create `scripts/constants.py` + `scripts/state.py` (Wave 3) | `scripts/` | ❌ OPEN — prerequisite for further cleanup |
+| 8 | Remove monkey-patching from `resolve.py:85-91` | `scripts/resolve.py` | ❌ OPEN — depends on #7 |
 | 9 | Fix `CircuitBreakerRegistry.is_open()` TOCTOU | `scripts/circuit_breaker.py:46-47` | ✅ RESOLVED (PR #365) |
-| 10 | Fix 7 silent exception handlers in providers | `scripts/providers_impl.py` | |
+| 10 | Fix 2 remaining silent exception handlers | `scripts/providers_impl.py:502,517` | ❌ OPEN (docling, tesseract) |
 | 11 | Replace raw `requests.post()` with shared session + SSRF in synthesis | `scripts/synthesis.py:165` | ✅ RESOLVED (PR #365) |
-| 12 | Extract duplicate `build_budget()` to cascade.rs | `query.rs:506` + `url.rs:475` | |
-| 13 | Fix CI/config issues (coverage upload, gitleaks, flake8, shellcheck severity) | `.github/workflows/`, `.pre-commit-config.yaml` | |
+| 12 | Extract duplicate `build_budget()` to cascade.rs | `query.rs:506` + `url.rs:475` | ✅ RESOLVED (Wave 5) |
+| 13 | Create web unit tests (circuit-breaker, errors, quality, keys, log) | `web/tests/` | ❌ OPEN — 5 test files missing |
 
 ### P2 — Medium (roadmap)
 
@@ -258,7 +266,7 @@ were already deleted before this audit and confirmed not present.
 
 ---
 
-*Last updated: 2026-05-18. ADR-012 Wave 1 ✅. ADR-013 Wave 1b ✅. ADR-015 (Nightly Bridge) ✅. GOAP PR Orchestration ✅ (9 PRs). See [18-GOAP-PR-ORCHESTRATION.md](18-GOAP-PR-ORCHESTRATION.md).*
+*Last updated: 2026-05-29. v0.3.6 released. Waves 1,2,4(partial),5 ✅. Waves 3,6(partial),7 ❌. See [20-GOAP-STATE-UPDATE.md](20-GOAP-STATE-UPDATE.md).*
 
 ### ADR-015 — Nightly Bridge Push → PR (2026-05-13)
 
@@ -315,3 +323,11 @@ were already deleted before this audit and confirmed not present.
 - **`checkRateLimit` is deliberately sync**: The in-memory rate limiter uses `Map` operations (microseconds) — no async needed. Async IP rate limiters (Redis-based) would need `await`, but the PR's simple in-memory implementation is correct.
 - **`next-env.d.ts` is auto-generated**: Always use `/ <reference` syntax, never `import`. Next.js regenerates this file on every build, reverting any manual edits.
 - **Dependabot PRs for major version bumps (Next 15→16) need manual testing**: Close and let Dependabot regenerate against the updated main after feature PRs merge.
+
+### Test Coverage Expansion (2026-05-29)
+
+- **10+ test commits since v0.3.6**: Cascade error handling, routing memory concurrency, URL cascade llms_txt/jina, semantic cache hit/budget exhaustion, provider caplog tests, doc_validator/synthesis edge, doc_models, utils edge cases.
+- **Python test suite significantly expanded**: Tests now cover cascade, routing, providers, synthesis, semantic cache, utils, doc_validator, doc_models, circuit breaker recovery, quality bonus, budget edge, rate limit expiry.
+- **Web tests still minimal**: Only `results.test.ts` exists; circuit-breaker, errors, quality, keys, log tests still missing.
+- **Rust tests**: `mod.rs` + `cascade.rs` have inline tests; `query.rs` + `url.rs` do not.
+- **evals.json**: 2/13 skills (do-web-doc-resolver, do-github-pr-sentinel).

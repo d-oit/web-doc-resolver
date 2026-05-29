@@ -21,29 +21,19 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+from scripts.constants import (
+    BLOCKED_NETWORKS,
+    BLOCKED_SCHEMES,
+    CACHE_DIR,
+    DEFAULT_TIMEOUT,
+    DNS_CACHE_TTL,
+    MAX_CHARS,
+    TIERED_TTL,
+    USER_AGENT,
+)
 from scripts.models import ErrorType, ResolvedResult, ValidationResult
 
 logger = logging.getLogger(__name__)
-
-MAX_CHARS = int(os.getenv("WEB_RESOLVER_MAX_CHARS", "8000"))
-DEFAULT_TIMEOUT = int(os.getenv("WEB_RESOLVER_TIMEOUT", "30"))
-CACHE_DIR = os.path.expanduser(os.getenv("WEB_RESOLVER_CACHE_DIR", "~/.cache/do-web-doc-resolver"))
-CACHE_TTL = int(os.getenv("WEB_RESOLVER_CACHE_TTL", str(3600 * 24)))
-
-# Tiered TTL defaults
-TIERED_TTL = {
-    "firecrawl": 21600,
-    "exa": 14400,
-    "exa_mcp": 14400,
-    "tavily": 14400,
-    "serper": 7200,
-    "jina": 7200,
-    "mistral": 28800,
-    "duckduckgo": 3600,
-    "llms_txt": 28800,
-    "synthesis": 43200,
-    "default": 3600,
-}
 
 _CONFIG_DATA: dict[str, Any] | None = None
 
@@ -69,29 +59,6 @@ def get_config_data() -> dict[str, Any]:
             logger.debug(f"Failed to load config.toml: {e}")
 
     return _CONFIG_DATA
-
-
-# Semantic cache configuration
-ENABLE_SEMANTIC_CACHE = os.environ.get("DO_WDR_SEMANTIC_CACHE", "1") == "1"
-SEMANTIC_CACHE_THRESHOLD = float(os.environ.get("DO_WDR_CACHE_THRESHOLD", "0.85"))
-SEMANTIC_CACHE_MAX_ENTRIES = int(os.environ.get("DO_WDR_CACHE_MAX_ENTRIES", "10000"))
-
-USER_AGENT = (
-    "Mozilla/5.0 (compatible; WebDocResolver/2.0; +https://github.com/d-oit/do-web-doc-resolver)"
-)
-
-BLOCKED_NETWORKS = [
-    ipaddress.ip_network("127.0.0.0/8"),
-    ipaddress.ip_network("10.0.0.0/8"),
-    ipaddress.ip_network("172.16.0.0/12"),
-    ipaddress.ip_network("192.168.0.0/16"),
-    ipaddress.ip_network("169.254.0.0/16"),
-    ipaddress.ip_network("::1/128"),
-    ipaddress.ip_network("fc00::/7"),
-    ipaddress.ip_network("fe80::/10"),
-]
-
-BLOCKED_SCHEMES: set[str] = {"file", "javascript", "data", "vbscript"}
 
 
 _global_session: requests.Session | None = None
@@ -177,9 +144,6 @@ def _safe_request(
     raise requests.TooManyRedirects(f"Exceeded {max_redirects} redirects")
 
 
-_DNS_CACHE_TTL = 60  # seconds
-
-
 @lru_cache(maxsize=1024)
 def _getaddrinfo_bucketed(host: str, port: int | str | None, bucket: int) -> list[tuple]:
     """Internal helper for cached getaddrinfo using time-bucketing."""
@@ -188,7 +152,7 @@ def _getaddrinfo_bucketed(host: str, port: int | str | None, bucket: int) -> lis
 
 def _getaddrinfo_cached(host: str, port: int | str | None = None) -> list[tuple]:
     """Cached version of socket.getaddrinfo with TTL to balance performance and security."""
-    bucket = int(time.time() // _DNS_CACHE_TTL)
+    bucket = int(time.time() // DNS_CACHE_TTL)
     return _getaddrinfo_bucketed(host, port, bucket)
 
 
