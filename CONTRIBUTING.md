@@ -41,8 +41,8 @@ Run the full suite before submitting:
 
 ## Standards
 
-- **Python**: Follow Black formatting and Ruff rules. Use type hints for all public functions.
-- **Rust**: Use standard idioms. Ensure `cargo clippy` and `cargo fmt` pass.
+- **Python**: Follow Black formatting and Ruff rules. Use type hints for public functions.
+- **Rust**: Ensure `cargo clippy` and `cargo fmt` pass.
 - **Commits**: Use [Conventional Commits](https://www.conventionalcommits.org/):
   - `feat:` new feature
   - `fix:` bug fix
@@ -58,8 +58,4 @@ Run the full suite before submitting:
 1. Update documentation for user-facing changes.
 2. Add tests for new features or bug fixes.
 3. Ensure the quality gate passes: `./scripts/quality_gate.sh`.
-4. Update `AGENTS.md` if the repository structure or skills change.
-
-## License
-
-By contributing, you agree that your work will be licensed under the MIT License.
+4. Update `AGENTS.md` if repository structure or skills change.
