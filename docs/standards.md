@@ -1,10 +1,10 @@
 # LLM-Readable-Doc Standards (2026 Edition)
 
-Synthesized outputs from the Web Doc Resolver must prioritize token efficiency and structural clarity for downstream LLM consumption.
+Synthesized outputs prioritize token efficiency and structural clarity for RAG and agent consumption.
 
-## 1. Token-Efficiency Headers
+## 1. YAML Frontmatter
 
-Every synthesized document must begin with a YAML frontmatter block. This allows consuming models to assess relevance without processing the entire body.
+Every synthesized document starts with a YAML block for metadata assessment.
 
 ```yaml
 ---
@@ -17,15 +17,15 @@ last_updated: YYYY-MM-DD
 
 ## 2. Structural Anchors
 
-Content must be partitioned using standardized structural anchors to facilitate RAG performance and citation mapping.
+Standardized anchors facilitate content partitioning and citation mapping.
 
-- `[ANCHOR: SUMMARY]` - High-level synthesis of findings.
-- `[ANCHOR: TECHNICAL_DETAILS]` - Specs, code, or architecture details.
-- `[ANCHOR: COMPARISON]` - Trade-offs and alternatives.
-- `[ANCHOR: CITATIONS]` - Source URL mapping.
+- `[ANCHOR: SUMMARY]`: High-level synthesis.
+- `[ANCHOR: TECHNICAL_DETAILS]`: Specifications, code, and architecture.
+- `[ANCHOR: COMPARISON]`: Trade-offs and alternatives.
+- `[ANCHOR: CITATIONS]`: Source mapping for bracketed indices.
 
-## 3. Formatting Requirements
+## 3. Formatting
 
-- **CommonMark**: Use strict Markdown for maximum compatibility.
-- **Deduplication**: Merge redundant information across sources.
-- **Citation Precision**: Follow claims with bracketed citation indices (e.g., [1]) matching the CITATIONS anchor.
+- **CommonMark**: Strict adherence to CommonMark for parser compatibility.
+- **Deduplication**: Redundant information is merged across sources.
+- **Citations**: Claims must be followed by bracketed indices (e.g., [1]) matching the `CITATIONS` anchor.
