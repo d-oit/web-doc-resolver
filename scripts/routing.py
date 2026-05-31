@@ -135,7 +135,7 @@ def preflight_route(url: str) -> dict:
     hostname = (parsed.hostname or "").lower()
     path = (parsed.path or "").lower()
 
-    # Static doc platforms: prefer llms.txt → direct fetch
+    # Static doc platforms: prefer llms.txt -> direct fetch
     if platform in ("gitbook", "sphinx", "mkdocs"):
         return {
             "platform": platform,
@@ -206,7 +206,7 @@ def plan_provider_order(
                 "mistral_browser",
                 "duckduckgo",
                 "firecrawl",
-    ]
+            ]
         else:
             base = [
                 "llms_txt",
@@ -215,7 +215,7 @@ def plan_provider_order(
                 "mistral_browser",
                 "duckduckgo",
                 "firecrawl",
-    ]
+            ]
     else:
         # DuckDuckGo deprioritized due to instability (Alert 2026-04-20)
         base = ["exa_mcp", "exa", "tavily", "serper", "mistral_websearch", "duckduckgo"]

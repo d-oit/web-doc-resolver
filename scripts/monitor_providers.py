@@ -86,7 +86,10 @@ def update_routing_priority(provider_name: str):
                 indent_match = re.search(r"\n(\s+)", providers_raw)
                 indent = indent_match.group(1) if indent_match else "        "
                 new_providers_str = (
-                    "\n" + indent + (",\n" + indent).join([f'"{p}"' for p in providers]) + ",\n    "
+                    "\n"
+                    + indent
+                    + (",\n" + indent).join([f'"{p}"' for p in providers])
+                    + ",\n    "
                 )
             else:
                 new_providers_str = ", ".join([f'"{p}"' for p in providers])
@@ -242,7 +245,7 @@ def check_firecrawl() -> tuple[CheckResult, str | None]:
             "https://api.firecrawl.dev/v1/scrape",
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
             json={"url": TEST_URL, "formats": ["markdown"]},
-            timeout=35,  # increased from 20s — scrape endpoint can be slow on cold start
+            timeout=35,  # increased from 20s - scrape endpoint can be slow on cold start
         )
         if resp.status_code == 401:
             return CheckResult.FAILED, "HTTP 401 Unauthorized - API key may be invalid or expired"
@@ -250,10 +253,16 @@ def check_firecrawl() -> tuple[CheckResult, str | None]:
             return CheckResult.FAILED, f"HTTP {resp.status_code}: {resp.text[:200]}"
         data = resp.json()
         if "data" not in data or "markdown" not in data["data"]:
-            return CheckResult.FAILED, f"Response schema changed: 'data.markdown' missing. Keys: {list(data.keys())}"
+            return (
+                CheckResult.FAILED,
+                f"Response schema changed: 'data.markdown' missing. Keys: {list(data.keys())}",
+            )
         return CheckResult.HEALTHY, None
     except requests.exceptions.Timeout:
-        return CheckResult.FAILED, "Read timeout after 35s (api.firecrawl.dev unreachable or overloaded)"
+        return (
+            CheckResult.FAILED,
+            "Read timeout after 35s (api.firecrawl.dev unreachable or overloaded)",
+        )
     except Exception as e:
         return CheckResult.FAILED, f"{type(e).__name__}: {e}"
 
