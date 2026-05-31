@@ -135,7 +135,7 @@ def preflight_route(url: str) -> dict:
     hostname = (parsed.hostname or "").lower()
     path = (parsed.path or "").lower()
 
-    # Static doc platforms: prefer llms.txt -> direct fetch
+    # Static doc platforms: prefer llms.txt → direct fetch
     if platform in ("gitbook", "sphinx", "mkdocs"):
         return {
             "platform": platform,
