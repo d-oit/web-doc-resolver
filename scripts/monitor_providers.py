@@ -53,7 +53,7 @@ def update_routing_priority(provider_name: str):
         content = f.read()
 
     # Find ALL base = [...] lists, potentially multi-line. Use word boundary for 'base'.
-    matches = list(re.finditer(r"(\bbase\b\s*=\s*\[")([^\]]+)(\])", content, re.DOTALL))
+    matches = list(re.finditer(r"(bases*=s*[)([^]]+)(])", content, re.DOTALL))
     if not matches:
         logger.error("Could not find any provider base list in routing.py")
         return
@@ -81,12 +81,17 @@ def update_routing_priority(provider_name: str):
             providers.append(provider_name)
 
             # Reconstruct the list string, trying to maintain one-line vs multi-line
-            if "\n" in providers_raw:
+            if "
+" in providers_raw:
                 # Naive multi-line reconstruction: use same indentation if possible
-                indent_match = re.search(r"\n(\s+)", providers_raw)
+                indent_match = re.search(r"
+(s+)", providers_raw)
                 indent = indent_match.group(1) if indent_match else "        "
                 new_providers_str = (
-                    "\n" + indent + (",\n" + indent).join([f'"{p}"' for p in providers]) + ",\n    "
+                    "
+" + indent + (",
+" + indent).join([f'"{p}"' for p in providers]) + ",
+    "
                 )
             else:
                 new_providers_str = ", ".join([f'"{p}"' for p in providers])
