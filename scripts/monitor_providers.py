@@ -84,8 +84,8 @@ def update_routing_priority(provider_name: str):
             if "
 " in providers_raw:
                 # Naive multi-line reconstruction: use same indentation if possible
-                indent_match = re.search(r"
-(s+)", providers_raw)
+                indent_match = re.search(r"\n(\s+)", providers_raw)
+
                 indent = indent_match.group(1) if indent_match else "        "
                 new_providers_str = (
                     "
