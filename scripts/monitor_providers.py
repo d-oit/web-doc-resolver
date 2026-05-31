@@ -53,7 +53,7 @@ def update_routing_priority(provider_name: str):
         content = f.read()
 
     # Find ALL base = [...] lists, potentially multi-line. Use word boundary for 'base'.
-    matches = list(re.finditer(r"(bases*=s*\[)([^\]]+)(\])", content, re.DOTALL))
+    matches = list(re.finditer(r"(\bbase\b\s*=\s*\\[)([^\\]]+)(\\])", content, re.DOTALL))
     if not matches:
         logger.error("Could not find any provider base list in routing.py")
         return
