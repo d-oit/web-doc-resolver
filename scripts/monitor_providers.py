@@ -245,7 +245,7 @@ def check_firecrawl() -> tuple[CheckResult, str | None]:
             timeout=35,  # increased from 20s — scrape endpoint can be slow on cold start
         )
         if resp.status_code == 401:
-            return CheckResult.FAILED, f"HTTP 401 Unauthorized — API key may be invalid or expired"
+            return CheckResult.FAILED, "HTTP 401 Unauthorized - API key may be invalid or expired"
         if resp.status_code != 200:
             return CheckResult.FAILED, f"HTTP {resp.status_code}: {resp.text[:200]}"
         data = resp.json()
