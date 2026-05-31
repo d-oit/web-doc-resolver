@@ -59,7 +59,7 @@ class TestMonitorProviders(unittest.TestCase):
 
         result, error = check_jina()
         self.assertEqual(result, CheckResult.FAILED)
-        self.assertIn("Status code 500", error)
+        self.assertIn("HTTP 500", error)
 
     @patch("os.path.exists", return_value=True)
     @patch(
