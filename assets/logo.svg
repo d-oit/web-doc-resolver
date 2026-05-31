@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" width="320" height="80">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="100%" style="stop-color:#06b6d4"/>
+    </linearGradient>
+    <linearGradient id="chain" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:0.9"/>
+      <stop offset="50%" style="stop-color:#8b5cf6;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:0.9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background pill -->
+  <rect width="320" height="80" rx="14" fill="url(#bg)"/>
+
+  <!-- Cascade resolver icon -->
+  <g transform="translate(18, 16)">
+    <line x1="10" y1="5" x2="10" y2="42"
+          stroke="url(#chain)" stroke-width="2" stroke-dasharray="3 2"/>
+    <circle cx="10" cy="5"  r="4"   fill="#6366f1"/>
+    <circle cx="10" cy="16" r="3.5" fill="#7c3aed"/>
+    <circle cx="10" cy="27" r="3.5" fill="#0891b2"/>
+    <circle cx="10" cy="38" r="3.5" fill="#06b6d4"/>
+    <polygon points="5,40 15,40 10,48" fill="#06b6d4" opacity="0.8"/>
+  </g>
+
+  <!-- Project acronym -->
+  <text x="46" y="36"
+        font-family="'Segoe UI', system-ui, -apple-system, sans-serif"
+        font-weight="700" font-size="22"
+        fill="url(#accent)" letter-spacing="1">WDR</text>
+
+  <!-- Divider -->
+  <line x1="46" y1="44" x2="308" y2="44" stroke="#334155" stroke-width="0.8"/>
+
+  <!-- Full project name -->
+  <text x="46" y="58"
+        font-family="'Segoe UI', system-ui, -apple-system, sans-serif"
+        font-size="10.5" fill="#94a3b8" letter-spacing="0.5">do-web-doc-resolver</text>
+
+  <!-- Tech chip: Python -->
+  <rect x="176" y="48" width="42" height="14" rx="7" fill="#1e3a5f"/>
+  <text x="197" y="58"
+        font-family="system-ui, -apple-system, sans-serif"
+        font-size="8" fill="#38bdf8" text-anchor="middle">Python</text>
+
+  <!-- Tech chip: Rust -->
+  <rect x="222" y="48" width="38" height="14" rx="7" fill="#1c1917"/>
+  <text x="241" y="58"
+        font-family="system-ui, -apple-system, sans-serif"
+        font-size="8" fill="#fb923c" text-anchor="middle">Rust</text>
+
+  <!-- Tech chip: LLM -->
+  <rect x="264" y="48" width="36" height="14" rx="7" fill="#0c2340"/>
+  <text x="282" y="58"
+        font-family="system-ui, -apple-system, sans-serif"
+        font-size="8" fill="#818cf8" text-anchor="middle">LLM</text>
+</svg>
