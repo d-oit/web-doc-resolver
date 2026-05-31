@@ -53,7 +53,7 @@ def update_routing_priority(provider_name: str):
         content = f.read()
 
     # Find ALL base = [...] lists, potentially multi-line. Use word boundary for 'base'.
-    matches = list(re.finditer(r"(\bbase\b\s*=\s*\[)([^\]]+)(\])", content, re.DOTALL))
+    matches = list(re.finditer(r"(\bbase\b\s*=\s*\[")([^\]]+)(\])", content, re.DOTALL))
     if not matches:
         logger.error("Could not find any provider base list in routing.py")
         return
@@ -86,10 +86,7 @@ def update_routing_priority(provider_name: str):
                 indent_match = re.search(r"\n(\s+)", providers_raw)
                 indent = indent_match.group(1) if indent_match else "        "
                 new_providers_str = (
-                    "\n"
-                    + indent
-                    + (",\n" + indent).join([f'"{p}"' for p in providers])
-                    + ",\n    "
+                    "\n" + indent + (",\n" + indent).join([f'"{p}"' for p in providers]) + ",\n    "
                 )
             else:
                 new_providers_str = ", ".join([f'"{p}"' for p in providers])
@@ -133,8 +130,7 @@ def open_github_issue(provider_name: str, issue_desc: str):
         logger.warning(f"Failed to check for existing issues: {e}")
 
     workflow_url = _get_workflow_url()
-    body = f"""
-### Provider Instability Detected
+    body = f"""### Provider Instability Detected
 
 - **Provider**: {provider_name}
 - **Date**: {datetime.now().strftime("%Y-%m-%d %H:%M UTC")}
@@ -180,8 +176,7 @@ def log_issue(provider_name: str, issue_desc: str, api_key_present: bool = True)
                 should_append = False
 
     if should_append:
-        alert_text = f"""
-# Provider Alert: {provider_name} unstable
+        alert_text = f"""# Provider Alert: {provider_name} unstable
 
 - **Date**: {date_str}
 - **Issue**: {issue_desc}
