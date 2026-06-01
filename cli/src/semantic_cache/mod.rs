@@ -21,10 +21,7 @@
 use crate::types::ResolvedResult;
 
 #[cfg(feature = "semantic-cache")]
-use {
-    chaotic_semantic_memory::encoder::TextEncoder, chaotic_semantic_memory::prelude::*,
-    std::collections::HashMap, std::sync::Mutex,
-};
+use {chaotic_semantic_memory::prelude::*, std::collections::HashMap, std::sync::Mutex};
 
 // Use std::result::Result explicitly to avoid conflict with chaotic_semantic_memory::Result
 type StdResult<T, E> = std::result::Result<T, E>;
@@ -61,8 +58,6 @@ pub struct SemanticCache {
     framework: ChaoticSemanticFramework,
     #[cfg(feature = "semantic-cache")]
     config: SemanticCacheConfig,
-    #[cfg(feature = "semantic-cache")]
-    encoder: TextEncoder,
     #[cfg(feature = "semantic-cache")]
     embedding_cache: Mutex<HashMap<String, HVec10240>>,
     /// In-memory cache for non-feature builds

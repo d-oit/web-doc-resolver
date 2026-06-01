@@ -14,6 +14,7 @@
 use crate::config::Config;
 use crate::error::ResolverError;
 use crate::metrics::ResolveMetrics;
+use crate::quality::score_content;
 use crate::semantic_cache::SemanticCache;
 use crate::types::ResolvedResult;
 use reqwest::Client;
@@ -210,28 +211,12 @@ pub fn deterministic_merge(results: &[ResolvedResult]) -> String {
         return String::new();
     }
 
-    let current_date = chrono::Local::now().format("%Y-%m-%d").to_string();
-    let total_chars: usize = results
-        .iter()
-        .map(|r| r.content.as_ref().map(|c| c.len()).unwrap_or(0))
-        .sum();
-    let token_est = total_chars / 4;
+    let mut citations = Vec::new();
 
-    let header = format!(
-        "---\n\
-         relevance_score: 0.70\n\
-         intent_category: Informational\n\
-         token_estimate: {}\n\
-         last_updated: {}\n\
-         ---\n\n",
-        token_est, current_date
-    );
-
-    if results.len() == 1 {
+    let body_content = if results.len() == 1 {
         let content = results[0].content.as_deref().unwrap_or("");
-        return format!(
-            "{}\
-             [ANCHOR: SUMMARY]\n\
+        format!(
+            "[ANCHOR: SUMMARY]\n\
              Deterministic extraction from {} [1].\n\n\
              [ANCHOR: TECHNICAL_DETAILS]\n\
              {}\n\n\
@@ -239,58 +224,82 @@ pub fn deterministic_merge(results: &[ResolvedResult]) -> String {
              Not applicable for single source extraction.\n\n\
              [ANCHOR: CITATIONS]\n\
              [1] {}",
-            header, results[0].source, content, results[0].url
-        );
-    }
+            results[0].source, content, results[0].url
+        )
+    } else {
+        let mut body = String::new();
+        let mut seen_lines = std::collections::HashSet::new();
 
-    let mut body = String::new();
-    let mut citations = Vec::new();
-    let mut seen_lines = std::collections::HashSet::new();
+        for (i, res) in results.iter().enumerate() {
+            let idx = i + 1;
+            citations.push(format!("[{}] {}", idx, res.url));
 
-    for (i, res) in results.iter().enumerate() {
-        let idx = i + 1;
-        citations.push(format!("[{}] {}", idx, res.url));
-
-        if let Some(content) = &res.content {
-            let mut unique_content = String::new();
-            for line in content.lines() {
-                let trimmed = line.trim();
-                if !trimmed.is_empty() && seen_lines.insert(trimmed.to_string()) {
-                    unique_content.push_str(line);
-                    unique_content.push('\n');
-                } else if trimmed.is_empty() {
-                    unique_content.push('\n');
+            if let Some(content) = &res.content {
+                let mut unique_content = String::new();
+                for line in content.lines() {
+                    let trimmed = line.trim();
+                    if !trimmed.is_empty() && seen_lines.insert(trimmed.to_string()) {
+                        unique_content.push_str(line);
+                        unique_content.push('\n');
+                    } else if trimmed.is_empty() {
+                        unique_content.push('\n');
+                    }
                 }
-            }
 
-            let content = unique_content.trim();
-            if !content.is_empty() {
-                if !body.is_empty() {
-                    body.push_str("\n\n---\n\n");
+                let content = unique_content.trim();
+                if !content.is_empty() {
+                    if !body.is_empty() {
+                        body.push_str("\n\n---\n\n");
+                    }
+                    body.push_str(&format!(
+                        "### Source {}: {} [{}]\n{}",
+                        idx, res.source, idx, content
+                    ));
                 }
-                body.push_str(&format!(
-                    "### Source {}: {} [{}]\n{}",
-                    idx, res.source, idx, content
-                ));
             }
         }
-    }
 
-    format!(
-        "{}\
-         [ANCHOR: SUMMARY]\n\
-         Deterministic merge of {} sources.\n\n\
-         [ANCHOR: TECHNICAL_DETAILS]\n\
-         {}\n\n\
-         [ANCHOR: COMPARISON]\n\
-         Comparison not available in deterministic merge mode.\n\n\
-         [ANCHOR: CITATIONS]\n\
-         {}",
-        header,
-        results.len(),
-        body,
-        citations.join("\n")
-    )
+        format!(
+            "[ANCHOR: SUMMARY]\n\
+             Deterministic merge of {} sources.\n\n\
+             [ANCHOR: TECHNICAL_DETAILS]\n\
+             {}\n\n\
+             [ANCHOR: COMPARISON]\n\
+             Comparison not available in deterministic merge mode.\n\n\
+             [ANCHOR: CITATIONS]\n\
+             {}",
+            results.len(),
+            body,
+            citations.join("\n")
+        )
+    };
+
+    // Extract links for quality scoring
+    let link_re = regex::Regex::new(r"https?://[^\s)>\]]+").unwrap();
+    let links: Vec<String> = link_re
+        .find_iter(&body_content)
+        .map(|m| m.as_str().to_string())
+        .take(10)
+        .collect();
+
+    // Calculate quality score (using 0.7 as default threshold)
+    let quality = score_content(&body_content, &links, 0.7);
+
+    let current_date = chrono::Local::now().format("%Y-%m-%d").to_string();
+    let total_chars = body_content.len();
+    let token_est = total_chars / 4;
+
+    let header = format!(
+        "---\n\
+         relevance_score: {:.2}\n\
+         intent_category: Informational\n\
+         token_estimate: {}\n\
+         last_updated: {}\n\
+         ---\n\n",
+        quality.score, token_est, current_date
+    );
+
+    format!("{}{}", header, body_content)
 }
 
 #[cfg(test)]

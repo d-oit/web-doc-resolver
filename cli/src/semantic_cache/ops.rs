@@ -6,8 +6,11 @@ use crate::types::ResolvedResult;
 #[cfg(feature = "semantic-cache")]
 use {
     chaotic_semantic_memory::encoder::TextEncoder, chaotic_semantic_memory::prelude::*,
-    serde_json::Value, std::collections::HashMap, std::sync::Mutex,
+    serde_json::Value, std::collections::HashMap, std::sync::Mutex, std::sync::OnceLock,
 };
+
+#[cfg(feature = "semantic-cache")]
+static GLOBAL_ENCODER: OnceLock<TextEncoder> = OnceLock::new();
 
 impl SemanticCache {
     #[cfg(feature = "semantic-cache")]
@@ -58,7 +61,6 @@ impl SemanticCache {
         Ok(Some(Self {
             framework,
             config: cache_config,
-            encoder: TextEncoder::new(),
             embedding_cache: Mutex::new(HashMap::new()),
         }))
     }
@@ -349,7 +351,8 @@ impl SemanticCache {
             }
         }
 
-        let vec = self.encoder.encode(&normalized);
+        let encoder = GLOBAL_ENCODER.get_or_init(TextEncoder::new);
+        let vec = encoder.encode(&normalized);
 
         if let Ok(mut cache) = self.embedding_cache.lock() {
             if cache.len() < 1000 {
