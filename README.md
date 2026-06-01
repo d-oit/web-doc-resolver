@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/logo.svg" alt="do-web-doc-resolver logo" width="320"/>
+<img src="assets/do-web-doc-resolver-banner.png" alt="do-web-doc-resolver logo"/>
 
 # do-web-doc-resolver
 
