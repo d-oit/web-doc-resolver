@@ -211,12 +211,11 @@ pub fn deterministic_merge(results: &[ResolvedResult]) -> String {
         return String::new();
     }
 
-    let body_content;
     let mut citations = Vec::new();
 
-    if results.len() == 1 {
+    let body_content = if results.len() == 1 {
         let content = results[0].content.as_deref().unwrap_or("");
-        body_content = format!(
+        format!(
             "[ANCHOR: SUMMARY]\n\
              Deterministic extraction from {} [1].\n\n\
              [ANCHOR: TECHNICAL_DETAILS]\n\
@@ -226,7 +225,7 @@ pub fn deterministic_merge(results: &[ResolvedResult]) -> String {
              [ANCHOR: CITATIONS]\n\
              [1] {}",
             results[0].source, content, results[0].url
-        );
+        )
     } else {
         let mut body = String::new();
         let mut seen_lines = std::collections::HashSet::new();
@@ -260,7 +259,7 @@ pub fn deterministic_merge(results: &[ResolvedResult]) -> String {
             }
         }
 
-        body_content = format!(
+        format!(
             "[ANCHOR: SUMMARY]\n\
              Deterministic merge of {} sources.\n\n\
              [ANCHOR: TECHNICAL_DETAILS]\n\
@@ -272,8 +271,8 @@ pub fn deterministic_merge(results: &[ResolvedResult]) -> String {
             results.len(),
             body,
             citations.join("\n")
-        );
-    }
+        )
+    };
 
     // Extract links for quality scoring
     let link_re = regex::Regex::new(r"https?://[^\s)>\]]+").unwrap();

@@ -1,6 +1,7 @@
 # ISSUE: Semantic Health Summary - June 2026
 
 ## Executive Summary
+
 The `do-wdr` CLI semantic cache has been optimized to resolve the Python-Rust bridge bottleneck (specifically the `TextEncoder` initialization overhead). We have also improved the synthesis quality reporting for deterministic merges.
 
 ## Metrics Performance
@@ -17,14 +18,19 @@ The `do-wdr` CLI semantic cache has been optimized to resolve the Python-Rust br
 ## Optimizations Implemented
 
 ### 1. Lazy Encoder Initialization
+
 The `TextEncoder` was previously initialized on every run, adding ~1.2s of overhead even for cache hits.
+
 - **Solution**: Implemented `OnceLock` for the global encoder in Rust.
 - **Impact**: Reduced exact hit latency from ~1.5s to ~12ms.
 
 ### 2. Dynamic Synthesis Quality Scoring
+
 `deterministic_merge` previously used a hardcoded `relevance_score: 0.70`.
+
 - **Solution**: Integrated `score_content` to dynamically calculate the score based on the 2026 standards.
 - **Impact**: Synthesis results now correctly reflect high content quality (~0.95 for standard docs).
 
 ## Identified Bottlenecks
+
 - **Model Loading**: The `all-MiniLM-L6-v2` model initialization remains the primary bottleneck for the *first* semantic hit in a session. For CLI usage, we prioritize "Exact Match Short-Circuit" to maintain <20ms latency for repeated queries.
