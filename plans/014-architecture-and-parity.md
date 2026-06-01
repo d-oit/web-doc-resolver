@@ -55,6 +55,6 @@ dedicated module. These patterns make maintenance harder and create subtle bugs.
 
 ## References
 
-- [GOAP_FOLLOWUP.md](GOAP_FOLLOWUP.md) — Wave execution order
+- [GOAP_FOLLOWUP.md](archive/GOAP_FOLLOWUP.md) — Wave execution order
 - [AUDIT.md](AUDIT.md) — Code quality section (Q1-Q3)
 - [ADR-012](012-correctness-and-safety-fixes.md) — Remaining fixes depend on this

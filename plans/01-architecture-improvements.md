@@ -33,4 +33,4 @@ All 6 phases remain to be implemented. See ADR-014 for the highest-priority item
 
 - [ADR-014](014-architecture-and-parity.md) — DRY consolidation plan
 - [ADR-009](009-cross-runtime-analysis.md) — Cross-runtime parity gaps
-- [GOAP_FOLLOWUP.md](GOAP_FOLLOWUP.md) — Wave tracking
+- [GOAP_FOLLOWUP.md](archive/GOAP_FOLLOWUP.md) — Wave tracking

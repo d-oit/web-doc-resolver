@@ -58,6 +58,6 @@ poisoning, npm peer dep conflicts).
 
 ## References
 
-- [CI_FIX.md](CI_FIX.md) — Detailed CI fix notes (npm, libsql)
-- [ESLINT_CONFIG_UPDATE.md](ESLINT_CONFIG_UPDATE.md) — ESLint fix notes
-- [GOAP_FOLLOWUP.md](GOAP_FOLLOWUP.md) — Wave execution tracking
+- [CI_FIX.md](archive/CI_FIX.md) — Detailed CI fix notes (npm, libsql)
+- [ESLINT_CONFIG_UPDATE.md](archive/ESLINT_CONFIG_UPDATE.md) — ESLint fix notes
+- [GOAP_FOLLOWUP.md](archive/GOAP_FOLLOWUP.md) — Wave execution tracking

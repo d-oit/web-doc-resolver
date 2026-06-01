@@ -116,6 +116,23 @@ python -m ruff check .
 echo "Running black..."
 python -m black --check .
 
+echo "Running mypy..."
+python -m mypy scripts/ --ignore-missing-imports
+
+echo "Checking Python file sizes (max 500 lines)..."
+MAX_LINES=500
+OVER_LIMIT=0
+for f in scripts/*.py; do
+    lines=$(wc -l < "$f")
+    if [ "$lines" -gt "$MAX_LINES" ]; then
+        echo "ERROR: $f has $lines lines (max $MAX_LINES)"
+        OVER_LIMIT=1
+    fi
+done
+if [ "$OVER_LIMIT" -eq 1 ]; then
+    exit 1
+fi
+
 # Rust CLI checks
 echo "Running Rust CLI tests..."
 cd "$REPO_ROOT/cli"

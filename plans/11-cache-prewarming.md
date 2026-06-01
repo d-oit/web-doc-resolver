@@ -15,7 +15,7 @@ two critical issues:
 2. **Web excessive API usage**: `prewarmCache` fires 20 concurrent requests on
    every mount and every `apiKeys` change (Codacy F4).
 
-Extracted to separate PR per [ADR-010](10-pr341-quality-gate-fixes.md).
+Extracted to separate PR per [ADR-010](archive/10-pr341-quality-gate-fixes.md).
 
 ## GOAP
 

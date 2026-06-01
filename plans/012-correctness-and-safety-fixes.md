@@ -72,6 +72,6 @@ of correctness issues across the Python codebase:
 
 ## References
 
-- [GOAP_FOLLOWUP.md](GOAP_FOLLOWUP.md) — Remaining waves
+- [GOAP_FOLLOWUP.md](archive/GOAP_FOLLOWUP.md) — Remaining waves
 - [PR #364](https://github.com/d-oit/do-web-doc-resolver/pull/364)
 - [ADR-014](014-architecture-and-parity.md) — Prerequisite for Waves 4-6

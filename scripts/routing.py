@@ -2,11 +2,14 @@
 Budget-aware routing logic for the Web Doc Resolver.
 """
 
+import logging
 import os
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
 from scripts.routing_memory import RoutingMemory
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_MIN_FREE_QUALITY = float(os.getenv("DO_WDR_MIN_FREE_QUALITY_TO_SKIP_PAID", "0.70"))
 
@@ -83,6 +86,7 @@ def extract_domain(url: str) -> str | None:
         hostname = parsed.hostname
         return hostname.lower() if hostname else None
     except Exception:
+        logger.debug("Failed to extract domain from URL: %s", url, exc_info=True)
         return None
 
 
@@ -91,6 +95,7 @@ def detect_doc_platform(url: str) -> str | None:
     try:
         parsed = urlparse(url)
     except Exception:
+        logger.debug("Failed to parse URL for platform detection: %s", url, exc_info=True)
         return None
 
     hostname = (parsed.hostname or "").lower()

@@ -2,7 +2,10 @@
 Negative caching logic for the Web Doc Resolver.
 """
 
+import logging
 from datetime import datetime, timedelta, timezone
+
+logger = logging.getLogger(__name__)
 
 
 def should_skip_from_negative_cache(cache, key: str, provider: str) -> bool:
@@ -24,6 +27,7 @@ def should_skip_from_negative_cache(cache, key: str, provider: str) -> bool:
             dt = dt.replace(tzinfo=timezone.utc)
         return dt > datetime.now(timezone.utc)
     except Exception:
+        logger.debug("Failed to parse negative cache expiry: %s", expires_at, exc_info=True)
         return False
 
 

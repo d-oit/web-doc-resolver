@@ -58,4 +58,4 @@ on user impact and maintenance cost:
 ## References
 
 - [AUDIT.md](AUDIT.md) — Section 4: Cross-Platform Parity
-- [GOAP_FOLLOWUP.md](GOAP_FOLLOWUP.md) — Wave implementation tracking
+- [GOAP_FOLLOWUP.md](archive/GOAP_FOLLOWUP.md) — Wave implementation tracking
