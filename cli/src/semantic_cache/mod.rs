@@ -21,11 +21,7 @@
 use crate::types::ResolvedResult;
 
 #[cfg(feature = "semantic-cache")]
-use {
-    chaotic_semantic_memory::prelude::*,
-    std::collections::HashMap,
-    std::sync::Mutex,
-};
+use {chaotic_semantic_memory::prelude::*, std::collections::HashMap, std::sync::Mutex};
 
 // Use std::result::Result explicitly to avoid conflict with chaotic_semantic_memory::Result
 type StdResult<T, E> = std::result::Result<T, E>;
