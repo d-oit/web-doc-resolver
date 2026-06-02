@@ -55,6 +55,8 @@ Activate this skill when you need to:
 
 ## Release Workflow
 
+> **IMPORTANT**: This repo has a CI/CD release workflow (`.github/workflows/release.yml`) that automatically builds cross-platform binaries and creates the GitHub release when a `v*.*.*` tag is pushed. Do **NOT** use `gh release create` manually — it creates an incomplete release without binaries.
+
 ### 1. Prepare Release
 
 ```bash
@@ -63,9 +65,6 @@ git status
 
 # Run tests
 ./scripts/quality_gate.sh
-
-# Capture screenshots
-./scripts/capture/capture-release.sh $VERSION
 ```
 
 ### 2. Bump Version
@@ -75,17 +74,7 @@ git status
 python scripts/sync_versions.py --set $VERSION
 ```
 
-### 3. Generate Changelog
-
-```bash
-# From conventional commits
-git log --oneline --no-merges v0.1.0..HEAD
-
-# Or use changelog generator
-./scripts/changelog.sh v0.2.0
-```
-
-### 4. Create Tag
+### 3. Commit & Tag
 
 ```bash
 git add -A
@@ -94,14 +83,16 @@ git tag -a v0.2.0 -m "Release v0.2.0"
 git push origin main --tags
 ```
 
-### 5. Create GitHub Release
+### 4. Wait for CI/CD
 
-```bash
-gh release create v0.2.0 \
-  --title "Release v0.2.0" \
-  --notes-file CHANGELOG.md \
-  --assets assets/screenshots/release-v0.2.0/
-```
+The tag push triggers `.github/workflows/release.yml` which:
+- Runs Python and Rust test suites
+- Builds binaries for Linux, macOS, and Windows
+- Generates build attestations
+- Extracts changelog section from `CHANGELOG.md`
+- Creates GitHub release with binaries and install instructions
+
+Monitor progress: `gh run list --workflow=release.yml`
 
 ## References
 

@@ -177,29 +177,13 @@ else
 fi
 
 echo ""
-echo -e "${BLUE}Step 9: Creating GitHub release...${NC}"
-if command -v gh &> /dev/null; then
-    if confirm_skip "Create GitHub release?"; then
-        ASSETS_DIR="$ROOT_DIR/assets/screenshots/release-v$NEW_VERSION"
-        ASSETS_FLAG=""
-        if [ -d "$ASSETS_DIR" ]; then
-            ASSETS_FLAG="--assets $ASSETS_DIR/*"
-        fi
-
-        gh release create "v$NEW_VERSION" \
-            --title "Release v$NEW_VERSION" \
-            --notes-file /tmp/CHANGELOG_NEW.md \
-            $ASSETS_FLAG \
-            --target main
-
-        echo -e "${GREEN}GitHub release created${NC}"
-    else
-        echo -e "${YELLOW}Skipping GitHub release${NC}"
-    fi
-else
-    echo -e "${YELLOW}GitHub CLI not installed, skipping release creation${NC}"
-    echo "Install with: brew install gh"
-fi
+echo -e "${BLUE}Step 9: GitHub release (CI/CD)...${NC}"
+echo -e "${YELLOW}The tag push triggers .github/workflows/release.yml${NC}"
+echo -e "${YELLOW}CI/CD will build binaries and create the GitHub release automatically.${NC}"
+echo ""
+echo -e "${BLUE}Monitor progress:${NC}"
+echo "  gh run list --workflow=release.yml"
+echo "  gh run watch <run-id>"
 
 echo ""
 echo -e "${BLUE}═══════════════════════════════════════════${NC}"

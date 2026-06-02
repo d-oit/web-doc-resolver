@@ -20,17 +20,15 @@ git push origin :refs/tags/v0.2.0
 ## GitHub Commands
 
 ```bash
-# Create release
-gh release create v0.2.0 --title "v0.2.0" --notes "Release notes"
-
 # List releases
 gh release list
 
 # View release
 gh release view v0.2.0
 
-# Delete release
-gh release delete v0.2.0
+# Monitor release workflow
+gh run list --workflow=release.yml
+gh run watch <run-id>
 ```
 
 ## Version Management
