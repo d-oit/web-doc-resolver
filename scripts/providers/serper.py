@@ -43,7 +43,7 @@ def resolve_with_serper(query: str, max_chars: int = MAX_CHARS) -> ResolvedResul
             logger.warning("Serper rate limited — setting 1hr cooldown")
             _set_rate_limit("serper", 3600)
             return None
-        if response.status_code == 401 or response.status_code == 403:
+        if response.status_code in (401, 403):
             logger.warning(
                 "Serper auth error: HTTP %s — API key may be invalid", response.status_code
             )

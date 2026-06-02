@@ -35,7 +35,7 @@ def resolve_with_jina(url: str, max_chars: int = MAX_CHARS) -> ResolvedResult | 
             logger.warning("Jina rate limited — setting cooldown")
             _set_rate_limit("jina")
             return None
-        if response.status_code == 401 or response.status_code == 403:
+        if response.status_code in (401, 403):
             logger.warning("Jina auth error: HTTP %s for %s", response.status_code, url)
             return None
         if response.status_code != 200:

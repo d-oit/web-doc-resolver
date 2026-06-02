@@ -1,3 +1,11 @@
+## [0.3.7] - 2026-06-02
+
+### Fixed
+
+- **Scripts**: Remove unused imports in resolve.py (cache_negative, quality, routing)
+- **Scripts**: Add explicit `check=False` to subprocess.run calls in docling provider
+- **Providers**: Merge status code comparisons with `in` in jina and serper providers
+
 ## [0.3.6] - 2026-05-22
 
 ### Added
