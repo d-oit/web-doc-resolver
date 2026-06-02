@@ -164,6 +164,7 @@ fn strip_html(html: &str) -> String {
     let mut current_tag = String::new();
     let mut skip_content_depth: usize = 0;
     let mut in_pre = false;
+    let mut current_pre_lang = String::new();
 
     let block_tags: HashSet<&str> = [
         "p",
@@ -224,14 +225,27 @@ fn strip_html(html: &str) -> String {
                     if tag_name == "code" {
                         if !in_pre {
                             result.push('`');
+                        } else if current_pre_lang.is_empty() {
+                            // If we're in a <pre> block but haven't found a language hint yet, check the <code> tag
+                            if let Some(lang) = get_attribute(&current_tag, "class")
+                                .and_then(|c| parse_language_hint(&c))
+                            {
+                                // Backtrack to inject the language hint if the current block is empty of content
+                                if result.ends_with("\n```\n") {
+                                    result.truncate(result.len() - 1); // Remove trailing newline
+                                    result.push_str(&lang);
+                                    result.push('\n');
+                                    current_pre_lang = lang;
+                                }
+                            }
                         }
                     } else if tag_name == "pre" {
                         in_pre = true;
-                        let lang = get_attribute(&current_tag, "class")
+                        current_pre_lang = get_attribute(&current_tag, "class")
                             .and_then(|c| parse_language_hint(&c))
                             .unwrap_or_default();
                         result.push_str("\n```");
-                        result.push_str(&lang);
+                        result.push_str(&current_pre_lang);
                         result.push('\n');
                     } else if tag_name == "img" {
                         if let Some(alt) = get_attribute(&current_tag, "alt") {
@@ -327,6 +341,13 @@ mod tests {
         let result = strip_html(html);
         assert!(result.contains("```rust"));
         assert!(!result.contains("`` ` ``")); // Ensure no double backticks
+    }
+
+    #[test]
+    fn test_code_blocks_nested_lang() {
+        let html = "<pre><code class=\"language-python\">print(1)</code></pre>";
+        let result = strip_html(html);
+        assert!(result.contains("```python"));
     }
 
     #[test]
