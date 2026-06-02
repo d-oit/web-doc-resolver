@@ -1015,15 +1015,15 @@ class TestRoutingMemoryEdgeCases:
         stats = rm.get_domain_stats("shared-provider", "shared.com")
         assert stats is not None
         total_expected = num_threads * records_per_thread
-        assert stats["attempts"] == total_expected, (
-            f"Expected {total_expected} attempts, got {stats['attempts']}"
-        )
+        assert (
+            stats["attempts"] == total_expected
+        ), f"Expected {total_expected} attempts, got {stats['attempts']}"
         # avg_latency_ms should be reasonable (not NaN, not corrupted)
         assert 100 <= stats["avg_latency_ms"] <= 200
         # ~66.7% success rate expected (i % 3 != 0 → fails every 3rd record)
-        assert 0.6 < stats["success_rate"] < 0.75, (
-            f"Expected ~0.667 success rate, got {stats['success_rate']}"
-        )
+        assert (
+            0.6 < stats["success_rate"] < 0.75
+        ), f"Expected ~0.667 success rate, got {stats['success_rate']}"
         # quality scores range from 0.7 to 0.88
         assert stats["avg_quality"] > 0.7, f"Expected avg_quality > 0.7, got {stats['avg_quality']}"
 
