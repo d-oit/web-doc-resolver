@@ -15,7 +15,7 @@ this folder tracks **in-flight and proposed work**. Completed plans are in
 
 ## Release Status
 
-- **Current**: `v0.3.6` — manifests aligned across Python / Rust / Web / CLI
+- **Current**: `v0.3.7` — manifests aligned across Python / Rust / Web / CLI
 - **Quality gate**: PASS (markdownlint warnings non-blocking)
 - **Open PRs**: 0 · **Open issues**: 0
 - **Static analysis on `main`**: Clippy ✅ · ESLint ✅ · Ruff ✅ · mypy ✅
