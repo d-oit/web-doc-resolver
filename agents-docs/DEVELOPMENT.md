@@ -280,6 +280,19 @@ To verify the semantic cache performance and quality synthesis:
 # - Symlink validation
 ```
 
+## Nightly Bridge
+
+The project maintains a solid bridge between Python (Cascade skills) and Rust (wdr CLI).
+Interfaces between these components are validated automatically.
+
+Every Nightly at 01:00 UTC, the `nightly-bridge.yml` workflow:
+
+1. Rebuilds the Rust CLI (`cargo build --release`) and the Python environment.
+2. Runs the full integration test suite in `tests/integration/`.
+3. Action: Specifically test the `wdr` CLI's ability to output "LLM-ready" Markdown from a complex JavaScript-heavy site.
+4. If the output contains broken LaTeX or unparsed code blocks, attempt to fix the parsing logic in the Rust resolver module.
+5. If successful, run `cargo fmt` and `ruff format` before committing.
+
 ## Troubleshooting
 
 ### Common Issues
