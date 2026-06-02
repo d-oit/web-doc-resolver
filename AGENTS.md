@@ -54,6 +54,15 @@ Detailed reference material in `agents-docs/`:
 - No new secrets (verified via Gitleaks)
 - `AGENTS.md` updated if structure changed
 
+### Nightly Bridge
+The project maintains a solid bridge between Python (Cascade skills) and Rust (wdr CLI).
+Every Nightly at 01:00 UTC, the `nightly-bridge.yml` workflow:
+1. Rebuilds the Rust CLI and Python environment.
+2. Runs the full integration test suite in `tests/integration/`.
+3. Verifies LLM-ready Markdown output (YAML frontmatter + structural anchors) from JS-heavy sites.
+4. Attempts to fix parsing logic (LaTeX, code blocks) in the Rust resolver if failures are detected.
+5. Formats code with `cargo fmt` and `ruff format` before committing.
+
 ### Test Commands
 
 - **Python**: `pytest -m "not live"`
